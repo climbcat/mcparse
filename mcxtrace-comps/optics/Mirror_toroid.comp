@@ -1,0 +1,132 @@
+/*******************************************************************************
+*
+* McXtrace, X-ray tracing package
+*         Copyright, All rights reserved
+*         Risoe National Laboratory, Roskilde, Denmark
+*         Institut Laue Langevin, Grenoble, France
+*         University of Copenhagen, Copenhagen, Denmark
+*
+* Component: Mirror_toroid
+*
+* %I
+*
+* Written by: Erik B Knudsen
+* Date: Jul 2016
+* Version: 1.0
+* Origin: DTU Physics
+*
+* Toroidal shape mirror
+*
+* %D
+* This is an implementation of a toroidal mirror which may be curved in two dimensions.
+* To avoid solving quartic equations, the intersection is compited as a combination of 
+* two intersections. First, the ray is intersected with a cylinder to catch (almost) the small
+* radius curvature. Secondly, the ray is the intersected with an ellipsoid, with the curvatures
+* matching that of the torus. 
+*
+* In the first incarnation we assume the mirror to be curving outwards (a bump).
+*
+* %P
+* Input parameters:
+*
+* (none)
+*
+* %E
+*******************************************************************************/
+
+DEFINE COMPONENT Mirror_toroid
+DEFINITION PARAMETERS ()
+SETTING PARAMETERS (string reflec="", zdepth=0.1, xwidth=0.01, radius, radius_o,R0=0)
+OUTPUT PARAMETERS ()
+/* X-ray parameters: (x,y,z,kx,ky,kz,phi,t,Ex,Ey,Ez,p) */ 
+
+SHARE
+%{
+  %include "read_table-lib"
+  %include "reflectivity-lib"
+%}
+
+DECLARE
+%{  
+  t_Reflec re;
+%}
+
+INITIALIZE
+%{
+  int status;
+  if (reflec && strlen(reflec) && strcmp(reflec,"NULL") ) {
+    status=reflec_Init(&re,COATING_UNDEFINED,reflec,NULL);
+  }else{
+    status=reflec_Init_const(&re,R0);
+  }
+  if(status!=0){
+    fprintf(stderr,"ERROR (%s): Could not interpret reflectivity. Aborting.\n", NAME_CURRENT_COMP);
+    exit(-1);
+  }
+%}
+
+TRACE
+%{
+    int status;
+    double k,l0,l1,l2,l3,tx,ty,tz;
+    
+    do {
+        k=sqrt(scalar_prod(kx,ky,kz,kx,ky,kz));
+
+        /*TODO check the permutation of coordinates and the actual position of the cylinder.*/ 
+        status= cylinder_intersect(&l0,&l1,x,z,y+radius,kx,kz,ky, radius, zdepth); 
+        if (!status) break; /* no interaction with the cylinder*/
+        if(status & (02|04)) break; /*we exit the top/bottom of the cylinder*/
+        /*if the first intersection is behind the particle - this means the ray is on the wrong side of the mirror*/
+        if(l0<0) break;
+
+        tx=x+l0*kx/k;
+        ty=y+l0*ky/k;
+        tz=z+l0*kz/k;
+
+        /*check mirror limits of intersection point.*/
+        if(tz<-zdepth/2.0 || tz>zdepth/2.0) break;
+        /*check if the width is OK*/
+        double xmax=acos(xwidth/(2.0*radius))*radius;
+        if(tx<-xmax || tx>xmax) break;
+
+        status=ellipsoid_intersect(&l2,&l3,x,y+radius,z,kx,ky,kz,radius,radius,radius_o+radius,NULL);
+        if (!status) break;
+        if(l2<0) break; /*This shouldn't be possible*/
+        /*the mirror is indeed hit*/
+        PROP_DL(l2);
+        SCATTER;
+        
+        double nx,ny,nz;
+        nx=2*x/(radius*radius);
+        ny=2*(y+radius)/(radius*radius);/*ellipsoid is displaced to put Origin on the surface*/
+        nz=2*z/((radius+radius_o)*(radius+radius_o));
+        NORM(nx,ny,nz);
+
+        /*By definition the normal vector points out from the ellipsoid*/
+        double s=scalar_prod(kx,ky,kz,nx,ny,nz);
+         
+        kx=kx-2*s*nx;
+        ky=ky-2*s*ny;
+        kz=kz-2*s*nz;
+
+	/*the get ref. by call to reflectivity lib*/
+	double R,q;
+	q=2.0*s;
+	R=reflecq(re,q,0,k*K2E,fabs(90-acos(s/k)*RAD2DEG));
+	p*=R;
+	phi+=M_PI;
+    }while(0);
+%}
+
+MCDISPLAY
+%{
+  /* A bit ugly; hard-coded dimensions. */
+  
+  line(-xwidth/2.0,0,-zdepth/2.0, xwidth/2.0,0,-zdepth/2.0);
+  line(-xwidth/2.0,0, zdepth/2.0, xwidth/2.0,0, zdepth/2.0);
+  line(-xwidth/2.0,0,-zdepth/2.0,-xwidth/2.0,0, zdepth/2.0);
+  line( xwidth/2.0,0,-zdepth/2.0, xwidth/2.0,0, zdepth/2.0);
+%}
+
+END
