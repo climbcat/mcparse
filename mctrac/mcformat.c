@@ -57,12 +57,12 @@
 typedef struct Pool_header *Pool; /* allows memory to be included */
 #include "memory.c"
 
-#include "../lib/share/mccode-r.h" /* with decl of MC_PATHSEP */
-#include "../lib/share/mccode-r.c"
+#include "../libr/mccode-r.h" /* with decl of MC_PATHSEP */
+#include "../libr/mccode-r.c"
 
 /* end of parts copied from mccode.h */
-#include "../lib/share/read_table-lib.h" /* independent library */
-#include "../lib/share/read_table-lib.c"
+#include "../libr/read_table-lib.h" /* independent library */
+#include "../libr/read_table-lib.c"
 
 #include <dirent.h>
 #include <errno.h>

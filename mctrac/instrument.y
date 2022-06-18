@@ -1643,7 +1643,7 @@ print_usage(void)
   fprintf(stderr, "  Use 'run' to both run " MCCODE_NAME " and the C compiler.\n");
   fprintf(stderr, "  Use 'gui' to run the " MCCODE_NAME " GUI.\n");
   fprintf(stderr, "SEE ALSO: mcrun, mcplot, mcdisplay, mcresplot, mcstas2vitess, mcgui, mcformat, mcdoc\n");
-  fprintf(stderr, "DOC:      Please visit <" MCCODE_BUGREPORT ">\n");
+  fprintf(stderr, "DOC:      Please visit <MCCODE_BUGREPORT>\n");
   exit(1);
 }
 

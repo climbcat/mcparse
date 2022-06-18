@@ -65,6 +65,28 @@
 #define MCCODE_YEAR "MCCODE_YEAR"
 #endif
 
+// jg: added 220618
+
+#ifndef FLAVOR
+#define FLAVOR "mc"
+#endif
+
+#ifndef FLAVOR_UPPER
+#define FLAVOR_UPPER "MC"
+#endif
+
+#ifndef MC_PATHSEP_C
+#define MC_PATHSEP_C "/"
+#endif
+
+#ifndef MC_PATHSEP_S
+#define MC_PATHSEP_S "/"
+#endif
+
+#ifndef MCSTAS
+#define MCSTAS "mcstas"
+#endif
+
 
 /*******************************************************************************
 * Functions defined in memory.c
