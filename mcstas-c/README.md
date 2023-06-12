@@ -1,4 +1,10 @@
+# parser
+
+Manually parses .instr and .comp files into an AST.
+
 # mctrac
+
+Cogen and simulation files extracted from McCode at some point.
 
 cd mctrac
 flex instrument.l
