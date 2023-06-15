@@ -1,6 +1,54 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <sys/mman.h>
+#include <cassert>
+
+// NOTES:
+// - four-space indentation
+// - zero-is-initialization
+// - C base only with:
+// - operator overloading
+// - easy struct definition
+// - easy struct init
+// - don't use templates for now
+
+
+//
+// types
+
+
+typedef u_int8_t u8;
+typedef u_int16_t u16;
+typedef u_int32_t u32;
+typedef u_int64_t u64;
+
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
+
+typedef float f32;
+typedef double f64;
+
+u64 GIGABYTE = 1024*1024*1024;
+u64 MEGABYTE = 1024*1024;
+u64 KILOBYTE = 1024;
+u64 SIXTEEN_KB = 16 * KILOBYTE;
+
+
+//
+// macros & constants
+
+
+#define PI 3.14159
+f32 deg2rad = PI / 180;
+f32 rad2deg = 180 / PI;
+
+
+//
+// parse cmd line args
+
 
 bool ContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
     for (int i = 0; i < argc; ++i) {
@@ -42,3 +90,196 @@ char *GetArgValue(const char *key, int argc, char **argv) {
     }
     return argv[i+1];
 }
+
+
+//
+// linked lists
+
+
+struct LList1 {
+    LList1 *next;
+};
+
+struct LList2 {
+    LList2 *next;
+    LList2 *prev;
+};
+
+struct LList3 {
+    LList3 *next;
+    LList3 *prev;
+    LList3 *descend;
+};
+
+void InsertBefore1(void *newlink, void *before) {
+    LList1 *newlnk = (LList1*) newlink;
+
+    newlnk->next = (LList1*) before;
+}
+void InsertBefore2(void *newlink, void *before) {
+    LList2 *newlnk = (LList2*) newlink;
+    LList2 *befre = (LList2*) before;
+
+    newlnk->prev = befre->prev;
+    newlnk->next = befre;
+    if (befre->prev != NULL) {
+        befre->prev->next = newlnk;
+    }
+    befre->prev = newlnk;
+}
+void InsertBelow3(void *newlink, void *below) {
+    LList3 *newlnk = (LList3*) newlink;
+    LList3 *belw = (LList3*) below;
+
+    newlnk->descend = belw->descend;
+    belw->descend = newlnk;
+
+    // TODO: should we set all ascend pointers in the ll-row/siblings of below?
+}
+
+
+//
+// memory allocation
+
+
+struct MArena {
+    u8 *mem;
+    u64 mapped;
+    u64 committed;
+    u64 used;
+    bool locked = false;
+};
+
+#define ARENA_RESERVE_SIZE GIGABYTE
+#define ARENA_COMMIT_CHUNK SIXTEEN_KB
+
+void _ArenaBumpProtected(MArena *a, u32 nbumps) {
+    u64 amount = nbumps * SIXTEEN_KB;
+    mprotect(a->mem + a->committed, amount, PROT_READ | PROT_WRITE);
+}
+MArena ArenaCreate() {
+    MArena a;
+
+    a.mem = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE, -1, 0);
+    a.mapped = ARENA_RESERVE_SIZE;
+    mprotect(a.mem, ARENA_COMMIT_CHUNK, PROT_READ | PROT_WRITE);
+    a.committed = ARENA_COMMIT_CHUNK;
+    a.used = 0;
+
+    return a;
+}
+void *ArenaAlloc(MArena *a, u64 len) {
+    assert(!a->locked && "ArenaAlloc: memory arena is open, use MArenaClose to allocate");
+
+    if (a->committed < a->used + len) {
+        u32 nbumps = len / ARENA_COMMIT_CHUNK + 1;
+        _ArenaBumpProtected(a, nbumps);
+    }
+    void *result = a->mem + a->used;
+    a->used += len;
+
+    return result;
+}
+void ArenaPush(MArena *a, void *data, u32 len) {
+    void *dest = ArenaAlloc(a, len);
+    memcpy(dest, data, len);
+}
+void *ArenaOpen(MArena *a) {
+    assert(!a->locked && "ArenaOpen: memory arena is alredy open");
+
+    return a->mem + a->used;
+}
+void ArenaClose(MArena *a, u64 len) {
+    assert(a->locked && "ArenaClose: memory arena not open");
+
+    a->locked = false;
+    ArenaAlloc(a, len);
+}
+// TODO: add option to de-allocate
+// TODO: add scratch arenas
+// TODO: add ArenaPush() functionality
+
+
+struct MPool {
+    u8 *mem;
+    u32 block_size;
+    u32 nblocks;
+    LList1 *free_list;
+};
+
+#define CACHE_LINE_SIZE 64
+
+MPool PoolCreate(u32 block_size_min, u32 nblocks) {
+    assert(nblocks > 1);
+
+    MPool p;
+    p.block_size = CACHE_LINE_SIZE * (block_size_min / CACHE_LINE_SIZE + 1);
+    p.mem = (u8*) mmap(NULL, p.block_size * nblocks, PROT_READ | PROT_WRITE, MAP_PRIVATE, -1, 0);
+    p.free_list = (LList1*) p.mem;
+
+    LList1 *current = p.free_list;
+    for (u32 i = 0; i < nblocks - 1; ++i) {
+        current->next = (LList1*) (p.mem + i * p.block_size);
+        current = current->next;
+    }
+    current->next = NULL;
+
+    return p;
+}
+void *PoolAlloc(MPool *p) {
+    if (p->free_list == NULL) {
+        return NULL;
+    }
+    void *retval = p->free_list;
+    p->free_list = p->free_list->next;
+    memset(retval, 0, CACHE_LINE_SIZE);
+
+    return retval;
+}
+void PoolFree(MPool *p, void *element) {
+    // TODO: does element-was-alloc verification imply using slot headers?
+
+    assert(element >= (void*) p->mem); // check lower bound
+    u64 offset = (u8*) element -  p->mem;
+    assert(offset % p->block_size == 0); // check alignment
+    assert(offset < p->block_size * p->nblocks); // check upper bound
+
+    LList1 *element_as_list = (LList1*) element;
+    element_as_list->next = p->free_list;
+    p->free_list = element_as_list;
+}
+
+
+//
+// strings
+
+
+struct String {
+    char *str;
+    u32 len;
+};
+
+struct StringList {
+    StringList *next;
+    String value;
+};
+
+// TODO: impl
+String StrCmp(String a, String b) { return String {}; }
+String StrCat(String a, String b, MArena *arena) { return String {}; }
+StringList StrSplit(String base, char split_at_and_remove, MArena *arena) { return StringList {}; }
+StringList StrSplitKeep(String base, char split_at_and_keep, MArena *arena) { return StringList {}; }
+
+// TODO: impl
+String StrJoin(StringList strs) { return String {}; }
+String StrJoinChar(StringList strs, char separator) { return String {}; }
+
+
+
+
+//
+// data structures
+
+// TODO: fixed-size list
+
+
