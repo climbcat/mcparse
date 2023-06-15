@@ -295,7 +295,7 @@ struct StringList {
     String value;
 };
 
-String StrLitteral(MArena *a, const char *lit) {
+String StrLiteral(MArena *a, const char *lit) {
     String s;
     s.len = 0;
     while (*(lit + s.len) != '\0') {
@@ -347,5 +347,4 @@ String StrJoinChar(StringList strs, char separator) { return String {}; }
 // data structures
 
 // TODO: fixed-size list
-
 

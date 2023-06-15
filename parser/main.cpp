@@ -7,10 +7,10 @@ void Test() {
     printf("ArenaCreate\n");
     MArena arena = ArenaCreate();
 
-    printf("StrLitteral\n");
-    String s1 = StrLitteral(&arena, "hello");
-    String s2 = StrLitteral(&arena, "hello_noteq");
-    String s3 = StrLitteral(&arena, "hello");
+    printf("StrLiteral\n");
+    String s1 = StrLiteral(&arena, "hello");
+    String s2 = StrLiteral(&arena, "hello_noteq");
+    String s3 = StrLiteral(&arena, "hello");
 
     printf("StrPrint - ");
     StrPrint(s1);
