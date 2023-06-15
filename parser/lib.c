@@ -47,6 +47,37 @@ f32 rad2deg = 180 / PI;
 
 
 //
+// min / max
+
+
+inline u8 MinU32(u8 a, u8 b) { return (a <= b) ? a : b; }
+inline u16 MinU32(u16 a, u16 b) { return (a <= b) ? a : b; }
+inline u32 MinU32(u32 a, u32 b) { return (a <= b) ? a : b; }
+inline u64 MinU32(u64 a, u64 b) { return (a <= b) ? a : b; }
+
+inline s8 MinS32(s8 a, s8 b) { return (a <= b) ? a : b; }
+inline s16 MinS32(s16 a, s16 b) { return (a <= b) ? a : b; }
+inline s32 MinS32(s32 a, s32 b) { return (a <= b) ? a : b; }
+inline s64 MinS32(s64 a, s64 b) { return (a <= b) ? a : b; }
+
+inline f32 MinF32(f32 a, f32 b) { return (a <= b) ? a : b; }
+inline f64 MinF32(f64 a, f64 b) { return (a <= b) ? a : b; }
+
+inline u8 MaxU32(u8 a, u8 b) { return (a > b) ? a : b; }
+inline u16 MaxU32(u16 a, u16 b) { return (a > b) ? a : b; }
+inline u32 MaxU32(u32 a, u32 b) { return (a > b) ? a : b; }
+inline u64 MaxU32(u64 a, u64 b) { return (a > b) ? a : b; }
+
+inline s8 MaxS32(s8 a, s8 b) { return (a > b) ? a : b; }
+inline s16 MaxS32(s16 a, s16 b) { return (a > b) ? a : b; }
+inline s32 MaxS32(s32 a, s32 b) { return (a > b) ? a : b; }
+inline s64 MaxS32(s64 a, s64 b) { return (a > b) ? a : b; }
+
+inline f32 MaxF32(f32 a, f32 b) { return (a > b) ? a : b; }
+inline f64 MaxF32(f64 a, f64 b) { return (a > b) ? a : b; }
+
+
+//
 // parse cmd line args
 
 
@@ -160,7 +191,7 @@ void _ArenaBumpProtected(MArena *a, u32 nbumps) {
 MArena ArenaCreate() {
     MArena a;
 
-    a.mem = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE, -1, 0);
+    a.mem = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
     a.mapped = ARENA_RESERVE_SIZE;
     mprotect(a.mem, ARENA_COMMIT_CHUNK, PROT_READ | PROT_WRITE);
     a.committed = ARENA_COMMIT_CHUNK;
@@ -264,9 +295,44 @@ struct StringList {
     String value;
 };
 
+String StrLitteral(MArena *a, const char *lit) {
+    String s;
+    s.len = 0;
+    while (*(lit + s.len) != '\0') {
+        ++s.len;
+    }
+    s.str = (char*) ArenaAlloc(a, s.len);
+    memcpy(s.str, lit, s.len);
+
+    return s;
+}
+void StrPrint(String s) {
+    printf("%.*s", s.len, s.str);
+}
+bool StrEqual(String a, String b) {
+    u32 i = 0;
+    u32 len = MinU32(a.len, b.len);
+    while (i < len) {
+        if (a.str[i] != b.str[i]) {
+            return false;
+        }
+        ++i;
+    }
+
+    return a.len == b.len;
+}
+String StrCat(MArena *arena, String a, String b) {
+    String cat;
+    cat.len = a.len + b.len;
+    cat.str = (char*) ArenaAlloc(arena, cat.len);
+    memcpy(cat.str, a.str, a.len);
+    memcpy(cat.str + a.len, b.str, b.len);
+
+    return cat;
+}
+
+
 // TODO: impl
-String StrCmp(String a, String b) { return String {}; }
-String StrCat(String a, String b, MArena *arena) { return String {}; }
 StringList StrSplit(String base, char split_at_and_remove, MArena *arena) { return StringList {}; }
 StringList StrSplitKeep(String base, char split_at_and_keep, MArena *arena) { return StringList {}; }
 
