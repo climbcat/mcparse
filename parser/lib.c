@@ -178,6 +178,15 @@ void InsertBelow3(void *newlink, void *below) {
 // memory allocation
 
 
+// NOTE: The pool de-alloc function does not check whether the element was ever allocated. I am not
+// sure how to do this - perhaps with an occupation list. However tis adds complexity tremendously.
+// Maybe with a hash list, seems overkill. Having a no-use header for every element either messes
+// up alignment or compactness.
+// TODO: arena de-allocation that shrinks commited memory (useful when e.g. closing large files)
+// TODO: scratch arenas
+// TODO: ArenaPush(a, src, len)
+
+
 struct MArena {
     u8 *mem;
     u64 mapped;
@@ -188,6 +197,15 @@ struct MArena {
 
 #define ARENA_RESERVE_SIZE GIGABYTE
 #define ARENA_COMMIT_CHUNK SIXTEEN_KB
+
+struct MPool {
+    u8 *mem;
+    u32 block_size;
+    u32 nblocks;
+    LList1 *free_list;
+};
+
+#define MPOOL_CACHE_LINE_SIZE 64
 
 void _ArenaBumpProtected(MArena *a, u32 nbumps) {
     u64 amount = nbumps * SIXTEEN_KB;
@@ -232,19 +250,6 @@ void ArenaClose(MArena *a, u64 len) {
     a->locked = false;
     ArenaAlloc(a, len);
 }
-// TODO: de-allocation also shrinks commited memory (think; closing a large file in a model editor)
-// TODO: scratch arenas
-// TODO: ArenaPush(a, src, len)
-
-
-struct MPool {
-    u8 *mem;
-    u32 block_size;
-    u32 nblocks;
-    LList1 *free_list;
-};
-
-#define MPOOL_CACHE_LINE_SIZE 64
 
 MPool PoolCreate(u32 block_size_min, u32 nblocks) {
     assert(nblocks > 1);
@@ -288,6 +293,9 @@ void PoolFree(MPool *p, void *element) {
 //
 // strings
 
+// NOTE: currently no "string list header" struct, which means that strings and str lst are
+// treated a bit differently: Strings are passed as a struct, but str lists as a pointer.
+// NOTE: the string list is in fact an LList1
 
 struct String {
     char *str;
@@ -427,4 +435,22 @@ String StrJoinInsertChar(MArena *a, StringList *strs, char insert) {
 // data structures
 
 
+// TODO: impl. dynamic array
+
+struct Darr {
+    MArena mem = NULL; // the exclusive source of memory for this darr
+    u32 element_size = 0; // constant size of elements in auto-expanding array
+    u32 cnt = 0; // number of occupying elements
+    u32 size = 0; // total darr size in bytes
+};
+
+Darr DynamicArrayCreate(u32 element_size) {
+    Darr da;
+    da.a = ArenaCreate();
+    da.element_size = element_size;
+    return da;
+}
+
+void DarrAdd(void *element) {} // push element to array
+void DarrDelete(Darr *da, u32 idx) {} // will unordered-delete element at index idx
 
