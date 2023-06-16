@@ -6,6 +6,7 @@ void Test() {
 
     printf("ArenaCreate\n");
     MArena arena = ArenaCreate();
+    MArena *a = &arena;
 
     printf("StrLiteral\n");
     String s1 = StrLiteral(&arena, "hello");
@@ -21,6 +22,15 @@ void Test() {
 
     printf("StrCat - ");
     StrPrint(StrCat(&arena, s1, s3));
+    printf("\n");
+
+    printf("StrSplit / StrLstPrint - ");
+    String to_split = StrLiteral(a, "...Hello.I..Have.Been.Split..");
+    printf("splitting: ");
+    StrPrint(to_split);
+    printf(" into: ");
+    StringList *lst = StrSplit(a, to_split, '.');
+    StrLstPrint(lst);
     printf("\n");
 }
 

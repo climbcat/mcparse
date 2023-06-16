@@ -218,6 +218,7 @@ void ArenaPush(MArena *a, void *data, u32 len) {
 void *ArenaOpen(MArena *a) {
     assert(!a->locked && "ArenaOpen: memory arena is alredy open");
 
+    a->locked = true;
     return a->mem + a->used;
 }
 void ArenaClose(MArena *a, u64 len) {
@@ -238,13 +239,13 @@ struct MPool {
     LList1 *free_list;
 };
 
-#define CACHE_LINE_SIZE 64
+#define MPOOL_CACHE_LINE_SIZE 64
 
 MPool PoolCreate(u32 block_size_min, u32 nblocks) {
     assert(nblocks > 1);
 
     MPool p;
-    p.block_size = CACHE_LINE_SIZE * (block_size_min / CACHE_LINE_SIZE + 1);
+    p.block_size = MPOOL_CACHE_LINE_SIZE * (block_size_min / MPOOL_CACHE_LINE_SIZE + 1);
     p.mem = (u8*) mmap(NULL, p.block_size * nblocks, PROT_READ | PROT_WRITE, MAP_PRIVATE, -1, 0);
     p.free_list = (LList1*) p.mem;
 
@@ -263,7 +264,7 @@ void *PoolAlloc(MPool *p) {
     }
     void *retval = p->free_list;
     p->free_list = p->free_list->next;
-    memset(retval, 0, CACHE_LINE_SIZE);
+    memset(retval, 0, MPOOL_CACHE_LINE_SIZE);
 
     return retval;
 }
@@ -330,11 +331,60 @@ String StrCat(MArena *arena, String a, String b) {
 
     return cat;
 }
+StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
+    StringList *first;
+    StringList *node;
+    StringList *prev = NULL;
+    u32 i = 0;
 
+    
+    while (true) {
+        while (base.str[i] == split_at_and_remove) {
+            ++i;
+        }
+        if (i >= base.len) {
+            return first;
+        }
+
+        node = (StringList *) ArenaAlloc(arena, sizeof(StringList));
+        node->value.str = (char*) ArenaOpen(arena);
+        node->value.len = 0;
+
+        if (prev != NULL) {
+            prev->next = node;
+        }
+        else {
+            first = node;
+        }
+
+        int j = 0;
+        while (base.str[i] != split_at_and_remove && i < base.len) {
+            ++node->value.len;
+            node->value.str[j] = base.str[i];
+            ++i;
+            ++j;
+        }
+
+        ArenaClose(arena, node->value.len);
+        prev = node;
+        if (i < base.len) {
+            ++i; // skip the split char
+        }
+        else {
+            return first;
+        }
+    }
+}
+void StrLstPrint(StringList *lst) {
+    while (lst != NULL) {
+        StrPrint(lst->value);
+        printf(", ");
+        lst = lst->next;
+    }
+}
 
 // TODO: impl
-StringList StrSplit(String base, char split_at_and_remove, MArena *arena) { return StringList {}; }
-StringList StrSplitKeep(String base, char split_at_and_keep, MArena *arena) { return StringList {}; }
+StringList StrSplitKeep(MArena *arena, String base, char split_at_and_keep) { return StringList {}; }
 
 // TODO: impl
 String StrJoin(StringList strs) { return String {}; }
