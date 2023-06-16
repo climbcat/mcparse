@@ -40,6 +40,12 @@ void Test() {
     join = StrJoinInsertChar(a, lst, '/');
     StrPrint(join);
     printf("\n");
+
+    printf("CLAInit - ");
+    if (CLAContainsArg("--test", g_argc, g_argv)) {
+        printf("OK");
+    }
+    printf("\n");
 }
 
 
@@ -48,11 +54,12 @@ void DoStuff() {
 }
 
 int main (int argc, char **argv) {
-    if (ContainsArg("--help", argc, argv) || ContainsArg("-h", argc, argv)) {
+    CLAInit(argc, argv);
+    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("--help:          display help (this text)\n");
         exit(0);
     }
-    if (ContainsArg("--test", argc, argv)) {
+    if (CLAContainsArg("--test", argc, argv)) {
         Test();
         exit(0);
     }

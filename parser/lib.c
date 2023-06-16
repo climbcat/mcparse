@@ -4,14 +4,18 @@
 #include <sys/mman.h>
 #include <cassert>
 
-// NOTES:
-// - four-space indentation
-// - zero-is-initialization
-// - C base only with:
-// - operator overloading
-// - easy struct definition
-// - easy struct init
-// - don't use templates for now
+
+// four-space indentation
+// zero-is-initialization
+// minimize usage of cstdlib
+// int/float typedefs for all sizes
+// constants & macros
+// length-based strings
+// arena & pool allocation
+// C base language, and:
+// operator overloading
+// easy struct definition & init
+// avoid templates
 
 
 //
@@ -81,7 +85,13 @@ inline f64 MaxF32(f64 a, f64 b) { return (a > b) ? a : b; }
 // parse cmd line args
 
 
-bool ContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
+s32 g_argc;
+char **g_argv;
+void CLAInit(s32 argc, char **argv) {
+    g_argc = argc;
+    g_argv = argv;
+}
+bool CLAContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
     for (int i = 0; i < argc; ++i) {
         char *arg = argv[i];
         if (!strcmp(argv[i], search)) {
@@ -93,8 +103,7 @@ bool ContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
     }
     return false;
 }
-
-bool ContainsArgs(const char *search_a, const char *search_b, int argc, char **argv) {
+bool CLAContainsArgs(const char *search_a, const char *search_b, int argc, char **argv) {
     bool found_a = false;
     bool found_b = false;
     for (int i = 0; i < argc; ++i) {
@@ -107,10 +116,9 @@ bool ContainsArgs(const char *search_a, const char *search_b, int argc, char **a
     }
     return found_a && found_b;
 }
-
-char *GetArgValue(const char *key, int argc, char **argv) {
+char *CLAGetArgValue(const char *key, int argc, char **argv) {
     int i;
-    bool error = !ContainsArg(key, argc, argv, &i) || i == argc - 1;;
+    bool error = !CLAContainsArg(key, argc, argv, &i) || i == argc - 1;;
     if (error == false) {
         char *val = argv[i+1];
         error = strlen(val) > 1 && val[0] == '-' && val[1] == '-';
@@ -121,7 +129,6 @@ char *GetArgValue(const char *key, int argc, char **argv) {
     }
     return argv[i+1];
 }
-
 
 //
 // linked lists
@@ -164,8 +171,6 @@ void InsertBelow3(void *newlink, void *below) {
 
     newlnk->descend = belw->descend;
     belw->descend = newlnk;
-
-    // TODO: should we set all ascend pointers in the ll-row/siblings of below?
 }
 
 
@@ -227,9 +232,9 @@ void ArenaClose(MArena *a, u64 len) {
     a->locked = false;
     ArenaAlloc(a, len);
 }
-// TODO: add option to de-allocate
-// TODO: add scratch arenas
-// TODO: add ArenaPush() functionality
+// TODO: de-allocation also shrinks commited memory (think; closing a large file in a model editor)
+// TODO: scratch arenas
+// TODO: ArenaPush(a, src, len)
 
 
 struct MPool {
@@ -269,8 +274,6 @@ void *PoolAlloc(MPool *p) {
     return retval;
 }
 void PoolFree(MPool *p, void *element) {
-    // TODO: does element-was-alloc verification imply using slot headers?
-
     assert(element >= (void*) p->mem); // check lower bound
     u64 offset = (u8*) element -  p->mem;
     assert(offset % p->block_size == 0); // check alignment
@@ -344,7 +347,6 @@ StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
     StringList *prev = NULL;
     u32 i = 0;
 
-    
     while (true) {
         while (base.str[i] == split_at_and_remove) {
             ++i;
@@ -382,10 +384,9 @@ StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
         }
     }
 }
-/*
-StringList *StrSplit_ARENA_PUSH_VERSION(MArena *arena, String base, char split_at_and_remove) {
-}
-*/
+// TODO: impl. "arena push version" e.g. a version that uses ArenaPush(src, len) rather than
+//     ArenaAlloc() to see which one is most readable, I expect it to be better
+// StringList *StrSplit(MArena *arena, String base, char split) {}
 
 String StrJoin(MArena *a, StringList *strs) {
     String join;
