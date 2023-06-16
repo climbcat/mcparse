@@ -331,6 +331,13 @@ String StrCat(MArena *arena, String a, String b) {
 
     return cat;
 }
+void StrLstPrint(StringList *lst) {
+    while (lst != NULL) {
+        StrPrint(lst->value);
+        printf(", ");
+        lst = lst->next;
+    }
+}
 StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
     StringList *first;
     StringList *node;
@@ -375,26 +382,48 @@ StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
         }
     }
 }
-void StrLstPrint(StringList *lst) {
-    while (lst != NULL) {
-        StrPrint(lst->value);
-        printf(", ");
-        lst = lst->next;
-    }
+/*
+StringList *StrSplit_ARENA_PUSH_VERSION(MArena *arena, String base, char split_at_and_remove) {
 }
+*/
 
-// TODO: impl
-StringList StrSplitKeep(MArena *arena, String base, char split_at_and_keep) { return StringList {}; }
+String StrJoin(MArena *a, StringList *strs) {
+    String join;
+    join.str = (char*) ArenaOpen(a);
+    join.len = 0;
 
-// TODO: impl
-String StrJoin(StringList strs) { return String {}; }
-String StrJoinChar(StringList strs, char separator) { return String {}; }
+    while (strs != NULL) {
+        memcpy(join.str + join.len, strs->value.str, strs->value.len);
+        join.len += strs->value.len;
+        strs = strs->next;
+    }
 
+    ArenaClose(a, join.len);
+    return join;
+}
+String StrJoinInsertChar(MArena *a, StringList *strs, char insert) {
+    String join;
+    join.str = (char*) ArenaOpen(a);
+    join.len = 0;
 
+    while (strs != NULL) {
+        memcpy(join.str + join.len, strs->value.str, strs->value.len);
+        join.len += strs->value.len;
+        strs = strs->next;
+
+        if (strs != NULL) {
+            join.str[join.len] = insert;
+            ++join.len;
+        }
+    }
+
+    ArenaClose(a, join.len);
+    return join;
+}
 
 
 //
 // data structures
 
-// TODO: fixed-size list
+
 

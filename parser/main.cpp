@@ -32,6 +32,14 @@ void Test() {
     StringList *lst = StrSplit(a, to_split, '.');
     StrLstPrint(lst);
     printf("\n");
+
+    printf("StrJoin - ");
+    String join = StrJoin(a, lst);
+    StrPrint(join);
+    printf("\n");
+    join = StrJoinInsertChar(a, lst, '/');
+    StrPrint(join);
+    printf("\n");
 }
 
 
