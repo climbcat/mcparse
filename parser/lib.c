@@ -85,6 +85,10 @@ inline f64 MaxF32(f64 a, f64 b) { return (a > b) ? a : b; }
 // parse cmd line args
 
 
+// TODO: what is the posix-std notation for input args? e.g. required, optional, flags.
+// ToDO: be able to generate the help text more automatically
+
+
 s32 g_argc;
 char **g_argv;
 void CLAInit(s32 argc, char **argv) {
@@ -318,6 +322,12 @@ String StrLiteral(MArena *a, const char *lit) {
 
     return s;
 }
+void StrPrint(const char *format, String s) {
+    u8 format_str_max_len = 255;
+    char buff[s.len + format_str_max_len];
+    sprintf(buff, "%.*s", s.len, s.str);
+    printf(format, buff);
+}
 void StrPrint(String s) {
     printf("%.*s", s.len, s.str);
 }
@@ -435,22 +445,23 @@ String StrJoinInsertChar(MArena *a, StringList *strs, char insert) {
 // data structures
 
 
-// TODO: impl. dynamic array
+// TODO: what is the plan? Does an internal arena manage memory, or is it managed directly?
+// TODO: impl.
 
-struct Darr {
-    MArena mem = NULL; // the exclusive source of memory for this darr
+struct Dar {
+    MArena a;
+    u8 *mem = NULL; // the exclusive source of memory for this darr
     u32 element_size = 0; // constant size of elements in auto-expanding array
     u32 cnt = 0; // number of occupying elements
-    u32 size = 0; // total darr size in bytes
+    u32 size = 0; // total occupied size in bytes
 };
 
-Darr DynamicArrayCreate(u32 element_size) {
-    Darr da;
+Dar DarCreate(u32 element_size) {
+    Dar da;
     da.a = ArenaCreate();
     da.element_size = element_size;
     return da;
 }
-
-void DarrAdd(void *element) {} // push element to array
-void DarrDelete(Darr *da, u32 idx) {} // will unordered-delete element at index idx
+void DarAdd(Dar *da, void *element) {} // push element to array
+void DarDelete(Dar *da, u32 idx) {} // will unordered-delete element at index idx
 
