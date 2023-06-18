@@ -213,9 +213,13 @@ struct MPool {
 
 #define MPOOL_CACHE_LINE_SIZE 64
 
-void _ArenaBumpProtected(MArena *a, u32 nbumps) {
-    u64 amount = nbumps * SIXTEEN_KB;
-    mprotect(a->mem + a->committed, amount, PROT_READ | PROT_WRITE);
+u64 MemoryProtect(void *from, u64 amount) {
+    mprotect(from, amount, PROT_READ | PROT_WRITE);
+    return amount;
+}
+void *MemoryReserve(u64 reserve_size) {
+    void *result = mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    return result;
 }
 MArena ArenaCreate() {
     MArena a;
@@ -232,8 +236,7 @@ void *ArenaAlloc(MArena *a, u64 len) {
     assert(!a->locked && "ArenaAlloc: memory arena is open, use MArenaClose to allocate");
 
     if (a->committed < a->used + len) {
-        u32 nbumps = len / ARENA_COMMIT_CHUNK + 1;
-        _ArenaBumpProtected(a, nbumps);
+        MemoryProtect(a->mem + a->committed, (len / ARENA_COMMIT_CHUNK + 1) * SIXTEEN_KB);
     }
     void *result = a->mem + a->used;
     a->used += len;
@@ -474,23 +477,39 @@ String LoadFileMMAP(char *filepath) {
 // data structures
 
 
-// TODO: what is the plan? Does an internal arena manage memory, or is it managed directly?
-// TODO: impl.
-
 struct Dar {
-    MArena a;
-    u8 *mem = NULL; // the exclusive source of memory for this darr
-    u32 element_size = 0; // constant size of elements in auto-expanding array
-    u32 cnt = 0; // number of occupying elements
-    u32 size = 0; // total occupied size in bytes
+    u8 *mem;
+    u64 committed;
+
+    u32 element_size; 
+    u32 cnt;
+    u64 used;
 };
 
+#define DAR_RESERVE_SIZE GIGABYTE
+#define DAR_CHUNK_SIZE SIXTEEN_KB
+
 Dar DarCreate(u32 element_size) {
+    assert(element_size <= DAR_CHUNK_SIZE);
+
     Dar da;
-    da.a = ArenaCreate();
     da.element_size = element_size;
+    da.mem = (u8*) MemoryReserve(DAR_RESERVE_SIZE);
+    da.committed = MemoryProtect(da.mem, DAR_CHUNK_SIZE);
+    da.cnt = 0;
+    da.used = 0;
+
     return da;
 }
-void DarAdd(Dar *da, void *element) {} // push element to array
-void DarDelete(Dar *da, u32 idx) {} // will unordered-delete element at index idx
+void DarAdd(Dar *da, void *el) {
+    // TODO: it is annoying to have to check this here - how to fix
+    if (da->used + da->element_size > da->committed) {
+        da->committed += MemoryProtect(da->mem + da->committed, DAR_CHUNK_SIZE);
+    }
+
+    memcpy(da->mem + da->used, el, da->element_size);
+    ++da->cnt;
+    da->used += da->element_size;
+}
+void DarDelete(Dar *da, u32 idx) {} // unordered delete at index idx
 
