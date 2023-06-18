@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cstdio>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <cassert>
 
 
@@ -134,8 +135,9 @@ char *CLAGetArgValue(const char *key, int argc, char **argv) {
     return argv[i+1];
 }
 
+
 //
-// linked lists
+// linked list
 
 
 struct LList1 {
@@ -438,6 +440,33 @@ String StrJoinInsertChar(MArena *a, StringList *strs, char insert) {
 
     ArenaClose(a, join.len);
     return join;
+}
+
+
+//
+// file I/O
+
+
+String LoadFileMMAP(char *filepath) {
+    FILE *f = fopen(filepath, "rb");
+    if (f == NULL) {
+        printf("Could not open file: %s\n", filepath);
+        exit(1);
+    }
+
+    s32 fd = fileno(f);
+    struct stat sb;
+    if (fstat(fd, &sb) == -1) {
+        printf("Could not get file size: %s\n", filepath);
+        exit(1);
+    }
+
+    String text;
+    text.len = sb.st_size;
+    text.str = (char*) mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE | MAP_SHARED, fd, 0);
+
+    fclose(f);
+    return text;
 }
 
 

@@ -49,17 +49,8 @@ void Test() {
 }
 
 
-void ParseInstFile(MArena *a, String filename) {
-
-    StrPrint("Parsing %s ...\n", filename);
-
-/*    
-    // TODO: fope-mmap open the file !
-    // get file handle
-    FILE *f = fopen();
-    u32 fsize = 0;
-    mmap(NULL, fsize, PROT_READ, MAP_PRIVATE | MAP_SHARED, -f, 0);
-*/
+void ParseInstr(MArena *a, String instr) {
+    StrPrint("\n%s\n", instr);
 }
 
 int main (int argc, char **argv) {
@@ -79,11 +70,13 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
-    // setup memory
+    // memory
     MArena arena = ArenaCreate();
 
-    
+    // load instr
+    String instr = LoadFileMMAP(argv[1]);
+    printf("Parsing %s ...\n", argv[1]);
+
     // parse
-    String instr_file_name = StrLiteral(&arena, argv[1]);
-    ParseInstFile(&arena, instr_file_name);
+    ParseInstr(&arena, instr);
 }
