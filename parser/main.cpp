@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/mman.h>
+#include <dirent.h>
 
 #include "../../baselayer/base.c"
 #include "../../baselayer/memory.c"
@@ -14,52 +15,49 @@
 #include "../../baselayer/utils.c"
 #include "../../baselayer/profile.c"
 
-/*
-ArrayListT<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
-  ArrayListT<char*> result;
-  struct dirent *dir;
-  u32 count = 0;
-  u32 rootpath_len = strlen(rootpath);
 
-  DIR *d = opendir(rootpath);
-  if (d) {
+// TODO: devise string list iteration
 
-    while ((dir = readdir(d)) != NULL) {
-      ++count;
+
+StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
+    u32 rootpath_len = strlen(rootpath);
+    bool needslash = rootpath[rootpath_len-1] != '/';
+    StrLst *lst = NULL;
+    StrLst *first = (StrLst*) ArenaAlloc(a, 0);
+    
+    struct dirent *dir;
+    DIR *d = opendir(rootpath);
+    if (d) {
+        d = opendir(rootpath);
+        while ((dir = readdir(d)) != NULL) {
+
+            // next strlst node
+            lst = StrLstPut(a, rootpath, lst);
+
+            // hot catenation
+            if (needslash) {
+                StrCatHot(a, '/', lst);
+            }
+            StrCatHot(a, dir->d_name, lst);
+        }
+        closedir(d);
     }
-    closedir(d);
-  }
 
-  d = opendir(rootpath);
-  if (d) {
-    result.Init(stack->Alloc(sizeof(char*) * count));
-
-    d = opendir(rootpath);
-    while ((dir = readdir(d)) != NULL) {
-      bool needslash = rootpath[rootpath_len-1] != '/';
-
-      u32 len = rootpath_len + int(needslash) + strlen(dir->d_name) + 1;
-      char* path = (char*) stack->Alloc( len );
-
-      strcpy(path, rootpath);
-      if (needslash) {
-        strcat(path, "/");
-      }
-      strcat(path, dir->d_name);
-
-      result.Add(&path);
-    }
-    closedir(d);
-  }
-
-  return result;
+    return *first;
 }
-*/
 
 
 void Test() {
     printf("Running tests ...\n");
 
+    MArena arena = ArenaCreate();
+    MArena *a = &arena;
+    StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
+    StrLstPrint(files);
+    exit(0);
+
+    // TODO: print the list! Create our lovely print string list function 
+    
     // templated list
     ListX<u32> lst_T;
     lst_T.Add(14);
@@ -67,6 +65,8 @@ void Test() {
     lst_T.At(1);
     //printf("%u\n", *lst_T.At(0));
 
+
+    // TODO: move this test to baselayer
     // native-subscript malloc/realloc arraylist / stretchy buffer
     s32 *lst = NULL;
     lst_push(lst, 42);
