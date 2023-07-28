@@ -2,13 +2,6 @@
 #include <cstdio>
 #include <cstddef>
 
-#include <cstdint>
-#include <cassert>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <dirent.h>
-
 #include "../../baselayer/base.c"
 #include "../../baselayer/memory.c"
 #include "../../baselayer/string.c"
@@ -24,29 +17,9 @@ void Test() {
     StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
     StrLstPrint(files);
     exit(0);
-
-    // TODO: print the list! Create our lovely print string list function 
-    
-    // templated list
-    ListX<u32> lst_T;
-    lst_T.Add(14);
-    lst_T.Add(222);
-    lst_T.At(1);
-    //printf("%u\n", *lst_T.At(0));
-
-
-    // TODO: move this test to baselayer
-    // native-subscript malloc/realloc arraylist / stretchy buffer
-    s32 *lst = NULL;
-    lst_push(lst, 42);
-    lst_push(lst, -15);
-    for (int i = 0; i < lst_len(lst); ++i) {
-        printf("%d\n", lst[i]);
-    }
-    lst_free(lst);
 }
 
-void ParseInstr(MArena *a, String instr) {
+void ParseInstr(MArena *a, Str instr) {
     StrPrint("\n%s\n", instr);
 }
 
@@ -71,7 +44,7 @@ int main (int argc, char **argv) {
     MArena arena = ArenaCreate();
 
     // load instr
-    String instr;
+    Str instr;
     instr.str = LoadFileMMAP(argv[1]);
     instr.len = strlen(instr.str);
     printf("Parsing %s ...\n", argv[1]);
