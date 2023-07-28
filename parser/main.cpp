@@ -16,37 +16,6 @@
 #include "../../baselayer/profile.c"
 
 
-// TODO: devise string list iteration
-
-
-StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
-    u32 rootpath_len = strlen(rootpath);
-    bool needslash = rootpath[rootpath_len-1] != '/';
-    StrLst *lst = NULL;
-    StrLst *first = (StrLst*) ArenaAlloc(a, 0);
-    
-    struct dirent *dir;
-    DIR *d = opendir(rootpath);
-    if (d) {
-        d = opendir(rootpath);
-        while ((dir = readdir(d)) != NULL) {
-
-            // next strlst node
-            lst = StrLstPut(a, rootpath, lst);
-
-            // hot catenation
-            if (needslash) {
-                StrCatHot(a, '/', lst);
-            }
-            StrCatHot(a, dir->d_name, lst);
-        }
-        closedir(d);
-    }
-
-    return *first;
-}
-
-
 void Test() {
     printf("Running tests ...\n");
 
