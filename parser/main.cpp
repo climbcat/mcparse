@@ -8,6 +8,7 @@
 #include "../../baselayer/utils.c"
 #include "../../baselayer/profile.c"
 
+#include "parser.c"
 
 void Test() {
     printf("Running tests ...\n");
