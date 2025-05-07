@@ -1,24 +1,69 @@
 #include <cstdlib>
+#include <cstring>
 #include <cstdio>
 #include <cstddef>
 
-#include "../../baselayer/base.c"
-#include "../../baselayer/memory.c"
-#include "../../baselayer/string.c"
-#include "../../baselayer/utils.c"
-#include "../../baselayer/profile.c"
+#include "jg_baselayer.h"
+#include "parse_instr.h"
 
-#include "parser.c"
 
-void Test() {
-    printf("Running tests ...\n");
+// TODO: reintroduce
+//#include "parser.c"
 
-    MArena arena = ArenaCreate();
-    MArena *a = &arena;
-    StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
-    StrLstPrint(files);
-    exit(0);
+
+int ParseInstrMain(int argc, char **argv) {
+    char *input = argv[1];
+
+    if (argc != 2) {
+        printf("Input folder or file.\n");
+        exit(0);
+    }
+
+    StackAllocator stack_files(10 * MEGABYTE);
+    StackAllocator stack_work(10 * MEGABYTE);
+    ArrayListT<char*> filepaths;
+
+    bool print_detailed = false;
+
+    if (IsInstrFile(input)) {
+        filepaths.Init(stack_files.Alloc(sizeof(char*) * 1));
+        filepaths.Add(&input);
+        print_detailed = true;
+    }
+    else {
+        filepaths = GetFilesInFolderPaths(input, &stack_files);
+    }
+
+    for (int i = 0; i < filepaths.len; ++i) {
+        stack_work.Clear();
+
+        char *filename = *filepaths.At(i);
+        if (!IsInstrFile(filename)) {
+            printf("skipping #%.3d: %s\n", i, filename);
+            continue;
+        }
+
+        char *text = LoadFile(filename, false, &stack_files);
+        if (text == NULL) {
+            continue;
+        }
+        Tokenizer tokenizer = {};
+        tokenizer.Init(text);
+
+        printf("parsing  #%.3d: %s  ", i, filename);
+
+        InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
+        printf("  %s\n", instr.name);
+
+        if (print_detailed) {
+            PrintInstrumentParse(instr);
+            exit(0);
+        }
+    }
+
+    return 0;
 }
+
 
 void ParseInstr(MArena *a, Str instr) {
     StrPrint("\n%s\n", instr);
@@ -33,7 +78,7 @@ int main (int argc, char **argv) {
         exit(0);
     }
     if (CLAContainsArg("--test", argc, argv)) {
-        Test();
+        printf("No registered tests ...\n");
         exit(0);
     }
     if (argc != 2) {
@@ -41,15 +86,21 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
+    // TODO: reintroduce
+    /*
     // memory
-    MArena arena = ArenaCreate();
+    MArena _a = ArenaCreate();
+    MArena *a = &_a;
 
     // load instr
     Str instr;
-    instr.str = LoadFileMMAP(argv[1]);
+    instr.str = (char*) LoadFileFSeek(a, argv[1]);
     instr.len = strlen(instr.str);
     printf("Parsing %s ...\n", argv[1]);
 
     // parse
-    ParseInstr(&arena, instr);
+    ParseInstr(a, instr);
+    */
+
+    ParseInstrMain(argc, argv);
 }
