@@ -3,15 +3,16 @@
 #include <cstdio>
 #include <cstddef>
 
+
 #include "jg_baselayer.h"
-#include "parse_instr.h"
-
-
-// TODO: reintroduce
-//#include "parser.c"
+#include "parser.h"
+#include "phelpers.h"
+#include "pinstr.h"
 
 
 int ParseInstrMain(int argc, char **argv) {
+
+/*
     char *input = argv[1];
 
     if (argc != 2) {
@@ -19,14 +20,13 @@ int ParseInstrMain(int argc, char **argv) {
         exit(0);
     }
 
-    StackAllocator stack_files(10 * MEGABYTE);
-    StackAllocator stack_work(10 * MEGABYTE);
-    ArrayListT<char*> filepaths;
+    MArena stack_files = ArenaCreate();
+    MArena stack_work = ArenaCreate();
+    Array<char*> filepaths = InitArray<char*>(&stack_files, 1000);
 
     bool print_detailed = false;
 
     if (IsInstrFile(input)) {
-        filepaths.Init(stack_files.Alloc(sizeof(char*) * 1));
         filepaths.Add(&input);
         print_detailed = true;
     }
@@ -60,7 +60,7 @@ int ParseInstrMain(int argc, char **argv) {
             exit(0);
         }
     }
-
+*/
     return 0;
 }
 
@@ -102,5 +102,5 @@ int main (int argc, char **argv) {
     ParseInstr(a, instr);
     */
 
-    ParseInstrMain(argc, argv);
+    return ParseInstrMain(argc, argv);
 }
