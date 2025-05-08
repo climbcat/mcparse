@@ -28,12 +28,11 @@ bool IsCompFile(char *filename)
 }
 
 
-// TODO: ParamDef
-// TODO: ParamValue
+// TODO: ParDec
+// TODO: ParVal
 
 
-struct CompDef
-{
+struct CompDef {
     char *name;
     char *type;
     Array<CompParam> params;
@@ -46,17 +45,38 @@ struct CompDef
 
 
 CompDef ParseComponent(Tokenizer *tokenizer, MArena *stack) {
-    Token token;
+    CompDef comp = {};
 
+    // req:
+    // DEFINE COMPONENT <compname> <newline>
+    
+    // opt:
+    // DEFINITION PARAMETERS ( ... )
+    // SETTING PARAMETERS ( ... )
+    // OTUPUT PARAMETERS ( ... )
+
+    // opt:
+    // SHARE %( ... %)
+
+    // req:
+    // DECLARE %( ... %)
+    // INITIALIZE %( ... %)
+    // TRACE %( ... %)
+    // FINALLY %( ... %)
+    // MCDISPLAY %( ... %)
+
+    // req:
+    // END
+
+    /*
+    Token token;
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DEFINE"))
         exit(1);
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "COMPONENT"))
         exit(1);
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER))
         exit(1);
-
-    // instr header
-    CompDef comp = {};
+    */
 
     return comp;
 }
