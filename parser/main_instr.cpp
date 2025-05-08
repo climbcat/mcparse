@@ -5,7 +5,7 @@
 
 
 #include "jg_baselayer.h"
-#include "parser.h"
+#include "parsecore.h"
 #include "phelpers.h"
 #include "pinstr.h"
 
@@ -55,12 +55,10 @@ int ParseInstrMain(int argc, char **argv) {
         InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
         printf(" -> %s: OK\n", instr.name);
 
-        /*
         if (print_detailed) {
             PrintInstrumentParse(instr);
             exit(0);
         }
-        */
 
         ++i;
     }
@@ -88,22 +86,6 @@ int main (int argc, char **argv) {
         printf("Supply instrument file (.instr) to parse.\n");
         exit(0);
     }
-
-    // TODO: reintroduce
-    /*
-    // memory
-    MArena _a = ArenaCreate();
-    MArena *a = &_a;
-
-    // load instr
-    Str instr;
-    instr.str = (char*) LoadFileFSeek(a, argv[1]);
-    instr.len = strlen(instr.str);
-    printf("Parsing %s ...\n", argv[1]);
-
-    // parse
-    ParseInstr(a, instr);
-    */
 
     return ParseInstrMain(argc, argv);
 }

@@ -1,5 +1,5 @@
-#ifndef __PARSER_H__
-#define __PARSER_H__
+#ifndef __PARSECORE_H__
+#define __PARSECORE_H__
 
 
 #include <cstdlib>
@@ -463,7 +463,6 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token) {
 
 Token GetToken(Tokenizer *tokenizer)
 {
-
     EatWhiteSpacesAndComments(tokenizer);
 
     Token token = {};

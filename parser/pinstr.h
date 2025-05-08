@@ -127,6 +127,7 @@ struct FinalizeDef
     char *text = NULL;
 };
 
+// TODO: should be ParamValue
 struct CompParam
 {
     char *name = NULL;
@@ -523,6 +524,7 @@ bool ParseExpression_McStasEndConditions(Tokenizer *tokenizer, Token *token)
     // exit conditions are: EOS, comma, semicolon or rbracket, all of which are 1 char long
     --tokenizer->at;
 
+    assert(tokenizer->at > token->text);
     token->len = tokenizer->at - token->text;
     token->len = RTrimText(token->text, token->len);
     return result;
@@ -786,7 +788,7 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, MArena *stack)
         exit(1);
 
     // instr header
-    InstrDef instr;
+    InstrDef instr = {};
     {
         AllocTokenValue(&instr.name, &token, stack);
         if (!RequireToken(tokenizer, NULL, TOK_LBRACK))
@@ -872,25 +874,25 @@ void PrintInstrumentParse(InstrDef instr)
     {
         CompDecl *comp = instr.trace.comps.arr + i;
         printf("\n  type: %s\n", comp->type);
-        printf("  copy_name: %s\n", comp->copy_name);
-        printf("  copy_type: %s\n", comp->copy_type);
-        printf("  name: %s\n", comp->name);
-        printf("  split: %s\n", comp->split);
-        printf("  removable: %d\n", comp->removable);
-        printf("  params:\n");
+        printf("    copy_name: %s\n", comp->copy_name);
+        printf("    copy_type: %s\n", comp->copy_type);
+        printf("    name: %s\n", comp->name);
+        printf("    split: %s\n", comp->split);
+        printf("    removable: %d\n", comp->removable);
+        printf("    params:\n");
         auto lstp = comp->params;
         for (int i = 0; i < lstp.len; ++i)
         {
             CompParam *param = lstp.arr + i;
-            printf("    %s = %s\n", param->name, param->value);
+            printf("        %s = %s\n", param->name, param->value);
         }
-        printf("  group: %s\n", comp->group);
-        printf("  jump: %s\n", comp->jump);
-        printf("  iterate: %s\n", comp->iterate);
-        printf("  when: %s\n", comp->when);
-        printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
-        printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
-        printf("  extend:\n%s\n", comp->extend);
+        printf("    group: %s\n", comp->group);
+        printf("    jump: %s\n", comp->jump);
+        printf("    iterate: %s\n", comp->iterate);
+        printf("    when: %s\n", comp->when);
+        printf("    at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
+        printf("    rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
+        printf("    extend: %s\n", comp->extend);
     }
     printf("\n");
 
