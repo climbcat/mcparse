@@ -169,12 +169,12 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_RPERBRACE: return "%{";
         case TOK_LPERBRACE: return "%}";
 
-        case TOK_CHAR: return "[char]";
-        case TOK_STRING: return "[string]";
-        case TOK_INT: return "[integer]";
-        case TOK_FLOAT: return "[float]";
-        case TOK_SCI: return "[float scientific]";
-        case TOK_IDENTIFIER: return "[identifier]";
+        case TOK_CHAR: return "char";
+        case TOK_STRING: return "string";
+        case TOK_INT: return "integer";
+        case TOK_FLOAT: return "float";
+        case TOK_SCI: return "float scientific";
+        case TOK_IDENTIFIER: return "identifier";
 
         case TOK_MCSTAS_DEFINE: return "DEFINE";
         case TOK_MCSTAS_INSTRUMENT: return "INSTRUMENT";

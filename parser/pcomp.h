@@ -83,7 +83,7 @@ ParseTokenResult RequiredRVal(Tokenizer *t, Token *tok_out) {
         return PTR_OK;
     }
     else {
-        printf("Error: Expected r-value, got: %s\n", TokenTypeToString(tok.type));
+        printf("\n\nERROR: Expected: 'r-value' got: '%s'\n", TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");
@@ -101,7 +101,7 @@ ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
         return PTR_OK;
     }
     else {
-        printf("Error: Expected %s, got: %s\n", TokenTypeToString(req), TokenTypeToString(tok.type));
+        printf("\n\nERROR: Expected: '%s' got: '%s'\n", TokenTypeToSymbol(req), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");
