@@ -240,9 +240,9 @@ Component ComponentParse(MArena *a_dest, char *text) {
         }
     }
 
-    // TODO: On this call to Expect, we need to present "TOK_IDENTIFIER"
-    //      as an alternative option to TOK_RBRACK in case of an error!
-    //      So I expect to have to merge Expect with the Optional call above.
+    // TODO: On error, we want to present optional keywords as alternatives to ')'.
+    //      This way, the parser can guide users and act as a form of in-line documentation
+    //      Thus merge Required() with the Optional call above.
     Required(t, &token, TOK_RBRACK);
 
     // Done! Now we have parsed the component declaration; let's explore it by parsing all of them
