@@ -70,7 +70,7 @@
 *
 * zwidth: [m]     Width of crystal 
 * yheight: [m]    Height of crystal 
-* mosaic : Mosaicity (FWHM) [arc minutes]
+* mosaic: Mosaicity (FWHM) [arc minutes]
 * dspread: [1]    Relative d-spread (FWHM) 
 * Q: [AA-1]       Magnitude of scattering vector 
 * Rup: [1]        Reflectivity of neutrons with polarization up 
@@ -85,9 +85,9 @@
 *****************************************************************************/
 
 DEFINE COMPONENT Monochromator_pol
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (zwidth=0.1, yheight=0.1, mosaic=30.0, dspread=0, Q=1.8734, DM=0, pThreshold=0, Rup = 1, Rdown =1, int debug=0)
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 SHARE
@@ -159,6 +159,11 @@ TRACE
 
     // calculate peak reflection probability
     GetMonoPolRefProb(FN, FM, sy, &R0);
+
+    /* Output of PW discussions with Hal Lee 2024/03/08
+       We have now done our QM "measurement", thus
+       forcing the spin to assume up/down: */
+    sx=0; sz=0;
 
     // calculate reflection probability
     p_reflect = R0*exp(-dlambda2/(2.0*sigmaLambda2));

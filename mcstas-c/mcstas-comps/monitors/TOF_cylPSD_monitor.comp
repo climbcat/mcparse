@@ -30,7 +30,7 @@
 * restore_neutron: [1]  If set, the monitor does not influence the neutron state
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * TOF_N: []             Array of neutron counts
 * TOF_p: []             Array of neutron weight counts
@@ -40,9 +40,9 @@
 *******************************************************************************/
 
 DEFINE COMPONENT TOF_cylPSD_monitor
-DEFINITION PARAMETERS ()
-SETTING PARAMETERS (nt=128, nphi=90, string filename=0, int nowritefile=0, radius=1, yheight=0.3, tmin, tmax, restore_neutron=0)
-OUTPUT PARAMETERS ()
+
+SETTING PARAMETERS (int nt=128, int nphi=90, string filename=0, int nowritefile=0, radius=1, yheight=0.3, tmin, tmax, int restore_neutron=0)
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE
@@ -57,23 +57,17 @@ DECLARE
 
 INITIALIZE
 %{
-  int i,j;
-
   TOF_N = create_darr2d(nt, nphi);
   TOF_p = create_darr2d(nt, nphi);
   TOF_p2 = create_darr2d(nt, nphi);
 
   tt_0 = tmin*1e-6;
   tt_1 = tmax*1e-6;
-  for (i=0; i<nt; i++) {
-    for (j=0; j<nphi; j++)
-    {
-      TOF_N[i][j] = 0;
-      TOF_p[i][j] = 0;
-      TOF_p2[i][j] = 0;
-    }
-  }
+
   binphi = 360.0/(double)nphi;
+
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
 %}
 
 TRACE

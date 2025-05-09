@@ -20,15 +20,25 @@
 * vertical axis when phase=0, assuming the chopper centre of rotation is placed <b>BELOW</b> the beam axis.
 * If you want to place the chopper <b>ABOVE</b> the beam axis, please use a 180 degree rotation around Z 
 * (otherwise unexpected beam splitting can occur in combination with the isfirst=1 setting, see
-*  <a href="https://github.com/McStasMcXtrace/McCode/issues/650">related bug on GitHub</a>)
+*  <a href="https://github.com/mccode-dev/McCode/issues/650">related bug on GitHub</a>)
 *
 * For more complicated gemometries, see component manual example of DiskChopper GROUPing.
 *
-* If the chopper is the 1st chopper of the instrument, it sets t time with phase
-* - Only relevant for when using continuous source modules.
+* If the chopper is the 1st chopper of a continuous source instrument, you should use the "isfirst" parameter.
+* This parameter SETS the neutron time to match the passage of the chooper slit(s), taking into account the
+* chopper timing and phasing (thus conserving your simulated statistics).
+*
+* The isfirst parameter is ONLY relevant for use in continuous source settings.
 *
 * Example: DiskChopper(radius=0.2, theta_0=10, nu=41.7, nslit=3, delay=0, isfirst=1) First chopper
 *          DiskChopper(radius=0.2, theta_0=10, nu=41.7, nslit=3, delay=0, isfirst=0)
+*
+* NOTA BENE wrt. GROUPing and isfirst: 
+* When setting up a GROUP of DiskChoppers for a steady-state / reactor source, you will need
+* to set up
+* 1) An initial chopper with isfirst=1, NOT part of the GROUP - and using a "big" chopper opening 
+*    that spans the full angular extent of the openings of the subsequent GROUP
+* 2) Add your DiskChopper GROUP setting isfirst=0
 *
 * %P
 * INPUT PARAMETERS:
@@ -54,11 +64,11 @@
 
 DEFINE COMPONENT DiskChopper
 
-DEFINITION PARAMETERS ()
+
 
 SETTING PARAMETERS (theta_0=0, radius=0.5, yheight, nu, nslit=3, jitter=0, delay=0, isfirst=0, n_pulse=1, abs_out=1, phase=0, xwidth=0, verbose=0)
 
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE

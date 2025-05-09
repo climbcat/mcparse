@@ -77,11 +77,11 @@
 ******************************************************************************/
 
 DEFINE COMPONENT Guide_tapering
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string option=0, w1=0,h1=0,l,linw=0,loutw=0,linh=0,louth=0, R0=0.99,
 Qcx=0.021,Qcy=0.021, alphax=6.07, alphay=6.07, W=0.003,
 mx=1, my=1,segno=800,curvature=0,curvature_v=0)
-OUTPUT PARAMETERS()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 SHARE
@@ -246,10 +246,14 @@ w1c = (double*)malloc(sizeof(double)*segno);
          free(fu);exit(-1);
      } else {
         ii = 0;
-        while (!feof(num))
+	/* Use ret==NULL as termination criterion on while, otherwise
+	   the reading may on some systems continue until "800" segments */
+	int dymmy=1;
+	char *ret=&dymmy;
+        while (!feof(num) && ret)
         {
-          char *ret = fgets(segment[ii].st,128,num);
-          if (ii >  799 || !ret) {
+          ret = fgets(segment[ii].st,128,num);
+	  if (ii >  799 ) {
              fprintf(stderr,"%s: Number of segments is limited to 800 !! \n",NAME_CURRENT_COMP);
               free(fu);exit(-1);
           }
@@ -642,7 +646,7 @@ MCDISPLAY
 %{
   int i,ii;
 
-  for (ii=0; ii < segno; ii++)
+  for (ii=0; ii < seg; ii++)
   {
      multiline(5,
         -w1_in[ii]/2.0, -h1_in[ii]/2.0,l_seg*(double)ii,

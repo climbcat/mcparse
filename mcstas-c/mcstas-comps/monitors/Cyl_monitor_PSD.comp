@@ -26,11 +26,13 @@
 * radius: [m]           Radius of detector
 * nr: [1]               Number of pixel (radial) columns
 * ny: [1]               Number of pixel rows
+* thmin: [deg]          Minimum angle covered/measured
+* thmax: [deg]          Maximum angle covered/measured
 * filename: [string]    Name of file in which to store the detector image
 * restore_neutron: [1]  If set, the monitor does not influence the neutron state
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * PSD_N: []             Array of neutron counts
 * PSD_p: []             Array of neutron weight counts
@@ -41,12 +43,12 @@
 
 DEFINE COMPONENT Cyl_monitor_PSD
 
-DEFINITION PARAMETERS ()
 
-SETTING PARAMETERS (nr=20, string filename=0, yheight=10, radius=1, restore_neutron=0,
-		    thmin=0, thmax=360, ny=100, int nowritefile=0
 
-OUTPUT PARAMETERS ()
+SETTING PARAMETERS (int nr=20, string filename=0, yheight=10, radius=1, int restore_neutron=0,
+		    thmin=-180, thmax=180, ny=100, int nowritefile=0)
+
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE
@@ -61,6 +63,9 @@ INITIALIZE
   PSD_N =  create_darr2d(nr,ny);
   PSD_p =  create_darr2d(nr,ny);
   PSD_p2 = create_darr2d(nr,ny);
+
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
 %}
 
 TRACE
@@ -73,10 +78,10 @@ TRACE
       if(t1>0) {
 	PROP_DT(t1);
 	/* Calculate pixel */
-	if (fabs(y) < yheight/2.0) {
+	if (fabs(y) <= yheight/2.0) {
 	  phi=atan2(x,z)*RAD2DEG;
 	  
-	  if (phi >= thmin && phi < thmax) {
+	  if (phi >= thmin && phi <= thmax) {
 	    i=floor((nr) * (phi-thmin)/(thmax-thmin));
 	    j=floor((ny) * (y-yheight/2.0)/(yheight));
 	    double p2 = p*p;

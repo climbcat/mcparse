@@ -58,6 +58,8 @@
 * xmax: [m]           Right edge
 * ymin: [m]           Lower edge
 * ymax: [m]           Upper edge
+* xwidth: [m]         Width of source
+* yheight: [m]        Height of source
 * target_index: [1]   relative index of component to focus at, e.g. next is +1 this is used to compute 'dist' automatically.
 * dist: [m]           Distance to target rectangle along z axis
 * focus_xw: [m]       Width of target
@@ -74,7 +76,7 @@
 * beta: [1]           Aggressiveness of adaptive algorithm (0 < beta <= 1)
 * filename: [string]  Optional filename for adaptive distribution output
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * p_in: []            Internal, holds initial neutron weight
 * y_0: []             Internal
@@ -87,7 +89,7 @@
 *******************************************************************************/
 DEFINE COMPONENT Source_adapt
 
-DEFINITION PARAMETERS ()
+
 
 SETTING PARAMETERS (
   N_E=20, N_xpos=20, N_xdiv=20,
@@ -96,7 +98,7 @@ SETTING PARAMETERS (
   E0=0, dE=0, lambda0=0, dlambda=0, flux=1e13,
   int target_index=+1, alpha=0.25, beta=0.25)
 
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 SHARE

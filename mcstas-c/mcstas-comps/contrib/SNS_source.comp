@@ -39,15 +39,16 @@
 * dist: [m]      Distance from source to the focusing rectangle
 * xw: [m]        Width of focusing rectangle
 * focus_yh: [m]  Height of focusing rectangle
+* focus_xw: [m]  Width of focusing rectangle
 * Emin: [meV]    minimum energy of neutron to generate
 * Emax: [meV]    maximum energy of neutron to generate
 * %E
 *******************************************************************************/
 
 DEFINE COMPONENT SNS_source
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string filename, xwidth=0.1, yheight=0.12, dist, focus_xw, focus_yh, Emin, Emax)
-OUTPUT PARAMETERS ()
+
 
 SHARE %{
 
@@ -57,7 +58,7 @@ SHARE %{
   /* ----------------------------------------------------------------
       routine to load E, I and t I data from SNS source files
   -----------------------------------------------------------------*/
-  void sns_source_load(char fname[], double *xvec, double *yvec, int xcol, int ycol,
+  void sns_source_load(char* fname, double *xvec, double *yvec, int xcol, int ycol,
     int *veclenptr, double *tcol, double *Ecol, double **Imat,int *ntvals, int *nEvals)
   {
     FILE *fp;

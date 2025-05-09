@@ -75,7 +75,7 @@
 * focus_ah: [deg]     vert.  angular dimension of a rectangular area 
 * sigma_abs: [barns]  Absorption cross section pr. unit cell at 2200 m/s 
 * sigma_inc: [barns]  Incoherent scattering cross section pr. unit cell 
-* Vc:         Unit cell volume [AA^3]
+* Vc: [AA^3]          Unit cell volume
 * f_QE: [1]           Fraction of quasielastic scattering (rest is elastic) 
 * gamma: [1]          Lorentzian width of quasielastic broadening (HWHM) 
 * Etrans: [meV]       Global energy-transfer, for use in inelastic settings
@@ -83,7 +83,7 @@
 * geometry: [str]     Name of an Object File Format (OFF) or PLY file for complex geometry. The OFF/PLY file may be generated from XYZ coordinates using qhull/powercrust 
 * concentric: [1]     Indicate that this component has a hollow geometry and may contain other components. It should then be duplicated after the inside part (only for box, cylinder, sphere) 
 *
-* order: [1]          Limit multiple scattering up to given order 0:all (default), 1:single, 2:double, ... 
+* order: [1]          Limit multiple scattering up to given order 0 means all (default), 1 means single, 2 means double, ... 
 * target_x: []        
 * target_y: [m]       position of target to focus at 
 * target_z: []        
@@ -114,13 +114,14 @@
 *******************************************************************************/
 
 DEFINE COMPONENT Incoherent
-DEFINITION PARAMETERS ()
-SETTING PARAMETERS (string geometry=0, radius=0, xwidth=0, yheight=0, zdepth=0, thickness=0,
+
+SETTING PARAMETERS (string geometry=0, radius=0, xwidth=0, yheight=0, zdepth=0,
+thickness=0, nx=0, ny=1, nz=0,
 target_x = 0, target_y = 0, target_z = 0, focus_r = 0,
 focus_xw=0, focus_yh=0, focus_aw=0, focus_ah=0, int target_index=0,
 pack = 1, p_interact=1, f_QE=0, gamma=0, Etrans=0,deltaE=0,
 sigma_abs=5.08, sigma_inc=5.08, Vc=13.827, concentric=0, order=0)
-OUTPUT PARAMETERS()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 SHARE
@@ -266,7 +267,7 @@ TRACE
       intersect = sphere_intersect(&t0, &t3, x, y, z, vx, vy, vz, radius);
     #ifdef USE_OFF
     else if (VarsInc.shape == 3)
-      intersect = off_intersect(&t0, &t3, NULL, NULL, x, y, z, vx, vy, vz, thread_offdata );
+      intersect = off_intersect(&t0, &t3, NULL, NULL, x, y, z, vx, vy, vz, 0, 0, 0, thread_offdata );
     #endif
     
     if (intersect) {
@@ -448,20 +449,19 @@ TRACE
 
 MCDISPLAY
 %{
-  if (geometry && strlen(geometry) && strcmp(geometry, "NULL") && strcmp(geometry, "0")) {	/* OFF file */
-    off_display(offdata);
-  }
-  else
-    if (radius > 0 &&  yheight) {	/* cylinder */
-      cylinder(0,0,0,radius,yheight,0, 0,1,0);
-      cylinder(0,0,0,radius-thickness,yheight,0, 0,1,0);
-  }
-  else if (xwidth && yheight) { 	/* box/rectangle XY */
-      box(0,0,0,xwidth, yheight, zdepth);
-  }
-  else if (radius > 0 && !yheight) {	/* sphere */
-      sphere(0,0,0,radius,0);
-  }
+      if (geometry && strlen(geometry) && strcmp(geometry, "NULL") && strcmp(geometry, "0")) {	/* OFF file */
+            off_display(offdata);
+      }
+      else
+        if (radius > 0 &&  yheight) {	/* cylinder */
+          cylinder(0,0,0,radius,yheight,thickness, nx, ny, nz);
+      }
+      else if (xwidth && yheight) { 	/* box/rectangle */
+          box(0,0,0,xwidth,yheight,zdepth,thickness, nx, ny, nz);
+      }
+      else if (radius > 0 && !yheight) {	/* sphere */
+          sphere(0,0,0,radius);
+      }
 %}
 
 

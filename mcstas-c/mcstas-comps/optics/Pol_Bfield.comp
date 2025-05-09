@@ -80,7 +80,7 @@
 ****************************************************************************/
 
 DEFINE COMPONENT Pol_Bfield
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (int field_type=0, xwidth=0, yheight=0,zdepth=0, radius=0, Bx=0, By=0, Bz=0, concentric=1)
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
@@ -212,7 +212,7 @@ MCDISPLAY
     enum shapes {NONE=0, BOX, WINDOW, CYLINDER, SPHERE, ANY};
     switch (shape){
         case BOX:
-            box(0,0,0,xwidth,yheight,zdepth);
+	  box(0,0,0,xwidth,yheight,zdepth,0, 0, 1, 0);
             break;
         case CYLINDER:
             circle("xz",0, yheight/2.0,0,radius);

@@ -35,9 +35,9 @@
 * transmit: [0/1]              0: non reflected neutrons are absorbed. 1: non reflected neutrons pass through
 * substrate_thickness: [m]     thickness of substrate (for absorption)
 * coating_thickness: [m]       thickness of coating (for absorption)
-* theta_1		[deg]	angle of mirror wrt propagation direction at start of mirror
-* theta_2		[deg]	angle of mirror wrt propagation direction at center of mirror
-* theta_3		[deg]	angle of mirror wrt propagation direction at end of mirror
+* theta_1:		[deg]	angle of mirror wrt propagation direction at start of mirror
+* theta_2:		[deg]	angle of mirror wrt propagation direction at center of mirror
+* theta_3:		[deg]	angle of mirror wrt propagation direction at end of mirror
 * reflect: [q(Angs-1) R(0-1)]  (str)  Name of relfectivity file. Format 
 *
 * %D
@@ -46,9 +46,9 @@
 *******************************************************************************/
 
 DEFINE COMPONENT Mirror_Curved_Bispectral
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string reflect=0,focus_s,focus_e, mirror_start, guide_start, yheight, smallaxis, length ,m, transmit=0, substrate_thickness=0.0005, coating_thickness=10e-6, theta_1=1.25, theta_2=1.25, theta_3=1.25)
-OUTPUT PARAMETERS ()
+
 
 SHARE
 %{

@@ -17,7 +17,9 @@
 * Modified by: EF, PW, 2015: powder/PG and texture mode
 * Modified by: PW, May 2017: Remove statement about being under validation
 * Modified by: PW, June 2017: Doc updates
-* Modified by: PW, Feb 2018: GPU edits
+* Modified by: PW, Feb 2018:  GPU edits
+* Modified by: EF, June 2023: can now read CIF files
+* Modified by: MB, November 2024: Fixed issue with leaving crystal due to order
 *
 * Mosaic single crystal with multiple scattering vectors, optimised for speed
 * with large crystals and many reflections.
@@ -122,6 +124,10 @@
 *    #lattice_bb <value of the beta  lattice angle [deg]>
 *    #lattice_cc <value of the gamma lattice angle [deg]>
 *
+* Last, CIF, FullProf and ShelX files can be read, and converted to F2(hkl) lists
+* if 'cif2hkl' is installed. The CIF2HKL env variable can be used to point to a
+* proper executable, else the McCode, then the system installed versions are used.
+*
 * See the Component Manual for more defails.
 *
 * Example: Single_crystal(xwidth=0.01, yheight=0.01, zdepth=0.01, mosaic = 5, reflections="YBaCuO.lau")
@@ -147,6 +153,9 @@
 * %VALIDATION:
 * This component has been validated.
 *
+* This sample component can advantageously benefit from the SPLIT feature, e.g.
+* SPLIT COMPONENT sx = Single_crystal(...)
+*
 * %P
 * INPUT PARAMETERS
 * radius: [m]                                             Outer radius of sample in (x,z) plane
@@ -171,14 +180,15 @@
 * cx: [AA or AA^-1]                                       Coordinates of third (direct/recip) unit cell vector
 * cy: []                                                  c on y axis
 * cz: []                                                  c on z axis
-* reflections: [string]                                   File name containing structure factors of reflections. Use empty ("") or NULL for incoherent scattering only
+* reflections: [string]                                   File name containing structure factors of reflections (LAZ LAU CIF, FullProf, ShelX). Use empty ("") or NULL for incoherent scattering only
 * order: [1]                                              Limit multiple scattering up to given order (0: all, 1: first, 2: second, ...)
+* extra_order: [1]                                        When using order, allow additional multiple scattering without coherent scattering, sensible with very large unit cells (0: disable, 1: one extra, 2: two extra, ...)
 *
 * Optional input parameters
 *
 * p_transmit: [1]                                         Monte Carlo probability for neutrons to be transmitted without any scattering. Used to improve statistics from weak reflections
 * sigma_abs: [barns]                                      Absorption cross-section per unit cell at 2200 m/s
-* sigma_inc: [barns]                                      Incoherent scattering cross-section per unit cell Use -1 to unactivate
+* sigma_inc: [barns]                                      Incoherent scattering cross-section per unit cell Use -1 to inactivate
 * aa: [deg]                                               Unit cell angles alpha, beta and gamma. Then uses norms of vectors a,b and c as lattice parameters
 * bb: [deg]                                               Beta angle
 * cc: [deg]                                               Gamma angle
@@ -189,7 +199,7 @@
 * PG: [1]                                                 Flag to indicate "Pyrolytic Graphite" mode, only meaningful with choice of Graphite.lau, models PG crystal. A powder texture can be approximated with 0<PG<1 with main axis on 'c'
 * deltak: [AA-1]                                          Equality-threshold for use in SPLIT settings. If difference between all ki_{x,y,z} are less than deltak from previous particle, the two are considered alike enough to jump directly to the MC choice between 'active' reflections 
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * hkl_info: [structure]                                   Internal
 * hkl_info.type: interaction type of event 't'=Transmit, 'i'=Incoherent, 'c'=Coherent [char]
@@ -271,7 +281,7 @@ vector ki.
 */
 
 DEFINE COMPONENT Single_crystal
-DEFINITION PARAMETERS()
+
 SETTING PARAMETERS(string reflections=0, string geometry=0, vector mosaic_AB={0,0, 0,0,0, 0,0,0},
 xwidth=0, yheight=0, zdepth=0, radius=0, delta_d_d=1e-4,
 mosaic = -1, mosaic_a = -1, mosaic_b = -1, mosaic_c = -1,
@@ -280,9 +290,9 @@ ax = 0, ay = 0, az = 0,
 bx = 0, by = 0, bz = 0,
 cx = 0, cy = 0, cz = 0,
 p_transmit = 0.001, sigma_abs = 0, sigma_inc = 0,
-aa=0, bb=0, cc=0, order=0, RX=0, RY=0, powder=0, PG=0,
+aa=0, bb=0, cc=0, order=0, extra_order=0, RX=0, RY=0, powder=0, PG=0,
 deltak=1e-6)
-OUTPUT PARAMETERS()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 SHARE
 %{
@@ -306,10 +316,10 @@ SHARE
 
 struct hkl_data
 {
-int h,k,l;                  /* Indices for this reflection */
-double F2;                  /* Value of structure factor */
-double tau_x, tau_y, tau_z; /* Coordinates in reciprocal space */
-double tau;                 /* Length of (tau_x, tau_y, tau_z) */
+      int h,k,l;                  /* Indices for this reflection */
+      double F2;                  /* Value of structure factor */
+      double tau_x, tau_y, tau_z; /* Coordinates in reciprocal space */
+      double tau;                 /* Length of (tau_x, tau_y, tau_z) */
       double u1x, u1y, u1z;       /* First axis of local coordinate system */
       double u2x, u2y, u2z;       /* Second axis of local coordinate system */
       double u3x, u3y, u3z;       /* Third axis of local coordinate system */
@@ -354,6 +364,7 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
       int    recip;               /* Flag to indicate if recip or direct cell axes given */
       int    shape;               /* 0:cylinder, 1:box, 2:sphere 3:any shape*/
       int    flag_warning;        /* number of warnings */
+      int    flag_barns;          /* 1: F2 in barns, 0: in fm^2 */
       char   type;                /* type of last event: t=transmit,c=coherent or i=incoherent */
       int    h,k,l;               /* last coherent scattering momentum transfer indices */
       int    tau_count;           /* Number of reflections within cutoff */
@@ -372,6 +383,89 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
      if (!s) return 0;
      else    return (s < 0 ? -1 : 1);
   } /* PN_list_compare */
+  
+   
+#ifndef CIF2HKL
+#define CIF2HKL
+  // hkl_filename = cif2hkl(file, options)
+  //   used to convert CIF/CFL/INS file into F2(hkl)
+  //   the CIF2HKL env var can point to a cif2hkl executable
+  //   else the McCode binary is attempted, then the system.
+  char *cif2hkl(char *infile, char *options) {
+    char cmd[1024];
+    int  ret = 0;
+    int  found = 0;
+    char *OUTFILE;
+    char *inpath;
+    
+    // get filename extension
+    const char *ext = strrchr(infile, '.');
+    if(!ext || ext == infile) return infile;
+    else ext++;
+    
+    // return input when no extension or not a CIF/FullProf/ShelX file
+    if ( strcasecmp(ext, "cif") 
+      && strcasecmp(ext, "pcr")
+      && strcasecmp(ext, "cfl")
+      && strcasecmp(ext, "shx")
+      && strcasecmp(ext, "ins")
+      && strcasecmp(ext, "res")) return infile;
+      
+    OUTFILE = malloc(1024);
+    if (!OUTFILE) return infile;
+    inpath = malloc(1024);
+    if (!inpath) return infile;
+
+    // get input file path from read-table:Open_File
+    FILE *f_infile = Open_File(infile, "r", inpath);
+    if (!f_infile) return infile;
+    fclose(f_infile);
+    
+    strncpy(OUTFILE, tmpnam(NULL), 1024); // create an output temporary file name
+    
+    // try in order the CIF2HKL env var, then the system cif2hkl, then the McCode one
+    if (!found && getenv("CIF2HKL")) {
+      snprintf(cmd,  1024, "%s -o %s %s %s",
+        getenv("CIF2HKL"),
+        OUTFILE, options, inpath);
+      ret = system(cmd);
+      if (ret != -1 && ret != 127) found = 1;
+    }
+    if (!found) {
+      // try with cif2hkl command from the system PATH
+      snprintf(cmd,  1024, "%s -o %s %s %s",
+        "cif2hkl", OUTFILE, options, inpath);
+      ret = system(cmd);
+      if (ret != -1 && ret != 127) found = 1;
+    }
+    if (!found) {
+      // As a last resort, attempt with cif2hkl from $MCSTAS/bin
+      snprintf(cmd,  1024, "%s%c%s%c%s -o %s %s %s",
+        getenv(FLAVOR_UPPER) ? getenv(FLAVOR_UPPER) : MCSTAS,
+        MC_PATHSEP_C, "bin", MC_PATHSEP_C, "cif2hkl",
+        OUTFILE, options, inpath);
+      ret = system(cmd);
+    }
+    // ret = -1:  child process could not be created
+    // ret = 127: shell could not be executed in the child process     
+    if (ret == -1 || ret == 127) {
+      free(OUTFILE);
+      return(NULL);
+    }
+      
+    // test if the result file has been created
+    FILE *file = fopen(OUTFILE,"r");
+    if (!file) return(NULL);     
+    MPI_MASTER(
+    printf("%s: INFO: Converting %s into F2(HKL) list %s\n", 
+      __FILE__, infile, OUTFILE);
+    printf ("%s\n",cmd);
+    );
+    fflush(NULL);
+    fclose(file);
+    return(OUTFILE);
+  } // cif2hkl
+#endif
 
   /* ------------------------------------------------------------------------ */
   int
@@ -386,13 +480,16 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
     char **parsing;
     char flag=0;
     double nb_atoms=1;
+    char  *filename=NULL;
 
     if (!SC_file || !strlen(SC_file) || !strcmp(SC_file,"NULL") || !strcmp(SC_file,"0")) {
       info->count = 0;
       flag=1;
     }
     if (!flag) {
-      Table_Read(&sTable, SC_file, 1); /* read 1st block data from SC_file into sTable*/
+      filename = cif2hkl(SC_file, "--xtal --mode NUC");
+      if (filename != SC_file) info->flag_barns=1; // cif2hkl returns barns
+      Table_Read(&sTable, filename, 1); /* read 1st block data from SC_file into sTable*/
       if (sTable.columns < 4) {
         fprintf(stderr, "Single_crystal: Error: The number of columns in %s should be at least %d for [h,k,l,F2]\n", SC_file, 4);
         return(0);
@@ -448,9 +545,9 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
     if (nb_atoms > 1) { info->sigma_a *= nb_atoms; info->sigma_i *= nb_atoms; }
 
     /* special cases for the structure definition */
-    if (info->m_ax || info->m_ay || info->m_az) info->m_a=0; /* means we specify by hand the vectors */
-    if (info->m_bx || info->m_by || info->m_bz) info->m_b=0;
-    if (info->m_cx || info->m_cy || info->m_cz) info->m_c=0;
+    if (info->m_ax || info->m_ay || info->m_az) {info->m_a=0; info->m_aa=0;} /* means we specify by hand the vectors */
+    if (info->m_bx || info->m_by || info->m_bz) {info->m_b=0; info->m_bb=0;}
+    if (info->m_cx || info->m_cy || info->m_cz) {info->m_c=0; info->m_cc=0;};
 
     /* compute the norm from vector a if missing */
     if (info->m_ax || info->m_ay || info->m_az) {
@@ -491,6 +588,7 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
     /* when lengths a,b,c + angles are given (instead of vectors a,b,c) */
     if (info->m_aa && info->m_bb && info->m_cc)
     {
+      printf("Mode: lengths and angles\n");
       double as,bs,cs;
       if (info->m_a) as = info->m_a;
       else as = sqrt(info->m_ax*info->m_ax+info->m_ay*info->m_ay+info->m_az*info->m_az);
@@ -512,22 +610,24 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
         (flag ? "INC" : SC_file), as, bs, cs, info->m_aa, info->m_bb, info->m_cc);
     } else {
       if (!info->recip) {
+        printf("Mode: Direct mode lattice\n");
         printf("Single_crystal: %s structure a=[%g,%g,%g] b=[%g,%g,%g] c=[%g,%g,%g] ",
-	       (flag ? "INC" : SC_file), info->m_ax ,info->m_ay ,info->m_az,
-	       info->m_bx ,info->m_by ,info->m_bz,
-	       info->m_cx ,info->m_cy ,info->m_cz);
+               (flag ? "INC" : SC_file), info->m_ax ,info->m_ay ,info->m_az,
+               info->m_bx ,info->m_by ,info->m_bz,
+               info->m_cx ,info->m_cy ,info->m_cz);
       } else {
+        printf("Mode: Reciprocal mode lattice\n");
         printf("Single_crystal: %s structure a*=[%g,%g,%g] b*=[%g,%g,%g] c*=[%g,%g,%g] ",
-	       (flag ? "INC" : SC_file), info->m_ax ,info->m_ay ,info->m_az,
-	       info->m_bx ,info->m_by ,info->m_bz,
-	       info->m_cx ,info->m_cy ,info->m_cz);
+               (flag ? "INC" : SC_file), info->m_ax ,info->m_ay ,info->m_az,
+               info->m_bx ,info->m_by ,info->m_bz,
+               info->m_cx ,info->m_cy ,info->m_cz);
       }
     }
     /* Compute reciprocal or direct lattice vectors. */
     if (!info->recip) {
       vec_prod(tmp_x, tmp_y, tmp_z,
-	       info->m_bx, info->m_by, info->m_bz,
-	       info->m_cx, info->m_cy, info->m_cz);
+               info->m_bx, info->m_by, info->m_bz,
+               info->m_cx, info->m_cy, info->m_cz);
       info->V0 = fabs(scalar_prod(info->m_ax, info->m_ay, info->m_az, tmp_x, tmp_y, tmp_z));
       printf("V0=%g\n", info->V0);
 
@@ -554,8 +654,8 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
       info->csz = info->m_cz;
 
       vec_prod(tmp_x, tmp_y, tmp_z,
-	       info->bsx/(2*PI), info->bsy/(2*PI), info->bsz/(2*PI),
-	       info->csx/(2*PI), info->csy/(2*PI), info->csz/(2*PI));
+               info->bsx/(2*PI), info->bsy/(2*PI), info->bsz/(2*PI),
+               info->csx/(2*PI), info->csy/(2*PI), info->csz/(2*PI));
       info->V0 = 1/fabs(scalar_prod(info->asx/(2*PI), info->asy/(2*PI), info->asz/(2*PI), tmp_x, tmp_y, tmp_z));
       printf("V0=%g\n", info->V0);
 
@@ -780,6 +880,10 @@ double tau;                 /* Length of (tau_x, tau_y, tau_z) */
     *hkl_list = list;
     info->count = i;
     
+    // remove temporary F2(hkl) file when giving CFL/CIF/ShelX file
+    if (filename != SC_file)
+      unlink(filename); 
+    
     return(info->count);
   } /* read_hkl_data */
 
@@ -988,7 +1092,9 @@ DECLARE
   struct hkl_info_struct hkl_info;
   off_struct             offdata;
   struct hkl_data *hkl_list;
+#ifndef OPENACC
   struct tau_data tau_list[MCSX_REFL_SLIST_SIZE];
+#endif
 %}
 
 INITIALIZE
@@ -1027,6 +1133,7 @@ INITIALIZE
   hkl_info.kix = hkl_info.kiy = hkl_info.kiz = 0;
   hkl_info.nb_reuses = hkl_info.nb_refl = hkl_info.nb_refl_count = 0;
   hkl_info.tau_count = 0;
+  hkl_info.flag_barns= barns;
 
   /* ought to be cleaned up as mosaic_AB now is a proper vector/array and not a define */
   double* mosaic_ABin = mosaic_AB;
@@ -1082,10 +1189,22 @@ INITIALIZE
 
   if (PG && !(order==1)) {
     fprintf(stderr,"Single_crystal: %s: PG mode means implicit choice of no multiple scattering!\n"
-	    "WARNING setting order=1\n", NAME_CURRENT_COMP);
+            "WARNING setting order=1\n", NAME_CURRENT_COMP);
     order=1;
   }
+  
+  if (order==0 && extra_order) {
+     fprintf(stderr, "Single_crystal: %s: extra_order used while order=0, then this option has no effect\n", NAME_CURRENT_COMP);
+  }
 
+  printf("Direct space lattice orientation:\n");
+  printf("  a = [%g %g %g]\n", hkl_info.m_ax, hkl_info.m_ay, hkl_info.m_az);
+  printf("  b = [%g %g %g]\n", hkl_info.m_bx, hkl_info.m_by, hkl_info.m_bz);
+  printf("  c = [%g %g %g]\n", hkl_info.m_cx, hkl_info.m_cy, hkl_info.m_cz);
+  printf("Reciprocal space lattice orientation:\n");
+  printf("  a* = [%g %g %g]\n", hkl_info.asx, hkl_info.asy, hkl_info.asz);
+  printf("  b* = [%g %g %g]\n", hkl_info.bsx, hkl_info.bsy, hkl_info.bsz);
+  printf("  c* = [%g %g %g]\n", hkl_info.csx, hkl_info.csy, hkl_info.csz);
 
 %}
 
@@ -1144,10 +1263,6 @@ TRACE
   char   type;      /* type of last event: t=transmit,c=coherent or i=incoherent */
   int    itype;     /* type of last event: t=1,c=2 or i=3 */
 
-  int force_transmit; /* Flag to handle cross-section weighting in case of finite order */
-
-  force_transmit=0;
-
   #ifdef OPENACC
   #ifdef USE_OFF
   off_struct thread_offdata = offdata;
@@ -1165,7 +1280,7 @@ TRACE
     intersect = sphere_intersect(&t1, &t2, x, y, z, vx, vy, vz, radius);
   #ifdef USE_OFF
   else if (hkl_info.shape == 3)
-      intersect = off_intersect(&t1, &t2, NULL, NULL, x, y, z, vx, vy, vz, thread_offdata );
+      intersect = off_intersect(&t1, &t2, NULL, NULL, x, y, z, vx, vy, vz, 0, 0, 0, thread_offdata );
   #endif
   if (t2 < 0) intersect=0;  /* we passed sample volume already */
 
@@ -1192,12 +1307,17 @@ TRACE
     itype = 0;
     
 #ifndef OPENACC
-    T = tau_list;
+	T = tau_list;
     hkl_info.type = type;
 #endif
     do {  /* Loop over multiple scattering events */
       /* Angles for powder randomization */
       double Alpha, Beta, Gamma;
+	  double lab_vx, lab_vy, lab_vz;
+	  
+	  lab_vx = vx;
+	  lab_vy = vy;
+	  lab_vz = vz;
 
       if (hkl_info.shape == 0)
         intersect = cylinder_intersect(&t1, &t2, x, y, z, vx, vy, vz, radius, yheight);
@@ -1207,12 +1327,12 @@ TRACE
         intersect = sphere_intersect(&t1, &t2, x, y, z, vx, vy, vz, radius);
       #ifdef USE_OFF
       else if (hkl_info.shape == 3)
-	      intersect = off_intersect(&t1, &t2, NULL, NULL, x, y, z, vx, vy, vz, thread_offdata );
+              intersect = off_intersect(&t1, &t2, NULL, NULL, x, y, z, vx, vy, vz, 0, 0, 0, thread_offdata );
       #endif
       if(!intersect || t2*v < -1e-9 || t1*v > 1e-9)
       {
         /* neutron is leaving the sample */
-        if (hkl_info.flag_warning < 100)
+        if (hkl_info.flag_warning < 10)
 #ifndef OPENACC
           fprintf(stderr,
                 "Single_crystal: %s: Warning: neutron has unexpectedly left the crystal!\n"
@@ -1224,7 +1344,15 @@ TRACE
       }
 
       l_full = t2*v;
-
+	  
+      if (   (order && !(extra_order) && event_counter >= order)
+  		  || (order && extra_order && event_counter >= order + extra_order)) {
+        // Exit due to truncated order, weight with relevant cross-sections to distance l_full
+        p*=exp(-abs_xlen*l_full);
+        intersect=0; 
+        break;
+      }
+	  
       /* (1). Compute incoming wave vector ki */
       if (powder) { /* orientation of crystallite is random */
         Alpha = randpm1()*PI*powder;
@@ -1233,18 +1361,16 @@ TRACE
         randrotate(&vx, &vy, &vz, Alpha, Beta, Gamma);
       }
       if (PG) { /* orientation of crystallite is random along <c> axis */
-	Alpha = rand01()*2*PI*PG;
-	PGrotate(&vx, &vy, &vz, Alpha, hkl_info.csx, hkl_info.csy, hkl_info.csz);
+        Alpha = randpm1()*PI*PG;
+        PGrotate(&vx, &vy, &vz, Alpha, hkl_info.csx, hkl_info.csy, hkl_info.csz);
       }
-
-
 
       /* ------------------------------------------------------------------------- */
       /* lattice curvature option: rotate neutron velocity */
       /* WARNING: cannot be used together with the PG c-rotation! */
       curv_xangle = 0;
       curv_yangle = 0;
-
+	  
       _vx = vx;
       _vy = vy;
       _vz = vz;
@@ -1279,21 +1405,25 @@ TRACE
 
 
       /* (2). Intersection of Ewald sphere with reciprocal lattice points */
-
+	  
       double coh_xsect = 0, coh_refl = 0;
-      /* in case we use 'SPLIT' then consecutive neutrons can be identical when entering here
-         and we may skip the hkl_search call */
+	  
+	  // Condition to skip calculation of coherent cross section when, needed for extra_order feature
+	  if (order==0 || extra_order==0 || event_counter < order) {
 #ifndef OPENACC
+      /* in case we use 'SPLIT' then consecutive neutrons can be identical when entering here
+         and we may skip the hkl_search call. One tau_list is reserved for data for the initial
+	     ray results so that it potentially can be reused later. */
+  	  T = tau_list;
       if (order==1 && fabs(kix - hkl_info.kix) < deltak
         && fabs(kiy - hkl_info.kiy) < deltak
         && fabs(kiz - hkl_info.kiz) < deltak) {
         hkl_info.nb_reuses++;
 
-	/* Restore in case of matching event (e.g. SPLIT) */
-	coh_refl = hkl_info.coh_refl;
+        /* Restore in case of matching event (e.g. SPLIT) */
+        coh_refl = hkl_info.coh_refl;
         coh_xsect = hkl_info.coh_xsect;
-	tau_count = hkl_info.tau_count;
-
+	    tau_count = hkl_info.tau_count;
       } else {
 #endif
         /* Max possible tau for this ki with 5*sigma delta-d/d cutoff. */
@@ -1306,8 +1436,8 @@ TRACE
               kix, kiy, kiz, tau_max,
               &coh_refl, &coh_xsect, oclContext_SX,
               d_L, d_T, d_tau_count, d_coh_refl, d_coh_xsect);
-	  if (tau_count != 0)
-	    printf("\nGPU tau_count:%i\n",tau_count);
+          if (tau_count != 0)
+            printf("\nGPU tau_count:%i\n",tau_count);
         }
         else 
         #endif
@@ -1326,34 +1456,36 @@ TRACE
           hkl_info.kiy = kiy;
           hkl_info.kiz = kiz;
 
-	  /* Store for potential re-use (e.g. SPLIT) */
-	  hkl_info.coh_refl  = coh_refl;
-	  hkl_info.coh_xsect = coh_xsect;
-	  hkl_info.tau_count = tau_count;
-	  hkl_info.nb_refl += tau_count;
-	  hkl_info.nb_refl_count++;
-	}
+          /* Store for potential re-use (e.g. SPLIT) */
+          hkl_info.coh_refl  = coh_refl;
+          hkl_info.coh_xsect = coh_xsect;
+          hkl_info.tau_count = tau_count;
+          hkl_info.nb_refl += tau_count;
+          hkl_info.nb_refl_count++;
+        }
       }
 #endif
+      } else {
+	      // When extra_order used, disable coherent scattering after order reached, but continue
+    	  // Set coherent cross section to zero to ignore coherent part
+          coh_refl = 0;
+          coh_xsect = 0;
+          tau_count = 0;
+      }	  
+	  
+	  
       /* (3). Probabilities of the different possible interactions. */
       /* Cross-sections are in barns = 10**-28 m**2, and unit cell volumes are
          in AA**3 = 10**-30 m**2. Hence a factor of 100 is used to convert
          scattering lengths to m**-1 */
       coh_xlen = coh_xsect/V0;
-      if (barns) {
+      if (hkl_info.flag_barns) {
         coh_xlen *= 100;
       } /* else assume fm^2 */
       tot_xlen = abs_xlen + inc_xlen + coh_xlen;
 
       if(tot_xlen <= 0){
         ABSORB; // Should we really absorb here? If "nothing" can happen we perhaps ought to "pass" instead? 
-      }
-
-      if (force_transmit) {
-	/* Exit due to truncated order, weight with relevant cross-sections to distance l_full */
-	 p*=exp(-abs_xlen*l_full);
-        intersect=0; 
-	 break;
       }
       
       /* (5). Transmission */
@@ -1372,18 +1504,18 @@ TRACE
           randderotate(&vx, &vy, &vz, Alpha, Beta, Gamma);
         }
         if (PG) { /* orientation of crystallite is longer random */
-          PGderotate(&vx, &vy, &vz, Alpha, hkl_info.m_cx, hkl_info.m_cz, hkl_info.m_cz);
+          PGderotate(&vx, &vy, &vz, Alpha, hkl_info.csx, hkl_info.csy, hkl_info.csz);
         }
 
-	type = 't';
-	if (!itype) itype = 1;
+        type = 't';
+            if (!itype) itype = 1;
         #ifndef OPENACC
-	hkl_info.type = type;
+              hkl_info.type = type;
         #endif
 
         break; 
         /* This break means that we are leaving the while-loop, exiting the
-	   crystal by "tunneling". */
+           crystal by "tunneling". */
       }
 
       /* Scattering "proper", i.e. coh or incoh */
@@ -1413,10 +1545,21 @@ TRACE
         l = rand0max(l_full);
       else
         l = -log(1 - rand0max((1 - exp(-tot_xlen*l_full))))/tot_xlen;
- 
-      /* Propagate to scattering point */
+    
+      /* Propagate to scattering point in lab space */
+	  vx = lab_vx;
+	  vy = lab_vy;
+	  vz = lab_vz;
+	  
       PROP_DT(l/v);
       event_counter++;
+    
+      if (PG || powder) {
+        /* In case of PG or powder return to crystalite frame after propagation */
+        vx = _vx;
+        vy = _vy;
+        vz = _vz;
+      }
 
       /* (4). Account for the probability of sigma_abs */
       p *= (coh_xlen + inc_xlen)/tot_xlen;
@@ -1428,9 +1571,9 @@ TRACE
         vx = kix; /* ki vector is used as tmp var with norm v */
         vy = kiy;
         vz = kiz; /* Go for next scattering event */
-	
-	type = 'i';
-	if (!itype) itype = 2;
+        
+        type = 'i';
+        if (!itype) itype = 2;
 #ifndef OPENACC
         hkl_info.type = type;
 #endif
@@ -1444,7 +1587,7 @@ TRACE
         if(j >= tau_count)
         {
 #ifndef OPENACC
-          if (hkl_info.flag_warning < 100)
+          if (hkl_info.flag_warning < 10)
             fprintf(stderr, "Single_crystal: Error: Illegal tau search "
               "(sum=%g, j=%i, tau_count=%i).\n", sum, j , tau_count);
           hkl_info.flag_warning++;
@@ -1468,13 +1611,14 @@ TRACE
         kfy *= adjust;
         kfz *= adjust;
         /* Adjust neutron weight (see manual for explanation). */
-        p *= T[j].xsect*coh_refl/(coh_xsect*T[j].refl);
+        double pmul = T[j].xsect*coh_refl/(coh_xsect*T[j].refl);
+        if (!isnan(pmul)) p *= pmul;
         vx = K2V*(L[i].u1x*kfx + L[i].u2x*kfy + L[i].u3x*kfz);
         vy = K2V*(L[i].u1y*kfx + L[i].u2y*kfy + L[i].u3y*kfz);
         vz = K2V*(L[i].u1z*kfx + L[i].u2z*kfy + L[i].u3z*kfz);
-	
-	type = 'c';
-	if (!itype) itype = 3;
+        
+        type = 'c';
+        if (!itype) itype = 3;
 #ifndef OPENACC
         hkl_info.type = type;
         hkl_info.h    = L[i].h;
@@ -1507,10 +1651,8 @@ TRACE
         randderotate(&vx, &vy, &vz, Alpha, Beta, Gamma);
       }
       if (PG) { /* orientation of crystallite is longer random */
-	PGderotate(&vx, &vy, &vz, Alpha, hkl_info.csx, hkl_info.csy, hkl_info.csz);
+        PGderotate(&vx, &vy, &vz, Alpha, hkl_info.csx, hkl_info.csy, hkl_info.csz);
       }
-      /* exit if multiple scattering order has been reached */
-      if (order && event_counter >= order) { force_transmit=1; }
       /* Repeat loop for next scattering event. */
     } while (intersect); /* end do (intersect) (multiple scattering loop) */
   } /* if intersect */
@@ -1566,7 +1708,7 @@ FINALLY
 
 MCDISPLAY
 %{
-  if (hkl_info.shape == 0) {	/* cylinder */
+  if (hkl_info.shape == 0) {        /* cylinder */
     circle("xz", 0,  yheight/2.0, 0, radius);
     circle("xz", 0, -yheight/2.0, 0, radius);
     line(-radius, -yheight/2.0, 0, -radius, +yheight/2.0, 0);
@@ -1574,7 +1716,7 @@ MCDISPLAY
     line(0, -yheight/2.0, -radius, 0, +yheight/2.0, -radius);
     line(0, -yheight/2.0, +radius, 0, +yheight/2.0, +radius);
   }
-  else if (hkl_info.shape == 1) { 	/* box */
+  else if (hkl_info.shape == 1) {         /* box */
     double xmin = -0.5*xwidth;
     double xmax =  0.5*xwidth;
     double ymin = -0.5*yheight;
@@ -1596,12 +1738,12 @@ MCDISPLAY
     line(xmin, ymax, zmin, xmin, ymax, zmax);
     line(xmax, ymax, zmin, xmax, ymax, zmax);
   }
-  else if (hkl_info.shape == 2) {	/* sphere */
+  else if (hkl_info.shape == 2) {        /* sphere */
     circle("xy", 0,  0.0, 0, radius);
     circle("xz", 0,  0.0, 0, radius);
     circle("yz", 0,  0.0, 0, radius);
   }
-  else if (hkl_info.shape == 3) {	/* OFF file */
+  else if (hkl_info.shape == 3) {        /* OFF file */
     off_display(offdata);
   }
 %}

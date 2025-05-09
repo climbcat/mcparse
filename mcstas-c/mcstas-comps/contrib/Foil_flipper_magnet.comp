@@ -40,7 +40,9 @@
 * Bx: [T]        Parameter used for x composant of field.
 * By: [T]        Parameter used for y composant of field.
 * Bz: [T]        Parameter used for z composant of field.
-* fieldFunction [pointer] Function describing the magnetic field.
+* stray_field: [ ] Toggle for modelling of stray fields.
+* verbose: [ ]   Toggle verbose mode
+* foil_in: [ ]   Toggle for optional foil in the flipper.
 *
 * %LINKS
 *
@@ -52,10 +54,8 @@ This comment will not be exported to mcdoc
 */
 
 DEFINE COMPONENT Foil_flipper_magnet
-DEFINITION PARAMETERS()
+
 SETTING PARAMETERS(stray_field=1,xwidth, yheight, zdepth, Bxwidth=-1, Byheight=-1, Bzdepth=-1, phi=0.0, foilthick=0.0, Bx,By,Bz,foil_in=1, verbose=0)
-OUTPUT PARAMETERS(instray_magnet,outstray_magnet,inside_magnet,hit_foil)
-//STATE PARAMETERS (x,y,z,vx,vy,vz,t,sx,sy,sz,p)
 
 SHARE
 %{
@@ -290,9 +290,9 @@ MCDISPLAY
 %{
   double y=atan(phi)*zdepth/2.0;
   
-  box(0.0,0.0,0.0,Bxwidth,Byheight,Bzdepth);
+  box(0.0,0.0,0.0,Bxwidth,Byheight,Bzdepth,0, 0, 1, 0);
   if (Bxwidth!=xwidth || Byheight!=yheight || Bzdepth!=zdepth){
-    box(0,0,0,xwidth,yheight,zdepth);
+    box(0,0,0,xwidth,yheight,zdepth,0, 0, 1, 0);
   }
   /*draw the foil plane*/
   multiline(5,-xwidth/2.0,-y,-zdepth/2.0, xwidth/2.0,-y,-zdepth/2.0, xwidth/2.0,y,zdepth/2.0, -xwidth/2.0,y,zdepth/2.0, -xwidth/2.0,-y,-zdepth/2.0);

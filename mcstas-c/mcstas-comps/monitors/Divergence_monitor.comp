@@ -42,7 +42,7 @@
 * restore_neutron: [1]  If set, the monitor does not influence the neutron state
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * Div_N: []             Array of neutron counts
 * Div_p: []             Array of neutron weight counts
@@ -52,13 +52,13 @@
 *******************************************************************************/
 DEFINE COMPONENT Divergence_monitor
 
-DEFINITION PARAMETERS ()
 
-SETTING PARAMETERS (nh=20, nv=20,
+
+SETTING PARAMETERS (int nh=20, int nv=20,
   string filename=0, xmin=-0.05, xmax=0.05, ymin=-0.05, ymax=0.05, int nowritefile=0,
-  xwidth=0, yheight=0, maxdiv_h=2, maxdiv_v=2, restore_neutron=0, nx=0, ny=0, nz=1)
+  xwidth=0, yheight=0, maxdiv_h=2, maxdiv_v=2, int restore_neutron=0, nx=0, ny=0, nz=1)
 
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE
@@ -70,8 +70,6 @@ DECLARE
 
 INITIALIZE
 %{
-  int i,j;
-
   if (xwidth  > 0) { xmax = xwidth/2;  xmin = -xmax; }
   if (yheight > 0) { ymax = yheight/2; ymin = -ymax; }
 
@@ -86,14 +84,10 @@ INITIALIZE
   Div_p = create_darr2d(nh, nv);
   Div_p2 = create_darr2d(nh, nv);
 
-  for (i=0; i<nh; i++)
-    for (j=0; j<nv; j++)
-    {
-      Div_N[i][j] = 0;
-      Div_p[i][j] = 0;
-      Div_p2[i][j] = 0;
-    }
   NORM(nx,ny,nz);
+
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
 %}
 
 TRACE

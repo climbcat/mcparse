@@ -29,7 +29,7 @@
 * scattering is constant isotropic (Vanadium like).
 * In case you only have one S(q,w) data containing both coherent and
 * incoherent contributions you should e.g. use 'Sqw_coh' and set 'sigma_coh'
-* to the total scattering cross section. Set sigma_coh and sigma_inc to -1 to unactivate.
+* to the total scattering cross section. Set sigma_coh and sigma_inc to -1 to inactivate.
 *
 * The implementation will automatically nornalise S(q,w) so that S(q) -> 1 at
 * large q (parameter norm=-1). Alternatively, the S(q,w) data will be multiplied
@@ -189,9 +189,9 @@
 * INPUT PARAMETERS:
 * Sqw_coh: [str]              Name of the file containing the values of Q, w and S(Q,w) Coherent part; Q in Angs-1, E in meV, S(q,w) in meV-1. Use 0, NULL or "" to disable.
 * Sqw_inc: [str]              Name of the file containing the values of Q, w and S(Q,w). Incoherent (self) part. Use 0, NULL or "" to scatter isotropically (V-like).
-* sigma_coh: [barns]          Coherent Scattering cross-section. Use -1 to unactivate.
-* sigma_inc: [barns]          Incoherent Scattering cross-section. Use -1 to unactivate.
-* sigma_abs: [barns]          Absorption cross-section at 2200 m/s. Use -1 to unactivate.
+* sigma_coh: [barns]          Coherent Scattering cross-section. Use -1 to inactivate.
+* sigma_inc: [barns]          Incoherent Scattering cross-section. Use -1 to inactivate.
+* sigma_abs: [barns]          Absorption cross-section at 2200 m/s. Use -1 to inactivate.
 * rho: [AA-3]                 Density of scattering elements (nb atoms/unit cell V_0).
 * T: [K]                      Temperature of sample, detailed balance. Use T=-1 to disable it, and T=-2 to guess it from non-classical S(q,w) input.
 *
@@ -211,7 +211,7 @@
 * weight: [g/mol]             atomic/molecular weight of material
 * density: [g/cm^3]           density of material. V_rho=density/weight/1e24*N_A
 * threshold: [1]              Value under which S(Q,w) is not accounted for. to set according to the S(Q,w) values, i.e. not too low.
-* p_interact: [1]             Force a given fraction of the beam to scatter, keeping intensity right, to enhance small signals (-1 unactivate).
+* p_interact: [1]             Force a given fraction of the beam to scatter, keeping intensity right, to enhance small signals (-1 inactivate).
 * norm: [1]                   Normalize S(q,w) when -1 (default). Use raw data when 1, multiplier for S(q,w) when norm>0.
 * classical: [1]              Assumes the S(q,w) data from the files is a classical S(q,w), and multiply that data by exp(hw/2kT) on up/down energy sides. Use 0 when obtained from raw experiments, 1 from molecular dynamics. Use -1 to guess from a data set including both energy sides.
 * quantum_correction: [str]   Specify the type of quantum correction to use "Boltzmann"/"Schofield","harmonic"/"Bader" or "standard"/"Frommhold" (default)
@@ -223,7 +223,7 @@
 * powder_Vc: [AA^3]           volume of the unit cell
 * powder_barns: [1]           0 when |F2| data in powder file are fm^2, 1 when in barns (barns=1 for laz, barns=0 for lau type files).
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 * VarSqw: []                  internal structure including  dq=wavevector transfer Kf-Ki in Angs-1; dw=energy transfer Ef-Ei in meV; type=interaction type of event as 'c' (coherent),  't' (transmitted) 'i' (incoherent) 'v' (isotropic incoherent, Vanadium-like).
 * SCATTERED: []               order of multiple scattering
 *
@@ -269,7 +269,7 @@
 ***********************************************************/
 
 DEFINE COMPONENT Isotropic_Sqw
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS(
   vector powder_format={0,0,0,0,0,0,0,0,0},
   string Sqw_coh=0, string Sqw_inc=0, string geometry=0,
@@ -279,7 +279,7 @@ SETTING PARAMETERS(
   rho=0, sigma_abs=0, sigma_coh=0, sigma_inc=0, classical=-1,
   powder_Dd=0, powder_DW=0, powder_Vc=0, density=0, weight=0,
   p_interact=-1, norm=-1, powder_barns=1, string quantum_correction="Frommhold")
-OUTPUT PARAMETERS ()
+
 
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 /*****************************************************************************/
@@ -1381,7 +1381,7 @@ struct Sqw_Data_struct *Sqw_readfile(
       Sqw->compname, file, Sqw->type=='c' ? "coh" : "inc");
   );
 
-  double w_file2full[w_bins]; /* lookup table for fast file -> Sqw_full allocation */
+  double *w_file2full = malloc(w_bins*sizeof(double)); /* lookup table for fast file -> Sqw_full allocation */
 
   for (index_w=0; index_w < w_bins; w_file2full[index_w++]=0);
 
@@ -1422,7 +1422,7 @@ struct Sqw_Data_struct *Sqw_readfile(
     w_file2full[index_w] = index_w_file;
   }
 
-  double q_file2full[q_bins];
+  double *q_file2full=malloc(q_bins*sizeof(double));
   for   (index_q=0; index_q < q_bins; q_file2full[index_q++]=0);
 
   for (index_q=0; index_q < q_bins; index_q++) {
@@ -1932,7 +1932,8 @@ struct Sqw_Data_struct *Sqw_readfile(
       Sqw->compname, Sqw->lookup_length);
     );
   }
-
+  free(w_file2full);
+  free(q_file2full);
   return(Sqw_Data);
 } /* end Sqw_readfile */
 
@@ -2256,7 +2257,7 @@ do { /* Main interaction loop. Ends with intersect=0 */
         intersect=sphere_intersect  (&t0,&t3, x,y,z,vx,vy,vz, radius);
       #ifdef USE_OFF
       else if (VarSqw.shape == 3)
-        intersect=off_intersect(&t0, &t3, NULL, NULL, x, y, z, vx, vy, vz, thread_offdata );
+        intersect=off_intersect(&t0, &t3, NULL, NULL, x, y, z, vx, vy, vz, 0, 0, 0, thread_offdata );
       #endif
     } else {
       if (VarSqw.shape==0)
@@ -2271,7 +2272,7 @@ do { /* Main interaction loop. Ends with intersect=0 */
         intersect=sphere_intersect  (&t0,&t3, x,y,z,vx,vy,vz, radius-thickness);
       #ifdef USE_OFF
       else if (VarSqw.shape == 3)
-        intersect=off_intersect(&t0, &t3, NULL, NULL, x, y, z, vx, vy, vz, thread_offdata );
+        intersect=off_intersect(&t0, &t3, NULL, NULL, x, y, z, vx, vy, vz, 0, 0, 0, thread_offdata );
       #endif
     }
   } else intersect=0;

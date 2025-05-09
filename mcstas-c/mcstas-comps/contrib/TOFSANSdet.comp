@@ -55,7 +55,7 @@
 * inttol: []    tolerance of intensity            (if primary beam intensity smaller than inttol*max_intensity then discard data)
 * qcal: []      calibration of intensity (cps) to width of q-bin (non_zero = yes, zero = no)
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * PSDq_N: []    Array of neutron counts
 * PSDq_p: []    Array of neutron weight counts
@@ -65,21 +65,21 @@
 *******************************************************************************/
 
 DEFINE COMPONENT TOFSANSdet
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (
   Nq=100,
   plength=0.00286, ssdist=27.0, coldis = 20.0, Sthckn = 0.1,
-  ds1=1.0,  xw1=0.0, yh1=0.0, hl1=0.0,                /* first one switched off */
+  ds1=1.0,  xw1=0.0, yh1=0.0, hl1=0.0,
   ds2=5.0,  xw2=1.0, yh2=1.0, hl2=0.2,
   ds3=20.0, xw3=1.0, yh3=1.0, hl3=0.04,
   vx3=0.0,
   tmin=0.005, tmax=0.15,
-  Nx=128.0, Ny=128.0, Nt=500.0,                       /* be cautious with large numbers */
-  qmin=0.0005, qmax=0.11, // Nq=500.0, <<<<<<<<<<<<<<<<< defined above
+  Nx=128.0, Ny=128.0, Nt=500.0,
+  qmin=0.0005, qmax=0.11,
   rstneu = 0.0,
   centol = 0.1, inttol = 0.0001, qcal=1,
   string fname=0)
-OUTPUT PARAMETERS ()
+
 
 SHARE
 %{
@@ -165,19 +165,19 @@ INITIALIZE
   Ntc = floor( ddmin(ddmax(Nt,10.0),2000.0)+ 0.50);
   Nqc = floor( ddmin(ddmax(Nq,1.00),2000.0)+ 0.50);
 
-  TSdNf = (double*)malloc(sizeof(double)*Nxc*Nyc*Ntc*3);
-  TSdpf = (double*)malloc(sizeof(double)*Nxc*Nyc*Ntc*3);
-  TSdp2f= (double*)malloc(sizeof(double)*Nxc*Nyc*Ntc*3);
-
-  for (i=0; i<Nxc; i++)
-    for (j=0; j<Nyc; j++)
-      for (s=0; s<Ntc; s++)
-        for(k=0; k<3; k++)
-        {
-          TSdN(i,j,s,k)  = 0.0;
-          TSdp(i,j,s,k)  = 0.0;
-          TSdp2(i,j,s,k) = 0.0;
-        };
+  #ifndef USE_MPI
+  printf("%s: Attempting allocation of 3 arrays sized (%lu bytes/double) x %lu elements = %lu Mb\n",_comp->_name,sizeof(double),Nxc*Nyc*Ntc*3,sizeof(double)*Nxc*Nyc*Ntc*3/(1024*1024));
+  #else
+  MPI_MASTER(
+	     printf("%s: Attempting allocation %i copies of 3 arrays sized (%lu double) x %lu elements = %lu Mb\n",_comp->_name,mpi_node_count,sizeof(double),Nxc*Nyc*Ntc*3,mpi_node_count*sizeof(double)*Nxc*Nyc*Ntc*3/(1024*1024));
+  );
+  #endif
+  TSdNf = (double*)calloc(Nxc*Nyc*Ntc*3,sizeof(double));
+  TSdpf = (double*)calloc(Nxc*Nyc*Ntc*3,sizeof(double));
+  TSdp2f= (double*)calloc(Nxc*Nyc*Ntc*3,sizeof(double));
+  MPI_MASTER(
+	printf("Done with big-array allocations\n");
+  );
 
   ds1c = ddmax(ds1,0.0);
   ds2c = ddmax(ds2,0.0);
@@ -681,7 +681,7 @@ SAVE
                   Qmx  = QQQ*QQQ/Qmn;
 
                   LAM  = (2.0*Pic/V2K)*time/(ssdist+sqrt(dsA2));
-                  Qstp = 2.0*Pic*min(xwA[k]/Nxc,yhA[k]/Nyc)/(sqrt(dsA2)*LAM);
+                  Qstp = 2.0*Pic*ddmin(xwA[k]/Nxc,yhA[k]/Nyc)/(sqrt(dsA2)*LAM);
 
                   qq1  = iimax( floor(log(Qmn/qmin)/qstp-1.0),    0);
                   qq2  = iimin(-floor(log(qmin/Qmx)/qstp-1.0),Nqc-1);

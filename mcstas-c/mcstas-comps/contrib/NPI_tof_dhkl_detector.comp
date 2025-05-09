@@ -75,13 +75,13 @@
 *
 ******************************************************************************/
 DEFINE COMPONENT NPI_tof_dhkl_detector
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string filename=0, radius=2, yheight=0.3, zdepth=0.01, amin=75, amax=105, int nd=200, int na=800, int nt=800, int nev=1,
 d_min=1, d_max=3, time0, Linst, Lc, 
 res_x=0, res_y=0, res_t=0, mu=1.0, mod_shift=0,
 modulation=0, mod_dt=0, mod_twidth=0, string mod_d0_table=0, 
 verbose=0, restore_neutron=1)
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */ 
 
 SHARE
@@ -230,10 +230,7 @@ DECLARE
   int n_dhkl;
   // set to 1 for some debugging info
   int dbg;
-  int dbgn;
-
-}
-  
+  int dbgn; 
 %}
 INITIALIZE
   %{
@@ -345,10 +342,12 @@ TRACE
     double th2_min=amin*PI/180;
     double th2_max=amax*PI/180;
     
+    #ifndef OPENACC
     if (dbgn>20) {
       #pragma acc atomic write
       dbg=0;
     }
+    #endif
     /* cross-section with the detector front face. Allow height = yheight+3*res_y to account for a random 
        displacement due to vertical resolution.
     */
@@ -416,12 +415,14 @@ TRACE
 		tc=tof-time0-tref;
 		iref=(int)floor(tc/mod_dt+0.5);
 		dt=iref*mod_dt+time0;
+		#ifndef OPENACC
 		if (iline==0 && dbg) {
 		  #pragma acc atomic
 		  dbgn = dbgn+1;
 		  printf("iref=%d, dt=%g, t=%g, tcor=%g\n",
 			 iref, iref*mod_dt*1000,tc*1000, (tof-tref-dt)*1000);
 		}
+		#endif
 	      }
 	    }
 	    // Normal mode: get indices in the ToF - 2theta grid and accumulate plot data

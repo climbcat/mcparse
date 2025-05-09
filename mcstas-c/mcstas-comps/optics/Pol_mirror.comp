@@ -65,10 +65,12 @@
 * rUpPar: [1]     Parameters for rUpFunc
 * rDownFunc: [1]  Reflection function for spin down (q, *par, *r)
 * rDownPar: [1]   Parameters for rDownFunc
+* rUpData: [str]   Mirror Reflectivity data file for spin up
+* rDownData: [str] Mirror Reflectivity data file for spin down
 * useTables: [1]  Parameters are 0: Values, 1: Table names
 * p_reflect: [1]  Proportion of reflected events. Use 0 to only get the transmitted beam, and 1 to get only the reflected beam. Use -1 to use the mirror reflectivity. This value is purely computational and is not related to the actual reflectivity
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 * SCATTERED: []   is 1 for reflected, and 2 for transmitted neutrons
 *
 * %L
@@ -78,7 +80,7 @@
 
 DEFINE COMPONENT Pol_mirror
 
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (
   vector rUpPar={0.99,0.0219,6.07,2.0,0.003},
   vector rDownPar={0.99,0.0219,6.07,2.0,0.003},
@@ -109,7 +111,7 @@ INITIALIZE
   if (strlen(rUpData) && strcmp(rUpData,"NULL")){
     if (Table_Read(&rUpTable, rUpData, 1) <= 0) {
       fprintf(stderr,"Pol_mirror: %s: can not read file %s\n",
-          NAME_CURRENT_COMP, rUpPar);
+          NAME_CURRENT_COMP, rUpData);
       exit(1);
     }
     rUpTableFlag=1;
@@ -119,7 +121,7 @@ INITIALIZE
   if (strlen(rUpData) && strcmp(rUpData,"NULL")){
     if (Table_Read(&rDownTable, rDownData, 1) <= 0) {
       fprintf(stderr,"Pol_mirror: %s: can not read file %s\n",
-          NAME_CURRENT_COMP, rDownPar);
+          NAME_CURRENT_COMP, rDownData);
       exit(1);
     }
     rDownTableFlag=1;
@@ -171,6 +173,10 @@ TRACE
       isPolarising = 1;
       GetMonoPolFNFM(Rup, Rdown, &FN, &FM);
       GetMonoPolRefProb(FN, FM, sy, &refWeight);
+      /* Output of PW discussions with Hal Lee 2024/03/08
+       We have now done our QM "measurement", thus
+       forcing the spin to assume up/down: */
+      sx=0; sz=0;
     } else
       refWeight = Rup;
 

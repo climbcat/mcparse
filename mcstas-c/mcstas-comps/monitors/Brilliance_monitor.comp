@@ -57,7 +57,7 @@
 * yheight: [m]          height of monitor
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * Div_N: []             Array of neutron counts
 * Div_p: []             Array of neutron weight counts
@@ -68,14 +68,14 @@
 
 DEFINE COMPONENT Brilliance_monitor
 
-DEFINITION PARAMETERS ()
 
-SETTING PARAMETERS (nlam=101, nt=1001, int nowritefile=0,
-  lambda_0=0, lambda_1=20, restore_neutron=0, Freq, int tofcuts=0,
-  int toflambda=0, xwidth = 0.01, yheight=0.01, source_dist=1, string filename,
+
+SETTING PARAMETERS (int nlam=101, int nt=1001, int nowritefile=0,
+  lambda_0=0, lambda_1=20, int restore_neutron=0, Freq, int tofcuts=0,
+  int toflambda=0, xwidth = 0.01, yheight=0.01, source_dist=1, string filename=0,
   t_0=0, t_1=20000, srcarea=1)
 
-OUTPUT PARAMETERS ()
+
 
 DECLARE
 %{
@@ -110,9 +110,6 @@ INITIALIZE
 %{
   prsec = 1e-6;
 
-  int i, j;
-
-
   BRIL_N = create_darr2d(nt, nlam);
   BRIL_p = create_darr2d(nt, nlam);
   BRIL_p2 = create_darr2d(nt, nlam);
@@ -132,24 +129,6 @@ INITIALIZE
   tt_1 = t_1*prsec;
   dt = (t_1-t_0)*prsec/nt;
   dlam = (lambda_1-lambda_0)/(nlam-1);
-  for (i=0; i<nlam; i++){
-  	BRIL_mean[i] = 0;
-  	BRIL_peak[i] = 0;
-  	BRIL_meanN[i] = 0;
-  	BRIL_peakN[i] = 0;
-  	BRIL_meanE[i] = 0;
-  	BRIL_peakE[i] = 0;
-  	for (j=0; j<nt; j++) {
-	    BRIL_N[j][i] = 0;
-	    BRIL_p[j][i] = 0;
-	    BRIL_p2[j][i] = 0;
-	    if (i==0) {
-	      BRIL_shape[j] = 0;
-	      BRIL_shapeN[j] = 0;
-	      BRIL_shapeE[j] = 0;
-	    }
-	  }
-  }
 
   xmax = xwidth/2.0;
   ymax = yheight/2.0;
@@ -158,6 +137,8 @@ INITIALIZE
 
   ster = xwidth * yheight/(source_dist*source_dist);
 
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);  
 %}
 
 TRACE

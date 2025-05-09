@@ -35,27 +35,30 @@
 * %P
 * xwidth: [m]     Width of source
 * yheight: [m]    Height of source
-* focus_aw: [rad] Std. dev. (Gaussian) or maximal (uniform) horz. width divergence
-* focus_ah: [rad] Std. dev. (Gaussian) or maximal (uniform) vert. height divergence
+* focus_aw: [rad] Std. dev. (Gaussian) or maximal (uniform) horz. width divergence. focus_xw overrrides if it is more restrictive.
+* focus_ah: [rad] Std. dev. (Gaussian) or maximal (uniform) vert. height divergence. focus_yh overrrides if it is more restrictive.
 * focus_xw: [m]   Width of sampling window
 * focus_yh: [m]   Height of sampling window
 * dist: [m]       Downstream distance to place sampling target window
-
 * E0: [meV]       Mean energy of neutrons.
 * dE: [meV]       Energy spread of neutrons.
 * lambda0: [AA]   Mean wavelength of neutrons (only relevant for E0=0)
 * dlambda: [AA]   Wavelength half spread of neutrons.
-* gauss: [1]      Criterion: 0: uniform, 1: Gaussian divergence/energy distributions
+* gauss: [1]      Criterion: 0: uniform, 1: Gaussian distribution of energy/wavelength
+* gauss_a: [1]    Criterion: 0: uniform, 1: Gaussian divergence distribution
 * flux: [1/(s*cm**2*st*energy unit)] Flux per energy unit, Angs or meV
 * verbose: [ ]    Generate more output on the console.
+* spectrum_file: [ ] File from which to read the spectral intensity profile
+* phase:         [ ] Set to finite value to define X-ray phase (0:2 pi)
+* randomphase:   [ ] When=1, the X-ray phase is randomised 
 * %E
 *******************************************************************************/
 
 DEFINE COMPONENT Source_div_quasi
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string spectrum_file="", xwidth=0, yheight=0, focus_xw=0, focus_yh=0, dist=0, focus_aw=0, focus_ah=0,
     E0=0, dE=0, lambda0=0, dlambda=0, flux=0, gauss=0, gauss_a=0, randomphase=1, phase=0, int verbose=1)
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 SHARE
@@ -175,20 +178,14 @@ INITIALIZE
   /*check if divergence limits are compatible with focus_xw, focus_yh*/
   if(focus_xw!=0){
     double maxdivh=atan((xwidth+focus_xw)/dist);
-    if (focus_aw>maxdivh){
+    if (focus_aw>maxdivh || focus_aw==0 ){
       focus_aw=maxdivh;
-      if (verbose){
-        fprintf(stderr,"WARNING(%s): sampling width does not support full divergence. Adjusting to focus_aw=%g rad\n",NAME_CURRENT_COMP,focus_aw);
-      }
     }
   }
   if(focus_yh!=0){
     double maxdivv=atan((yheight+focus_yh)/dist);
-    if (focus_ah>maxdivv){
+    if (focus_ah>maxdivv || focus_ah==0 ){
       focus_ah=maxdivv;
-      if (verbose){
-        fprintf(stderr,"WARNING(%s): sampling height does not support full divergence. Adjusting to focus_ah=%g rad\n",NAME_CURRENT_COMP,focus_ah);
-      }
     }
   }
 

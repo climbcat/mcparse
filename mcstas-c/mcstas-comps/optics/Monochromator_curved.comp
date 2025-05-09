@@ -91,12 +91,13 @@
 *******************************************************************************/
 
 DEFINE COMPONENT Monochromator_curved
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string reflect="NULL", string transmit="NULL",
 zwidth=0.01, yheight=0.01,gap=0.0005,int NH=11, int NV=11, mosaich=30.0, mosaicv=30.0, r0=0.7, t0=1.0,Q=1.8734,
 RV=0, RH=0, DM=0, mosaic=0, width=0, height=0, verbose=0, order=0)
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
+
 
 SHARE
 %{
@@ -105,8 +106,12 @@ double GAUSS_monocurved(double x, double mean, double rms){
   return (exp(-((x)-(mean))*((x)-(mean))/(2*(rms)*(rms)))/(sqrt(2*PI)*(rms)));
 }
 
-
 %include "read_table-lib"
+%}
+
+USERVARS %{
+  int ncol;
+  int nrow;
 %}
 
 DECLARE
@@ -123,6 +128,8 @@ DECLARE
   int tTableFlag;
   double *tiltH;
   double *tiltV;
+  char ncol_var[128];
+  char nrow_var[128];
 %}
 
 INITIALIZE
@@ -195,18 +202,20 @@ INITIALIZE
   tiltH=calloc((int)2*(NH+1),sizeof(double));
   tiltV=calloc((int)2*(NV+1),sizeof(double));
 
-  if (!tiltH) printf("Monochromator_curved: %s: Warning: not enough memory to allocate tilts (NH=%g).\n", NAME_CURRENT_COMP, NH);
+  if (!tiltH) printf("Monochromator_curved: %s: Warning: not enough memory to allocate tilts (NH=%i).\n", NAME_CURRENT_COMP, NH);
   else if (RH) { /* pre-compute tilts */
     for (i=0;i<=NH;i++){
       tiltH[i]=asin((i-(NH+1)/2.0)*(SlabWidth+gap)/RH);
     }
   }
-  if (!tiltV) printf("Monochromator_curved: %s: Warning: not enough memory to allocate tilts (NV=%g).\n", NAME_CURRENT_COMP, NV);
+  if (!tiltV) printf("Monochromator_curved: %s: Warning: not enough memory to allocate tilts (NV=%i).\n", NAME_CURRENT_COMP, NV);
   else if (RV) {
     for (i=0;i<=NV;i++){
       tiltV[i]=-asin((i-(NV+1)/2.0)*(SlabHeight+gap)/RV);
     }
   }
+  sprintf(ncol_var,"ncol_%ld",_comp->_index);
+  sprintf(nrow_var,"nrow_%ld",_comp->_index);
 
 %}
 
@@ -247,6 +256,9 @@ TRACE
       col = ceil ( (zz-zmin)/(SlabWidth +gap));  /* which slab hit ? */
       row = ceil ( (yy-ymin)/(SlabHeight+gap));
 
+      particle_setvar_void(_particle, ncol_var, &col);
+      particle_setvar_void(_particle, nrow_var, &row);
+      
       if (RH != 0) {
 	tilth = tiltH ? tiltH[(int)col] :  asin((col-(NH+1)/2.0)*(SlabWidth+gap)/RH);
       } else {

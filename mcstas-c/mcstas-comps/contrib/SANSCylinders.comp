@@ -18,33 +18,29 @@
 * of monodisperse, cylindrical particles.
 *
 * %P
-* R: [AA]                        Semiaxis of the cross section of the
-*						cylinder.
-* Heigh: [AA]                    Height of the cylinder.
+* R: [AA]                        Semiaxis of the cross section of the cylinder.
+* Height: [AA]                    Height of the cylinder.
 * Concentration: [mM]            Concentration of sample.
-* DeltaRho: [cm/AA^3]            Excess scattering length density of the
-*						particles.
+* DeltaRho: [cm/AA^3]            Excess scattering length density of the particles.
 * AbsorptionCrosssection: [1/m]  Absorption cross section of the sample.
 * xwidth: [m]                    Dimension of component in the x-direction.
 * yheight: [m]                   Dimension of component in the y-direction.
 * zdepth: [m]                    Dimension of component in the z-direction.
-* SampleToDetectorDistance: [m]  Distance from sample to detector (for
-*						focusing the scattered neutrons).
-* DetectorRadius: [m]            Radius of the detector (for focusing the
-*						scattered neutrons).
+* SampleToDetectorDistance: [m]  Distance from sample to detector (for focusing the scattered neutrons).
+* DetectorRadius: [m]            Radius of the detector (for focusing the scattered neutrons).
 *
 * %E
 *******************************************************************************/
 
 DEFINE COMPONENT SANSCylinders
 
-DEFINITION PARAMETERS ()
+
 
 SETTING PARAMETERS (R = 40.0, Height = 100.0, Concentration = 0.01, DeltaRho = 1.0e-14, AbsorptionCrosssection = 0.0,
 xwidth, yheight, zdepth, SampleToDetectorDistance, DetectorRadius)
 
-OUTPUT PARAMETERS ()
-DEPENDENCY "-I@MCCODE_LIB@/miniconda3/include -L@MCCODE_LIB@/miniconda3/lib -lgsl -lgslcblas "
+
+DEPENDENCY " @GSLFLAGS@ "
 NOACC
 
 SHARE %{
@@ -164,7 +160,7 @@ TRACE
 
 MCDISPLAY
 %{	
-	box(0, 0, 0, xwidth, yheight, zdepth);
+  box(0, 0, 0, xwidth, yheight, zdepth,0, 0, 1, 0);
 %}
 
 END

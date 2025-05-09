@@ -66,11 +66,11 @@
 *******************************************************************************/
 
 DEFINE COMPONENT Guide_channeled
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (w1, h1, w2=0, h2=0, l,
 R0=0.995, Qc=0, alpha=0, m=0, nslit=1, d=0.0005,
 Qcx=0.0218, Qcy=0.0218, alphax=4.38, alphay=4.38, W=0.003, mx=1, my=1, nu=0, phase=0)
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 SHARE %{
 %include "ref-lib"
@@ -299,24 +299,23 @@ MCDISPLAY
 %{
   int i;
 
-  
+  /* Draw the vertial slit-planes along each channel */
   for(i = 0; i < nslit; i++)
   {
-    multiline(5,
+    polygon(4,
               i*w1c - w1/2.0, -h1/2.0, 0.0,
               i*w2c - w2/2.0, -h2/2.0, (double)l,
               i*w2c - w2/2.0,  h2/2.0, (double)l,
-              i*w1c - w1/2.0,  h1/2.0, 0.0,
-              i*w1c - w1/2.0, -h1/2.0, 0.0);
-    multiline(5,
+              i*w1c - w1/2.0,  h1/2.0, 0.0);
+    polygon(4,
               (i+1)*w1c - d - w1/2.0, -h1/2.0, 0.0,
               (i+1)*w2c - d - w2/2.0, -h2/2.0, (double)l,
               (i+1)*w2c - d - w2/2.0,  h2/2.0, (double)l,
-              (i+1)*w1c - d - w1/2.0,  h1/2.0, 0.0,
-              (i+1)*w1c - d - w1/2.0, -h1/2.0, 0.0);
+              (i+1)*w1c - d - w1/2.0,  h1/2.0, 0.0);
   }
-  line(-w1/2.0, -h1/2.0, 0.0, w1/2.0, -h1/2.0, 0.0);
-  line(-w2/2.0, -h2/2.0, (double)l, w2/2.0, -h2/2.0, (double)l);
+  /* Add "bottom" and "lid" */
+  polygon(4,-w1/2.0, -h1/2.0, 0.0, w1/2.0, -h1/2.0, 0.0, w2/2.0, -h2/2.0, (double)l, -w2/2.0, -h2/2.0, (double)l);
+  polygon(4,-w1/2.0, h1/2.0, 0.0, w1/2.0, h1/2.0, 0.0, w2/2.0, h2/2.0, (double)l, -w2/2.0, h2/2.0, (double)l);
 
   if (nu || phase) {
     double radius = sqrt(w1*w1+l*l);

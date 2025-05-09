@@ -50,7 +50,7 @@
 * length: [m]      length of guide
 * rData: [str]     Guide Reflectivity data file
 * rPar: [1]        Guide Parameters for standard reflectivity function
-* rUpdata: [str]   Mirror Reflectivity data file for spin up
+* rUpData: [str]   Mirror Reflectivity data file for spin up
 * rUpPar: [1]      Mirror Parameters for spin up standard reflectivity function
 * rDownData: [str] Mirror Reflectivity data file for spin down
 * rDownPar: [1]    Mirror Parameters for spin down standard reflectivity function
@@ -62,7 +62,7 @@
 *******************************************************************************/
 
 DEFINE COMPONENT Pol_guide_mirror
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (
   vector rUpPar={1.0, 0.0219, 4.07, 3.2, 0.003},
   vector rDownPar={1.0, 0.0219, 4.07, 3.2, 0.003},
@@ -70,7 +70,7 @@ SETTING PARAMETERS (
   string rData="",string rUpData="",string rDownData="",
   xwidth, yheight, length,
   int debug=0)
-OUTPUT PARAMETERS ()
+
 
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
@@ -373,6 +373,10 @@ TRACE
       if (Rdown >  1) Rdown =1 ;
       GetMonoPolFNFM(Rup, Rdown, &FN, &FM);
       GetMonoPolRefProb(FN, FM, sy, &refWeight);
+      /* Output of PW discussions with Hal Lee 2024/03/08
+	 We have now done our QM "measurement", thus
+	 forcing the spin to assume up/down: */
+      sx=0; sz=0;
       // check that refWeight is meaningful
       if (refWeight <  0) ABSORB;
       if (refWeight >  1) refWeight =1 ;
@@ -409,7 +413,7 @@ MCDISPLAY
 %{
   int i, j;
   // draw box
-  box(0, 0, length/2.0, xwidth, yheight, length);
+  box(0, 0, length/2.0, xwidth, yheight, length,0, 0, 1, 0);
 
   for(j = -1; j<=1; j+=2){
       line(-xwidth/2.0, j*yheight/2, 0, xwidth/2.0, j*yheight/2, length);

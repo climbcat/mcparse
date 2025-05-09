@@ -46,7 +46,7 @@
 * amin:	[deg]	minimum of scattering angle to be detected
 * amax: [deg]	maximum of scattering angle to be detected
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * TOF_N:    Array of neutron counts
 * TOF_p:    Array of neutron weight counts
@@ -56,9 +56,9 @@
 *******************************************************************************/
 
 DEFINE COMPONENT NPI_tof_theta_monitor
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string filename=0, radius=1, yheight=0.3, tmin, tmax, amin, amax, restore_neutron=1, verbose=0, int nt=128, int na=90)
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */ 
 SHARE
   %{
@@ -92,6 +92,9 @@ INITIALIZE
     if (verbose) {
       printf("%s: range 2theta=(%g,%g), time(%g,%g)\n",NAME_CURRENT_COMP,amin,amax,tmin/1000,tmax/1000);
     }
+
+    // Use instance name for monitor output if no input was given
+    if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
   %}
 TRACE
   %{

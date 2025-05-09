@@ -35,7 +35,7 @@
 * restore_neutron: [1]  If set, the monitor does not influence the neutron state
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * Div_N: []             Array of neutron counts
 * Div_p: []             Array of neutron weight counts
@@ -46,15 +46,15 @@
 
 DEFINE COMPONENT TOFLambda_monitor
 
-DEFINITION PARAMETERS ()
+
 
 SETTING PARAMETERS ( int nowritefile=0,
-  nL=20, nt=128, tmin, tmax, string filename=0,
+  int nL=20, int nt=128, tmin, tmax, string filename=0,
   xmin=-0.05, xmax=0.05, ymin=-0.05, ymax=0.05,
   xwidth=0, yheight=0, Lmin, Lmax,
-  restore_neutron=0)
+  int restore_neutron=0)
 
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE
@@ -68,8 +68,6 @@ DECLARE
 
 INITIALIZE
 %{
-  int i,j;
-
   if (xwidth  > 0) { xmax = xwidth/2;  xmin = -xmax; }
   if (yheight > 0) { ymax = yheight/2; ymin = -ymax; }
 
@@ -85,13 +83,9 @@ INITIALIZE
   TOFL_p2 = create_darr2d(nt, nL);
   tt_0 = tmin*1e-6;
   tt_1 = tmax*1e-6;
-  for (i=0; i<nL; i++){
-    for (j=0; j<nt; j++){
-      TOFL_N[j][i] = 0;
-      TOFL_p[j][i] = 0;
-      TOFL_p2[j][i] = 0;
-    }
-  }
+
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
 %}
 
 TRACE

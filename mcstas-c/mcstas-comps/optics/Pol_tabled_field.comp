@@ -32,14 +32,15 @@
 * yheight: [m]              Height of opening.
 * zdepth: [m]               Length of field.
 * radius: [m]               Radius of field if it is cylindrical or spherical.
-* filename: [ ]             File where the magnetic field is tabulated.
-* interpol_method: [ ]      Choice of interpolation method "kdtree" (default on CPU) / "regular" (default on GPU)
+* filename: [str]           File where the magnetic field is tabulated.
+* geometry: [str]           Name of an Object File Format (OFF) or PLY file for complex field-geometry.
+* interpol_method: [str]    Choice of interpolation method "kdtree" (default on CPU) / "regular" (default on GPU)
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 * %E
 ****************************************************************************/
 DEFINE COMPONENT Pol_tabled_field
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (xwidth=0, yheight=0,zdepth=0, radius=0, string filename="bfield.dat", string geometry=NULL, string interpol_method="default")
 DEPENDENCY " -DUSE_OFF " 
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
@@ -157,14 +158,27 @@ INITIALIZE
   /* these default field functions are part of pol-lib */
   /*initialize the interpolation vertex structure*/
 
+
+  #ifdef OPENACC
+  // If "aotomatic mode is given on GPU, switch
+  // to 'default'
+  if (!strcmp(interpol_method,"NULL")) {
+    sprintf(interpol_method,"default");
+  }
+  #endif
+
+  // Handle default mode in both CPU and GPU case
   if (!strcmp(interpol_method,"default")) {
     #ifdef OPENACC
+    // Default is to assume regular interpolation on GPU
     sprintf(interpol_method,"regular");
     #else
-    sprintf(interpol_method,"kdtree");
+    // On CPU we use "NULL" allowing to jump automatically
+    // between regular and kdtree interpolation
+    sprintf(interpol_method,"NULL");
     #endif
   }
-  
+
   interpolator = interpolator_load(filename, 3, 3, interpol_method);
   interpolator_info(interpolator);
 

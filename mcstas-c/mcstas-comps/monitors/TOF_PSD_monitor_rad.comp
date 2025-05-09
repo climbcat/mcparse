@@ -36,7 +36,7 @@
 * tmax: [mu-s]           End of time window
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * PSDr_N: []             Array of neutron counts
 * PSDr_p: []             Array of neutron weight counts
@@ -49,10 +49,10 @@
 *******************************************************************************/
 
 DEFINE COMPONENT TOF_PSD_monitor_rad
-DEFINITION PARAMETERS ()
-SETTING PARAMETERS (nr=100, nt=100, int nowritefile=0,
-  string filename="", string filename_av="", rmax=0.2, tmin, tmax, restore_neutron=0)
-OUTPUT PARAMETERS ()
+
+SETTING PARAMETERS (int nr=100, int nt=100, int nowritefile=0,
+  string filename=0, string filename_av=0, rmax=0.2, tmin, tmax, int restore_neutron=0)
+
 
 DECLARE
 %{
@@ -68,8 +68,6 @@ DECLARE
 
 INITIALIZE
 %{
-  int i, j;
-
   TOFPSDr_N = create_darr2d(nt, nr);
   TOFPSDr_p = create_darr2d(nt, nr);
   TOFPSDr_p2 = create_darr2d(nt, nr);
@@ -78,13 +76,12 @@ INITIALIZE
 
   tt_0=tmin*1e-6;
   tt_1=tmax*1e-6;
-  for (i=0; i<nt; i++)
-    for (j=0; j<nr; j++)
-    {
-      TOFPSDr_N[i][j] = 0;
-      TOFPSDr_p[i][j] = 0;
-      TOFPSDr_p2[i][j] = 0;
-    }
+
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
+
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename_av,"\0")) sprintf(filename_av,"%s%s",NAME_CURRENT_COMP,"_avg");
 %}
 
 TRACE

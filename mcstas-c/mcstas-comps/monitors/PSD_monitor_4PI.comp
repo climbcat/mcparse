@@ -30,7 +30,7 @@
 * restore_neutron: [1]  If set, the monitor does not influence the neutron state
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * PSD_N: []             Array of neutron counts
 * PSD_p: []             Array of neutron weight counts
@@ -45,11 +45,11 @@
 
 DEFINE COMPONENT PSD_monitor_4PI
 
-DEFINITION PARAMETERS ()
 
-SETTING PARAMETERS (nx=90, ny=90, string filename=0, int nowritefile=0, radius=1, restore_neutron=0)
 
-OUTPUT PARAMETERS ()
+SETTING PARAMETERS (int nx=90, int ny=90, string filename=0, int nowritefile=0, radius=1, int restore_neutron=0)
+
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE
@@ -61,19 +61,12 @@ DECLARE
 
 INITIALIZE
 %{
-  int i, j;
-
   PSD_N = create_darr2d(nx, ny);
   PSD_p = create_darr2d(nx, ny);
   PSD_p2 = create_darr2d(nx, ny);
 
-  for (i=0; i<nx; i++)
-    for (j=0; j<ny; j++)
-    {
-      PSD_N[i][j] = 0;
-      PSD_p[i][j] = 0;
-      PSD_p2[i][j] = 0;
-    }
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
 %}
 
 TRACE

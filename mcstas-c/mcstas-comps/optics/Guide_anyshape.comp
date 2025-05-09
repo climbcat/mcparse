@@ -37,9 +37,6 @@
 *   bounding box may be resized using xwidth,yheight and zdepth.
 *   PLY geometry files are also supported.
 *
-* %BUGS
-* This component does take into account gravitation accurately.
-*
 * %P
 * INPUT PARAMETERS:
 *
@@ -56,7 +53,7 @@
 * reflect: [q(Angs-1) R(0-1)]  (str)  Reflectivity file name. Format 
 * transmit: [1]                When true, non reflected neutrons are transmitted through the surfaces, instead of being absorbed. No material absorption is taken into account though
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 * SCATTERED: []                number of reflected events
 *
 * %D
@@ -75,10 +72,10 @@
 *******************************************************************************/
 
 DEFINE COMPONENT Guide_anyshape
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (xwidth=0, yheight=0, zdepth=0, center=0, transmit=0,
   R0=0.99, Qc=0.0219, alpha=3, m=2, W=0.003, string reflect=0, string geometry=0)
-OUTPUT PARAMETERS ()
+
 DEPENDENCY " -DUSE_OFF "
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
@@ -123,8 +120,15 @@ TRACE
     double t0=0, t3=0, dt=0;
     Coords n0, n3, n={0,0,0};
     /* determine intersections with object */
-    intersect = off_intersect(&t0, &t3, &n0, &n3,
-       x,y,z, vx, vy, vz, thread_offdata );
+    
+    double mc_gx=0.0, mc_gy=0.0, mc_gz=0.0;
+    if (mcgravitation) {
+       Coords locgrav;
+       locgrav = rot_apply(_comp->_rotation_absolute, coords_set(0,-GRAVITY,0));
+       coords_get(locgrav, &mc_gx, &mc_gy, &mc_gz);
+    }
+    
+    intersect = off_intersect(&t0, &t3, &n0, &n3, x,y,z, vx, vy, vz, mc_gx, mc_gy, mc_gz, thread_offdata );
 
     /* get the smallest positive */
     if (t0 > 0) { dt = t0; n=n0; }
@@ -136,13 +140,13 @@ TRACE
     double nx,ny,nz;
     coords_get(n, &nx, &ny, &nz);
 
+    /* propagate neutron to reflection point, must be before n_dot_v with gravity */
+    PROP_DT(dt);
+
     /* test if the angle is large in case the object has an internal coating */
     double n2      = nx*nx+ny*ny+nz*nz;
     double n_dot_v = scalar_prod(vx,vy,vz,nx,ny,nz);
     double q       = 2*fabs(n_dot_v)*V2K/sqrt(n2);
-
-    /* propagate neutron to reflection point */
-    PROP_DT(dt);
 
     /* handle surface intersection */
     double R=0;
@@ -190,15 +194,6 @@ MCDISPLAY
 %{
   /* display the object */
   off_display(offdata);
-  /* and its bounding box */
-  /*
-  mcdis_box(( offdata.xmin+offdata.xmax)/2,
-            ( offdata.ymin+offdata.ymax)/2,
-            ( offdata.zmin+offdata.zmax)/2,
-            (-offdata.xmin+offdata.xmax),
-            (-offdata.ymin+offdata.ymax),
-            (-offdata.zmin+offdata.zmax));
-  */
 %}
 
 END

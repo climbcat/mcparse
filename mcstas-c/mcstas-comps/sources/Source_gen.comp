@@ -116,7 +116,7 @@
 * flux_file_log: [1]    When true, will transform the flux table in log scale to improve the sampling.
 * xdiv_file: [str]      Name of the x-horiz. divergence distribution file, given as a free format text matrix, preceeded with a line '# xylimits: xmin xmax xdiv_min xdiv_max'
 * ydiv_file: [str]      Name of the y-vert. divergence distribution file, given as a free format text matrix, preceeded with a line '# xylimits: ymin ymax ydiv_min ydiv_max'
-* verbose: [0/1]        display info about the source. -1 unactivate source.
+* verbose: [0/1]        display info about the source. -1 inactivate source.
 *
 * %L
 * P. Ageron, Nucl. Inst. Meth. A 284 (1989) 197
@@ -125,14 +125,14 @@
 
 
 DEFINE COMPONENT Source_gen
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (string flux_file="NULL", string xdiv_file="NULL", string ydiv_file="NULL",
 radius=0.0, dist=0, focus_xw=0.045, focus_yh=0.12, focus_aw=0, focus_ah=0,
 E0=0, dE=0, lambda0=0, dlambda=0, I1=1,
 yheight=0.1, xwidth=0.1, verbose=0, T1=0,
 flux_file_perAA=0, flux_file_log=0,
 Lmin=0,Lmax=0,Emin=0,Emax=0,T2=0,I2=0,T3=0,I3=0,zdepth=0, int target_index=+1)
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 SHARE
@@ -472,7 +472,7 @@ INITIALIZE
   }
   else
     if (verbose == -1)
-      printf("Source_gen: component %s unactivated", NAME_CURRENT_COMP);
+      printf("Source_gen: component %s inactivated", NAME_CURRENT_COMP);
   );
 %}
 

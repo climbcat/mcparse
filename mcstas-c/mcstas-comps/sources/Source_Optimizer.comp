@@ -55,7 +55,7 @@
 *     verbose         displays optimization process (debug purpose).
 *     auto            uses the shortest possible 'step 1' and 'step 2' and sets 'step' value as required (default).
 *     smooth          remove possible spikes generated in steps 1 and 2 (default is smooth).
-*     unactivate      to unactivate the Optimizer.
+*     inactivate      to inactivate the Optimizer.
 *     no or not       revert next option
 *     bins=[value=10] set the Number of cells for sampling neutron states
 *     step=[value=10] Optimizer step in % of simulation.
@@ -94,7 +94,7 @@
 * options: [str]  string of options. See <b>Description<b> 
 
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * DEFS: a set of constant values used in the component (struct)
 * Vars: structure that contains variables used in the component (struct)
@@ -129,11 +129,11 @@ Mar 10 2000 : v0.07.2 gathered all variables into 2 structures
 
 DEFINE COMPONENT Source_Optimizer
 
-DEFINITION PARAMETERS ()
+
 
 SETTING PARAMETERS (bins=10, step=0.1, keep=0.1, string options=0)
 
-OUTPUT PARAMETERS ()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 SHARE
@@ -142,7 +142,7 @@ SHARE
 /* here we define a structure of constants (some kind of DEFINES) */
   struct Optim_Defines
   {
-    char PHASE_UNACTIVATE; /* to unactivate Optimizer */
+    char PHASE_UNACTIVATE; /* to inactivate Optimizer */
     char PHASE_SET_LIMITS; /* set array limits to 0, then ask for GET_LIMITS */
     char PHASE_GET_LIMITS; /* compute array limits, then ask for SET_REF */
     char PHASE_SET_REF;    /* set Ref and New_Source to to 0, then ask for GET_REF */
@@ -337,7 +337,7 @@ INITIALIZE
   char Token_Mode     = DEFS.COORD_VAR;
 
 /* init OPTIM */
-  DEFS.PHASE_UNACTIVATE =0; /* to unactivate Optimizer */
+  DEFS.PHASE_UNACTIVATE =0; /* to inactivate Optimizer */
   DEFS.PHASE_SET_LIMITS =1; /* set array limits to 0, then ask for GET_LIMITS */
   DEFS.PHASE_GET_LIMITS =2; /* compute array limits, then ask for SET_REF */
   DEFS.PHASE_SET_REF    =3; /* set Ref and New_Source to to 0, then ask for GET_REF */
@@ -446,7 +446,7 @@ INITIALIZE
   if (strstr(option_copy,"SetDivS"))     Vars.Flag_Type       |= DEFS.DO_DIVS;
   else
     if (strstr(option_copy,"SetS"))      Vars.Flag_Type       |= DEFS.DO_S;
-  if (strstr(option_copy,"unactivate"))  Vars.Phase = DEFS.PHASE_UNACTIVATE;
+  if (strstr(option_copy,"inactivate"))  Vars.Phase = DEFS.PHASE_UNACTIVATE;
 
   if (Vars.Flag_Type == 0) Vars.Flag_Type = (DEFS.DO_XY|DEFS.DO_DIVV|DEFS.DO_DIVS);
 
@@ -582,7 +582,7 @@ INITIALIZE
   if ((Vars.Reference_sz = (double*)malloc(Vars.nbins * sizeof(double))) == NULL) { fprintf(stderr,"Optimizer : not enough memory\n"); exit(-1); }
 
   if (Vars.Phase == DEFS.PHASE_UNACTIVATE)
-    { if (Vars.Flag_Verbose) printf("Source_Optimizer: %s is unactivated\n", NAME_CURRENT_COMP);
+    { if (Vars.Flag_Verbose) printf("Source_Optimizer: %s is inactivated\n", NAME_CURRENT_COMP);
       Vars.Flag_Verbose = 0; }
 /* end initialize */
 %}
@@ -665,7 +665,7 @@ TRACE
         if (Vars.Monitor_Number == 0)
         {
           Vars.Phase = DEFS.PHASE_UNACTIVATE;
-          printf("Source_Optimizer: %s is unactivated (no Monitor_Optimizer found)\n", NAME_CURRENT_COMP);
+          printf("Source_Optimizer: %s is inactivated (no Monitor_Optimizer found)\n", NAME_CURRENT_COMP);
         }
      }
 

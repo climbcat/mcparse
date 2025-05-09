@@ -22,16 +22,16 @@
 * %P
 * INPUT PARAMETERS:
 *
-* xlenght: [m]  length of SiC plate
+* xlength: [m]  length of SiC plate
 * yheight: [m]  height of SiC plate
 *
 * %E
 *******************************************************************************/
 
 DEFINE COMPONENT SiC
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (xlength, yheight)
-OUTPUT PARAMETERS()
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE

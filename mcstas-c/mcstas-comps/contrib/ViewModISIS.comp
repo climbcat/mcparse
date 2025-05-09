@@ -132,7 +132,8 @@ double polInterp(double* X,double* Y,int Psize,double Aim)
   */
 {
   double out,errOut;         /* out put variables */
-  double C[Psize],D[Psize];
+  double *C = malloc(Psize*sizeof(double));
+  double *D = malloc(Psize*sizeof(double));
   double testDiff,diff;
 
   double w,den,ho,hp;           /* intermediate variables */
@@ -174,6 +175,8 @@ double polInterp(double* X,double* Y,int Psize,double Aim)
       errOut= (2*(ns+1)<(Psize-m)) ? C[ns+1] : D[ns--];
       out+=errOut;
     }
+  free(C);
+  free(D);
   return out;
 } /* polInterp */
 
@@ -968,7 +971,7 @@ openFile(char* FileName)
 
   /* 4) Is the file available within the MCSTAS install dir? */
   sprintf(testFileName,"%s%c%s%c%s%c%s",
-    MCSTAS,MC_PATHSEP_C,"contrib",MC_PATHSEP_C,"ISIS_tables",MC_PATHSEP_C,FileName);
+    MCSTAS,MC_PATHSEP_C,"data",MC_PATHSEP_C,"ISIS_tables",MC_PATHSEP_C,FileName);
   efile=fopen(testFileName,"r");
   if (efile) {
     fprintf(stderr," - Found in MCSTAS system dir: \n %s%c%s%c%s\n",

@@ -37,12 +37,14 @@
 * ythick: [m]     Thickness of substrate
 * mu_inc: [m^-1]  Incoherent scattering length
 * frac_inc: [1]   Fraction of statistics to assign to incoherent scattering
-* V0: [AA^3]      Unit cell volume, substrate
 * pack: [1]       Substrate packing factor
 * nlayer: [1]     Number of film layers
-* sldPar: [1]     (Angstoms ^-2) Scattering length Density's of layers
-* dPar: [1]       (Angstroms) Thicknesses of film layers
-* sigmaPar: [1]   (Angstroms) r.m.s roughnesses of the interfaces
+* sldPar: [AA^-2] Scattering length Density's of layers
+* dPar: [AA]      Thicknesses of film layers
+* sigmaPar: [AA]  r.m.s roughnesses of the interfaces
+* target_index: [1] Used in combination with focus_xw and focus_yh to indicate solid angle for incoherent scattering.
+* focus_xw: [m] Used in combination with target_index and focus_yh to indicate solid angle for incoherent scattering.
+* focus_yh: [m] Used in combination with focus_xw and target_index to indicate solid angle for incoherent scattering.
 *
 * %E
 *******************************************************************************/
@@ -53,8 +55,8 @@ SETTING PARAMETERS (xwidth = 0.2, zlength = 0.2, nlayer=1,
   vector dPar={20.0},
   vector sigmaPar={5.0,5.0}, 
   frac_inc=0, ythick=0, mu_inc=5.62, int target_index=0, focus_xw=0, focus_yh=0)
-OUTPUT PARAMETERS ()
-DEPENDENCY "-lgsl -lgslcblas"
+
+DEPENDENCY " @GSLFLAGS@ "
 NOACC
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
@@ -335,6 +337,6 @@ TRACE
 
 MCDISPLAY
 %{
-  box(0.0, (double)-ythick/2.0, 0.0, (double)xwidth, (double)ythick, (double)zlength);
+  box(0.0, (double)-ythick/2.0, 0.0, (double)xwidth, (double)ythick, (double)zlength,0, 0, 1, 0);
 %}
 END

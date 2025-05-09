@@ -35,7 +35,7 @@
 * restore_neutron: [1]  If set, the monitor does not influence the neutron state
 * nowritefile: [1]      If set, monitor will skip writing to disk
 *
-* OUTPUT PARAMETERS:
+* CALCULATED PARAMETERS:
 *
 * PolL_N: [1]           Array of neutron counts
 * PolL_p: [1]           Array of neutron weight counts
@@ -47,11 +47,11 @@
 
 DEFINE COMPONENT MeanPolLambda_monitor
 
-DEFINITION PARAMETERS ()
 
-SETTING PARAMETERS (xwidth=0.1, yheight=0.1, nL=20, restore_neutron=0, string filename, int nowritefile=0, mx=0, my=0, mz=0, Lmin, Lmax)
 
-OUTPUT PARAMETERS ()
+SETTING PARAMETERS (xwidth=0.1, yheight=0.1, int nL=20, int restore_neutron=0, string filename=0, int nowritefile=0, mx=0, my=0, mz=0, Lmin, Lmax)
+
+
 /* Neutron parameters: (x,y,z,vx,vy,vz,t,sx,sy,sz,p) */
 
 DECLARE
@@ -64,8 +64,6 @@ DECLARE
 
 INITIALIZE
 %{
-  int i;
-
   // Check that input parameteters makes sense
   if (Lmax<=Lmin) {
     fprintf(stderr, "Pol_monitor: %s: l1 <= l0!\n"
@@ -96,12 +94,8 @@ INITIALIZE
   PolL_p2 = create_darr1d(nL);
   HelpArray = create_darr1d(nL);
 
-  for (i=0; i<nL; i++) {
-    PolL_N[i] = 0;
-    PolL_p[i] = 0;
-    PolL_p2[i] = 0;
-    HelpArray[i] = 0;
-  }
+  // Use instance name for monitor output if no input was given
+  if (!strcmp(filename,"\0")) sprintf(filename,"%s",NAME_CURRENT_COMP);
 %}
 
 TRACE

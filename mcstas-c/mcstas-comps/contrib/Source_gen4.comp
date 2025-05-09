@@ -105,7 +105,7 @@
 * xdiv_file: [str]            Name of the x-horiz. divergence distribution file, given as a free format text matrix, preceeded with a line '# xylimits: xmin xmax xdiv_min xdiv_max'
 * ydiv_file: [str]            Name of the y-vert. divergence distribution file, given as a free format text matrix, preceeded with a line '# xylimits: ymin ymax ydiv_min ydiv_max'
 * gaussian: [0/1]             Use gaussian divergence beam, normal distributions
-* verbose: [0/1]              display info about the source. -1 unactivate source.
+* verbose: [0/1]              display info about the source. -1 inactivate source.
 *
 * %L
 * <a href="http://www.ill.fr/Yellowbook">The ILL Yellow book</a>
@@ -116,7 +116,7 @@
 
 
 DEFINE COMPONENT Source_gen4
-DEFINITION PARAMETERS ()
+
 SETTING PARAMETERS (
   string flux_file=0, string xdiv_file=0, string ydiv_file=0,
   radius=0.0, dist=0, xw=0, yh=0, E0=0, dE=0, Lambda0=0, dLambda=0, I1=0,
@@ -124,7 +124,7 @@ SETTING PARAMETERS (
   flux_file_perAA=0, flux_file_log=0,
   Lmin=0,Lmax=0,Emin=0,Emax=0,T2=0,I2=0,T3=0,I3=0,length=0,phi_init=0,
   theta_init=0,HEtailA=0,HEtailL0=0)
-OUTPUT PARAMETERS ()
+
 
 SHARE
 %{
@@ -451,7 +451,7 @@ INITIALIZE
   }
   else
     if (verbose == -1)
-      printf("Source_gen: component %s unactivated", NAME_CURRENT_COMP);
+      printf("Source_gen: component %s inactivated", NAME_CURRENT_COMP);
 %}
 
 TRACE
