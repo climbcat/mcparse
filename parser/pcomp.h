@@ -216,12 +216,22 @@ Component ComponentParse(MArena *a_dest, char *text) {
             if (Optional(t, &token, TOK_ASSIGN) == PTR_OK) {
                 // = and default value
 
+                if (p.type.len == 6 && StrEqual(p.type, "vector")) {
 
+                    // capture from { to } the lazy-pants way: (ideally we should check for numerals and commas)
+                    Required(t, &token, TOK_LBRACE);
+                    p.default_val.str = token.text;
+                    do {
+                        token = GetToken(t);
+                    }
+                    while (token.type != TOK_RBRACE);
+                    p.default_val.len = token.text - p.default_val.str + 1;
+                }
+                else {
+                    RequiredRVal(t, &token);
+                    p.default_val = token.GetValue();
+                }
                 // TODO: deal with parameter type 'vector' which is inline initialization a-la {0,0,0}
-
-
-                RequiredRVal(t, &token);
-                p.default_val = token.GetValue();
             }
 
             comp.params.Add(p);
