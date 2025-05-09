@@ -49,6 +49,26 @@ enum TokenType {
     TOK_SCI, // 2.4e21
     TOK_IDENTIFIER,
 
+    TOK_MCSTAS_PARTYPE_INT,
+    TOK_MCSTAS_PARTYPE_STRING,
+
+    TOK_MCSTAS_DEFINE,
+    TOK_MCSTAS_INSTRUMENT,
+    TOK_MCSTAS_COMPONENT,
+    TOK_MCSTAS_SETTING,
+    TOK_MCSTAS_PARAMETERS,
+    TOK_MCSTAS_SHARE,
+    TOK_MCSTAS_DECLARE,
+    TOK_MCSTAS_INITIALIZE,
+    TOK_MCSTAS_TRACE,
+    TOK_MCSTAS_FINALLY,
+    TOK_MCSTAS_MCDISPLAY,
+    TOK_MCSTAS_AT,
+    TOK_MCSTAS_RELATIVE,
+    TOK_MCSTAS_ROTATED,
+    TOK_MCSTAS_SPLIT,
+    TOK_MCSTAS_SPLITS,
+    TOK_MCSTAS_USER,
     TOK_MCSTAS_END,
 
     TOK_ENDOFSTREAM,
@@ -91,6 +111,26 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_SCI: return "TOK_SCI";
         case TOK_IDENTIFIER: return "TOK_IDENTIFIER";
 
+        case TOK_MCSTAS_PARTYPE_INT: return "TOK_MCSTAS_PARTYPE_INT";
+        case TOK_MCSTAS_PARTYPE_STRING: return "TOK_MCSTAS_PARTYPE_STRINGs";
+
+        case TOK_MCSTAS_DEFINE: return "TOK_MCSTAS_DEFINE";
+        case TOK_MCSTAS_INSTRUMENT: return "TOK_MCSTAS_INSTRUMENT";
+        case TOK_MCSTAS_COMPONENT: return "TOK_MCSTAS_COMPONENT";
+        case TOK_MCSTAS_SETTING: return "TOK_MCSTAS_SETTING";
+        case TOK_MCSTAS_PARAMETERS: return "TOK_MCSTAS_PARAMETERS";
+        case TOK_MCSTAS_SHARE: return "TOK_MCSTAS_SHARE";
+        case TOK_MCSTAS_DECLARE: return "TOK_MCSTAS_DECLARE";
+        case TOK_MCSTAS_INITIALIZE: return "TOK_MCSTAS_INITIALIZE";
+        case TOK_MCSTAS_TRACE: return "TOK_MCSTAS_TRACE";
+        case TOK_MCSTAS_FINALLY: return "TOK_MCSTAS_FINALLY";
+        case TOK_MCSTAS_MCDISPLAY: return "TOK_MCSTAS_MCDISPLAY";
+        case TOK_MCSTAS_AT: return "TOK_MCSTAS_AT";
+        case TOK_MCSTAS_RELATIVE: return "TOK_MCSTAS_RELATIVE";
+        case TOK_MCSTAS_ROTATED: return "TOK_MCSTAS_ROTATED";
+        case TOK_MCSTAS_SPLIT: return "TOK_MCSTAS_SPLIT";
+        case TOK_MCSTAS_SPLITS: return "TOK_MCSTAS_SPLITS";
+        case TOK_MCSTAS_USER: return "TOK_MCSTAS_USER";
         case TOK_MCSTAS_END: return "TOK_MCSTAS_END";
 
         case TOK_ENDOFSTREAM: return "TOK_ENDOFSTREAM";
@@ -136,6 +176,23 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_SCI: return "[float scientific]";
         case TOK_IDENTIFIER: return "[identifier]";
 
+        case TOK_MCSTAS_DEFINE: return "DEFINE";
+        case TOK_MCSTAS_INSTRUMENT: return "INSTRUMENT";
+        case TOK_MCSTAS_COMPONENT: return "COMPONENT";
+        case TOK_MCSTAS_SETTING: return "SETTING";
+        case TOK_MCSTAS_PARAMETERS: return "PARAMETERS";
+        case TOK_MCSTAS_SHARE: return "SHARE";
+        case TOK_MCSTAS_DECLARE: return "DECLARE";
+        case TOK_MCSTAS_INITIALIZE: return "INITIALIZE";
+        case TOK_MCSTAS_TRACE: return "TRACE";
+        case TOK_MCSTAS_FINALLY: return "FINALLY";
+        case TOK_MCSTAS_MCDISPLAY: return "MCDISPLAY";
+        case TOK_MCSTAS_AT: return "AT";
+        case TOK_MCSTAS_RELATIVE: return "RELATIVE";
+        case TOK_MCSTAS_ROTATED: return "ROTATED";
+        case TOK_MCSTAS_SPLIT: return "SPLIT";
+        case TOK_MCSTAS_SPLITS: return "SPLITS";
+        case TOK_MCSTAS_USER: return "USER";
         case TOK_MCSTAS_END: return "END";
 
         case TOK_ENDOFSTREAM: return "[eos]";
@@ -155,6 +212,7 @@ struct Tokenizer {
     char *at;
     u32 line = 1;
     char *at_linestart;
+
     void Init(char *text) {
         line = 1;
         at = text;
@@ -169,14 +227,17 @@ struct Tokenizer {
 struct Token {
     TokenType type;
     char* text;
-    u16 len;
-    void PrintValue(bool newline = true) {
-    printf("%.*s", len, text);
-    if (newline) {
-        printf("\n");
-    }
-}
+    u32 len;
 
+    void PrintValue(bool newline = true) {
+        printf("%.*s", len, text);
+        if (newline) {
+            printf("\n");
+        }
+    }
+    Str GetValue() {
+        return Str { text, len };
+    }
 };
 
 inline
@@ -296,6 +357,7 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
     }
 }
 
+inline
 bool TokenEquals(Token* token, const char* match, bool token_to_upper = false) {
     char* at = (char*) match;
     if (token->len != strlen(match)) {
@@ -626,19 +688,29 @@ Token GetToken(Tokenizer *tokenizer)
         if (IsAlphaOrUnderscore(c))
         {
             token.type = TOK_IDENTIFIER;
-            while (
-                tokenizer->at[0] != '\0' &&
-                (IsAlphaOrUnderscore(tokenizer->at[0]) || IsNumeric(tokenizer->at[0])))
-            {
+            while ( tokenizer->at[0] != '\0' && (IsAlphaOrUnderscore(tokenizer->at[0]) || IsNumeric(tokenizer->at[0]))) {
                 ++tokenizer->at;
             }
-
             token.len = tokenizer->at - token.text;
 
-            if (TokenEquals(&token, "END"))
-            {
-                token.type = TOK_MCSTAS_END;
-            }
+            if (TokenEquals(&token, "DEFINE")) { token.type = TOK_MCSTAS_DEFINE; }
+            else if (TokenEquals(&token, "INSTRUMENT")) { token.type = TOK_MCSTAS_INSTRUMENT; }
+            else if (TokenEquals(&token, "COMPONENT")) { token.type = TOK_MCSTAS_COMPONENT; }
+            else if (TokenEquals(&token, "SETTING")) { token.type = TOK_MCSTAS_SETTING; }
+            else if (TokenEquals(&token, "PARAMETERS")) { token.type = TOK_MCSTAS_PARAMETERS; }
+            else if (TokenEquals(&token, "SHARE")) { token.type = TOK_MCSTAS_SHARE; }
+            else if (TokenEquals(&token, "DECLARE")) { token.type = TOK_MCSTAS_DECLARE; }
+            else if (TokenEquals(&token, "INITIALIZE")) { token.type = TOK_MCSTAS_INITIALIZE; }
+            else if (TokenEquals(&token, "TRACE")) { token.type = TOK_MCSTAS_TRACE; }
+            else if (TokenEquals(&token, "FINALLY")) { token.type = TOK_MCSTAS_FINALLY; }
+            else if (TokenEquals(&token, "MCDISPLAY")) { token.type = TOK_MCSTAS_MCDISPLAY; }
+            else if (TokenEquals(&token, "AT")) { token.type = TOK_MCSTAS_AT; }
+            else if (TokenEquals(&token, "RELATIVE")) { token.type = TOK_MCSTAS_RELATIVE; }
+            else if (TokenEquals(&token, "ROTATED")) { token.type = TOK_MCSTAS_ROTATED; }
+            else if (TokenEquals(&token, "SPLIT")) { token.type = TOK_MCSTAS_SPLIT; }
+            else if (TokenEquals(&token, "SPLITS")) { token.type = TOK_MCSTAS_SPLITS; }
+            else if (TokenEquals(&token, "USER")) { token.type = TOK_MCSTAS_USER; }
+            else if (TokenEquals(&token, "END")) { token.type = TOK_MCSTAS_END; }
         }
 
         else if (IsNumeric(c))
