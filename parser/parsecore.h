@@ -226,6 +226,7 @@ struct Tokenizer {
 
 struct Token {
     TokenType type;
+    bool is_rval;
     char* text;
     u32 len;
 
@@ -585,6 +586,7 @@ Token GetToken(Tokenizer *tokenizer)
         if (next_type == TOK_INT || next_type == TOK_FLOAT || next_type == TOK_SCI)
         {
             ParseNumeric(tokenizer, &token);
+            token.is_rval = true;
         }
         else
         {
@@ -593,8 +595,20 @@ Token GetToken(Tokenizer *tokenizer)
     }
     break;
     case '+':
-        token.type = TOK_PLUS;
-        break;
+    {
+        TokenType next_type = LookAheadNextTokenType(tokenizer);
+        if (next_type == TOK_INT || next_type == TOK_FLOAT || next_type == TOK_SCI)
+        {
+            ParseNumeric(tokenizer, &token);
+            token.is_rval = true;
+        }
+        else
+        {
+            token.type = TOK_PLUS;
+        }
+    }
+    break;
+
     case ':':
         token.type = TOK_COLON;
         break;
@@ -642,6 +656,7 @@ Token GetToken(Tokenizer *tokenizer)
     case '"':
     {
         token.type = TOK_STRING;
+        token.is_rval = true;
 
         while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '"' && !IsEndOfLine(tokenizer->at[0]))
         {
@@ -664,6 +679,7 @@ Token GetToken(Tokenizer *tokenizer)
     case '\'':
     {
         token.type = TOK_CHAR;
+        token.is_rval = true;
 
         while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '\'' && !IsEndOfLine(tokenizer->at[0]))
         {
@@ -688,6 +704,8 @@ Token GetToken(Tokenizer *tokenizer)
         if (IsAlphaOrUnderscore(c))
         {
             token.type = TOK_IDENTIFIER;
+            token.is_rval = true;
+
             while ( tokenizer->at[0] != '\0' && (IsAlphaOrUnderscore(tokenizer->at[0]) || IsNumeric(tokenizer->at[0]))) {
                 ++tokenizer->at;
             }
@@ -715,6 +733,8 @@ Token GetToken(Tokenizer *tokenizer)
 
         else if (IsNumeric(c))
         {
+            token.is_rval = true;
+
             ParseNumeric(tokenizer, &token);
         }
 

@@ -73,6 +73,23 @@ enum ParseTokenResult {
     PTR_CNT
 };
 
+ParseTokenResult RequiredRVal(Tokenizer *t, Token *tok_out) {
+    Tokenizer prev = *t;
+
+    Token tok = GetToken(t);
+    *tok_out = tok;
+
+    if (tok.is_rval) {
+        return PTR_OK;
+    }
+    else {
+        printf("Error: Expected r-value, got: %s\n", TokenTypeToString(tok.type));
+        PrintLineError(t, &tok, "");
+
+        assert(1 == 0 && "DBG break");
+        return PTR_ERROR;
+    }
+}
 
 ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
     Tokenizer prev = *t;
@@ -85,8 +102,9 @@ ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
     }
     else {
         printf("Error: Expected %s, got: %s\n", TokenTypeToString(req), TokenTypeToString(tok.type));
+        PrintLineError(t, &tok, "");
 
-        assert(1 == 0 && "DBG break - figure out proper exit");
+        assert(1 == 0 && "DBG break");
         return PTR_ERROR;
     }
 }
@@ -108,7 +126,7 @@ ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
     }
 }
 
-ParseTokenResult CheckOptional(Tokenizer *t, TokenType opt) {
+ParseTokenResult OptionalDontAdvance(Tokenizer *t, TokenType opt) {
     Tokenizer was = *t;
 
     Token tok = GetToken(t);
@@ -175,7 +193,7 @@ Component ComponentParse(MArena *a_dest, char *text) {
     Required(t, &token, TOK_MCSTAS_PARAMETERS);
     Required(t, &token, TOK_LBRACK);
 
-    if (CheckOptional(t, TOK_IDENTIFIER) == PTR_OK) { // <-- initiates a parameter parse
+    if (OptionalDontAdvance(t, TOK_IDENTIFIER) == PTR_OK) { // <-- initiates a parameter parse
         bool iterate = true;
         while (iterate) {
             Parameter p = {};
@@ -184,17 +202,28 @@ Component ComponentParse(MArena *a_dest, char *text) {
             Required(t, &tok_parname_or_partype, TOK_IDENTIFIER);
 
             Token tok_parname_or_nothing;
-            if (Optional(t, &token, TOK_IDENTIFIER) == PTR_OK) {
+            if (Optional(t, &tok_parname_or_nothing, TOK_IDENTIFIER) == PTR_OK) {
+                // parameter type and name
                 p.type = tok_parname_or_partype.GetValue();
                 p.name = tok_parname_or_nothing.GetValue();
             }
+
             else {
+                // no type, only the parameter name
                 p.name = tok_parname_or_partype.GetValue();
             }
-            Required(t, &token, TOK_ASSIGN);
 
-            Required(t, &token, TOK_IDENTIFIER);
-            p.default_val = token.GetValue();
+            if (Optional(t, &token, TOK_ASSIGN) == PTR_OK) {
+                // = and default value
+
+
+                // TODO: deal with parameter type 'vector' which is inline initialization a-la {0,0,0}
+
+
+                RequiredRVal(t, &token);
+                p.default_val = token.GetValue();
+            }
+
             comp.params.Add(p);
 
             iterate = Optional(t, &token, TOK_COMMA) == PTR_OK; // <-- iterates a parameter parse
@@ -216,15 +245,26 @@ Component ComponentParse(MArena *a_dest, char *text) {
 
 
 void ComponentPrint(Component comp) {
-    StrPrint("type: %s\n", comp.type);
+
+    printf("type: "); StrPrint(comp.type); printf("\n");
+
     for (u32 i = 0; i < comp.params.len; ++i) {
-        StrPrint("    %s", comp.params.arr[i].name);
-        StrPrint("= %s\n", comp.params.arr[i].name);
-        if (comp.params.arr[i].default_val.len) {
-            StrPrint(" (%s)", comp.params.arr[i].default_val);
-        } 
+        Parameter p = comp.params.arr[i];
+
+        printf("    ");
+        StrPrint(p.name);
+        if (p.default_val.len) {
+            printf(" = ");
+            StrPrint(p.default_val);
+        }
+
+        if (p.type.len) {
+            printf(" (");
+            StrPrint(p.type);
+            printf(")");
+        }
+        printf("\n");
     }
-    
 }
 
 #endif
