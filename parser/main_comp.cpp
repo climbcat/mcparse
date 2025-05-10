@@ -74,26 +74,14 @@ int main (int argc, char **argv) {
         exit(0);
     }
     else {
-        char *input = argv[1];
-        printf("0 %s\n", input);
-
         StringInit();
 
-
-        StrLst *fpaths = NULL;
-        bool print_detailed = false;
-        if (IsCompFile(input)) {
-            fpaths = StrLstPush(fpaths, input);
-            print_detailed = true;
-        }
-        else {
-            fpaths = GetFilesInFolderPaths(NULL, input);
-            printf("2 \n");
-        }
-        StrLstPrint(fpaths);
+        StrLst *fpaths_tail = NULL;
+        fpaths_tail = GetFilesInFolderPaths_Rec(argv[1], NULL, NULL, "comp", true);
+        StrLstPrint(fpaths_tail->first);
 
         // parse
-        MArena a_work = ArenaCreate();
-        ParseComponents(&a_work, fpaths, print_detailed);
+        //MArena a_work = ArenaCreate();
+        //ParseComponents(&a_work, fpaths, print_detailed);
     }
 }
