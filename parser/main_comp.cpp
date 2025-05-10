@@ -29,21 +29,9 @@ void *ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {
             continue;
         }
 
-        // DBG
-
-
-
         printf("parsing  #%.3d: %s  ", i, filename);
-        //InstrDef instr = ParseInstrument(&tokenizer, a_parse);
         Component comp = ComponentParse(a_parse, text);
         ComponentPrint(comp);
-        //printf(" -> %s: OK\n", instr.name);
-
-        //
-        //if (print_details) {
-        //    PrintInstrumentParse(instr);
-        //    exit(0);
-        //}
 
         ++i;
     }
@@ -75,12 +63,8 @@ int main (int argc, char **argv) {
     }
     else {
         StringInit();
+        StrLst *fpaths = GetFiles(argv[1], "comp", true);
 
-        StrLst *fpaths = GetFiles(argv[1], "comp", false);
-        StrLstPrint(fpaths);
-        return 0;
-
-        // parse
         MArena a_work = ArenaCreate();
         ParseComponents(&a_work, fpaths, true);
     }
