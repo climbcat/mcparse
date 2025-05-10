@@ -117,7 +117,6 @@
 *******************************************************************************/
 
 DEFINE COMPONENT Source_custom
-DEFINITION PARAMETERS ()
 SETTING PARAMETERS (int target_index=1, dist=0.0, focus_xw=0.02, focus_yh=0.02,
                     xwidth=0.0, yheight=0.0, radius=0.010, r_i=0.0,
                     Lmin, Lmax, freq, t_pulse, tmax_multiplier=3.0, int n_pulses=1,
