@@ -76,8 +76,9 @@ int main (int argc, char **argv) {
     else {
         StringInit();
 
-        StrLst *fpaths = GetFilesInFolderPaths_Rec(argv[1], NULL, NULL, "comp", true)->first;
-        //StrLstPrint(fpaths);
+        StrLst *fpaths = GetFiles(argv[1], "comp", false);
+        StrLstPrint(fpaths);
+        return 0;
 
         // parse
         MArena a_work = ArenaCreate();
