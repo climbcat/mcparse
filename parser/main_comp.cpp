@@ -76,12 +76,11 @@ int main (int argc, char **argv) {
     else {
         StringInit();
 
-        StrLst *fpaths_tail = NULL;
-        fpaths_tail = GetFilesInFolderPaths_Rec(argv[1], NULL, NULL, "comp", true);
-        StrLstPrint(fpaths_tail->first);
+        StrLst *fpaths = GetFilesInFolderPaths_Rec(argv[1], NULL, NULL, "comp", true)->first;
+        //StrLstPrint(fpaths);
 
         // parse
-        //MArena a_work = ArenaCreate();
-        //ParseComponents(&a_work, fpaths, print_detailed);
+        MArena a_work = ArenaCreate();
+        ParseComponents(&a_work, fpaths, true);
     }
 }
