@@ -218,14 +218,20 @@ Component ComponentParse(MArena *a_dest, char *text) {
 
                 if (p.type.len == 6 && StrEqual(p.type, "vector")) {
 
-                    // capture from { to } the lazy-pants way: (ideally we should check for numerals and commas)
-                    Required(t, &token, TOK_LBRACE);
-                    p.default_val.str = token.text;
-                    do {
-                        token = GetToken(t);
+                    if (Optional(t, &token, TOK_NULL) == PTR_OK) {
+                        p.default_val.str = token.text;
+                        p.default_val.len = token.len;
                     }
-                    while (token.type != TOK_RBRACE);
-                    p.default_val.len = token.text - p.default_val.str + 1;
+                    else {
+                        // capture from '{' to '}'. Do it the lazy-pants way by ignoring everything in-between
+                        Required(t, &token, TOK_LBRACE);
+                        p.default_val.str = token.text;
+                        do {
+                            token = GetToken(t);
+                        }
+                        while (token.type != TOK_RBRACE);
+                        p.default_val.len = token.text - p.default_val.str + 1;
+                    }
                 }
                 else {
                     RequiredRVal(t, &token);

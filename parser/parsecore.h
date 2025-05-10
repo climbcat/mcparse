@@ -49,8 +49,7 @@ enum TokenType {
     TOK_SCI, // 2.4e21
     TOK_IDENTIFIER,
 
-    TOK_MCSTAS_PARTYPE_INT,
-    TOK_MCSTAS_PARTYPE_STRING,
+    TOK_NULL,
 
     TOK_MCSTAS_DEFINE,
     TOK_MCSTAS_INSTRUMENT,
@@ -111,8 +110,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_SCI: return "TOK_SCI";
         case TOK_IDENTIFIER: return "TOK_IDENTIFIER";
 
-        case TOK_MCSTAS_PARTYPE_INT: return "TOK_MCSTAS_PARTYPE_INT";
-        case TOK_MCSTAS_PARTYPE_STRING: return "TOK_MCSTAS_PARTYPE_STRINGs";
+        case TOK_NULL: return "TOK_NULL";
 
         case TOK_MCSTAS_DEFINE: return "TOK_MCSTAS_DEFINE";
         case TOK_MCSTAS_INSTRUMENT: return "TOK_MCSTAS_INSTRUMENT";
@@ -175,6 +173,8 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_FLOAT: return "float";
         case TOK_SCI: return "float scientific";
         case TOK_IDENTIFIER: return "identifier";
+
+        case TOK_NULL: return "NULL";
 
         case TOK_MCSTAS_DEFINE: return "DEFINE";
         case TOK_MCSTAS_INSTRUMENT: return "INSTRUMENT";
@@ -753,7 +753,10 @@ Token GetToken(Tokenizer *tokenizer)
             }
             token.len = tokenizer->at - token.text;
 
-            if (TokenEquals(&token, "DEFINE")) { token.type = TOK_MCSTAS_DEFINE; }
+            if (TokenEquals(&token, "NULL")) { token.type = TOK_NULL; }
+            else if (TokenEquals(&token, "null")) { token.type = TOK_NULL; }
+
+            else if (TokenEquals(&token, "DEFINE")) { token.type = TOK_MCSTAS_DEFINE; }
             else if (TokenEquals(&token, "INSTRUMENT")) { token.type = TOK_MCSTAS_INSTRUMENT; }
             else if (TokenEquals(&token, "COMPONENT")) { token.type = TOK_MCSTAS_COMPONENT; }
             else if (TokenEquals(&token, "SETTING")) { token.type = TOK_MCSTAS_SETTING; }
