@@ -76,7 +76,6 @@
 ******************************************************************************/
 
 DEFINE COMPONENT Union_abs_logger_nD
-DEFINITION PARAMETERS ()
 SETTING PARAMETERS(string target_geometry="NULL",
                    order_total=-1, order_volume=-1, logger_conditional_extend_index=-1, string init="init",
 				   string user1="", string user2="", string user3="",

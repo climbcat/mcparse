@@ -65,11 +65,11 @@ DEFINE COMPONENT SasView_rpa
 
 SETTING PARAMETERS (
         case_num=1,
-        vector N[4]={1000.0},
-        vector Phi[4]={0.25},
-        vector v[4]={100.0},
-        vector L[4]={10.0},
-        vector b[4]={5.0},
+        vector N_LB_4_RB={1000.0},
+        vector Phi_LB_4_RB={0.25},
+        vector v_LB_4_RB={100.0},
+        vector L_LB_4_RB={10.0},
+        vector b_LB_4_RB={5.0},
         K12=-0.0004,
         K13=-0.0004,
         K14=-0.0004,

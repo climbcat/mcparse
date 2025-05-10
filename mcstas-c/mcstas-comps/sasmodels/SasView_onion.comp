@@ -65,10 +65,10 @@ SETTING PARAMETERS (
         radius_core=200.0,
         sld_solvent=6.4,
         n_shells=1,
-        vector sld_in[n_shells]={1.7},
-        vector sld_out[n_shells]={2.0},
-        vector thickness[n_shells]={40.0},
-        vector A[n_shells]={1.0},
+        vector sld_in_LB_n_shells_RB={1.7},
+        vector sld_out_LBn_shells_RB={2.0},
+        vector thickness_LB_n_shells_RB={40.0},
+        vector A_LB_n_shells_RB={1.0},
         model_scale=1.0,
         model_abs=0.0,
         xwidth=0.01,
@@ -85,7 +85,7 @@ SETTING PARAMETERS (
         focus_ah=0,
         focus_r=0,
         pd_radius_core=0.0,
-        pd_thickness[n_shells]=0.0)
+        pd_thickness_LB_n_shells_RB=0.0)
 
 
 SHARE %{

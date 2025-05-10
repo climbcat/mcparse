@@ -41,6 +41,7 @@ struct Parameter {
 
 struct Component {
     Str type;
+    Str type_copy;
     Array<Parameter> params;
 
     /*
@@ -184,10 +185,14 @@ Component ComponentParse(MArena *a_dest, char *text) {
     Token token;
     Required(t, &token, TOK_MCSTAS_DEFINE);
     Required(t, &token, TOK_MCSTAS_COMPONENT);
-    Required(t, &token, TOK_IDENTIFIER);
 
-    // TODO: this the token values rather be copied in-line?
+    Required(t, &token, TOK_IDENTIFIER);
     comp.type = token.GetValue();
+
+    if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OK) {
+        Required(t, &token, TOK_IDENTIFIER);
+        comp.type_copy = token.GetValue();
+    }
 
     Required(t, &token, TOK_MCSTAS_SETTING);
     Required(t, &token, TOK_MCSTAS_PARAMETERS);

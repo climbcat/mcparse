@@ -54,6 +54,7 @@ enum TokenType {
     TOK_MCSTAS_DEFINE,
     TOK_MCSTAS_INSTRUMENT,
     TOK_MCSTAS_COMPONENT,
+    TOK_MCSTAS_COPY,
     TOK_MCSTAS_SETTING,
     TOK_MCSTAS_PARAMETERS,
     TOK_MCSTAS_SHARE,
@@ -115,6 +116,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_DEFINE: return "TOK_MCSTAS_DEFINE";
         case TOK_MCSTAS_INSTRUMENT: return "TOK_MCSTAS_INSTRUMENT";
         case TOK_MCSTAS_COMPONENT: return "TOK_MCSTAS_COMPONENT";
+        case TOK_MCSTAS_COPY: return "TOK_MCSTAS_COPY";
         case TOK_MCSTAS_SETTING: return "TOK_MCSTAS_SETTING";
         case TOK_MCSTAS_PARAMETERS: return "TOK_MCSTAS_PARAMETERS";
         case TOK_MCSTAS_SHARE: return "TOK_MCSTAS_SHARE";
@@ -179,6 +181,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_DEFINE: return "DEFINE";
         case TOK_MCSTAS_INSTRUMENT: return "INSTRUMENT";
         case TOK_MCSTAS_COMPONENT: return "COMPONENT";
+        case TOK_MCSTAS_COPY: return "COPY";
         case TOK_MCSTAS_SETTING: return "SETTING";
         case TOK_MCSTAS_PARAMETERS: return "PARAMETERS";
         case TOK_MCSTAS_SHARE: return "SHARE";
@@ -759,6 +762,7 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "DEFINE")) { token.type = TOK_MCSTAS_DEFINE; }
             else if (TokenEquals(&token, "INSTRUMENT")) { token.type = TOK_MCSTAS_INSTRUMENT; }
             else if (TokenEquals(&token, "COMPONENT")) { token.type = TOK_MCSTAS_COMPONENT; }
+            else if (TokenEquals(&token, "COPY")) { token.type = TOK_MCSTAS_COPY; }
             else if (TokenEquals(&token, "SETTING")) { token.type = TOK_MCSTAS_SETTING; }
             else if (TokenEquals(&token, "PARAMETERS")) { token.type = TOK_MCSTAS_PARAMETERS; }
             else if (TokenEquals(&token, "SHARE")) { token.type = TOK_MCSTAS_SHARE; }
