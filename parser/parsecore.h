@@ -271,6 +271,12 @@ bool IsNumericSymbol(char c) {
 }
 
 inline
+bool IsSciSymbol(char c) {
+    bool issymb = ((c == 'e') || (c == 'E'));
+    return issymb;
+}
+
+inline
 bool IsAlphaOrUnderscore(char c) {
     bool result =
         (c == '_') || ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z'));
@@ -483,45 +489,67 @@ TokenType LookAheadNextTokenType(Tokenizer *tokenizer) {
     return token.type;
 }
 
-void ParseNumeric(Tokenizer *tokenizer, Token *token) {
-    token->type = TOK_INT;
-
-    while (true) {
-        if (tokenizer->at[0] != 0
-            && !IsNumeric(tokenizer->at[0])
-            && !IsNumericSymbol(tokenizer->at[0]))
-        {
-            break;
-        }
-        else if (tokenizer->at[1] != 0
-            && tokenizer->at[2] != 0
-            && IsNumericSymbol(tokenizer->at[1])
-            && !IsNumeric(tokenizer->at[2]))
-        {
-            break;
-        }
-
-        if (tokenizer->at[0] == '.'
-            && tokenizer->at[1] != 0
-            && IsNumeric(tokenizer->at[1]))
-        {
-            if (token->type != TOK_INT) {
-                break;
-            }
-            token->type = TOK_FLOAT;
-        }
-        else if ((tokenizer->at[0] == 'e' || tokenizer->at[0] == 'E')
-            && tokenizer->at[1] != 0
-            && IsNumeric(tokenizer->at[1]))
-        {
-            if (token->type != TOK_INT && token->type != TOK_FLOAT)
-                break;
-            token->type = TOK_SCI;
-        }
-
-        ++tokenizer->at;
+s32 ParseGetWordLen(char *at) {
+    if (at == NULL) {
+        return 0;
     }
-    token->len = tokenizer->at - token->text;
+
+    s32 result = 0;
+    char c = *at;
+    while (true) {
+        if (c && c != ' ' && (IsAlphaOrUnderscore(c) || IsNumeric(c) || IsNumericSymbol(c))) {
+            result++;
+            at ++;
+            c = *at;
+        }
+        else {
+            break;
+        }
+    }
+    return result;
+}
+
+void ParseNumeric(Tokenizer *tokenizer, Token *token)
+{
+    s32 len_was = token->len;
+    token->len = ParseGetWordLen(token->text);
+    tokenizer->at += token->len - len_was;
+
+    bool has_dot = false;
+    bool has_sci = false;
+    bool has_err = false;
+
+    for (s32 i = 0; i < token->len; ++i) {
+        char c = token->text[i];
+
+        if (IsNumeric(c)) {
+            continue;
+        }
+        else if (IsSciSymbol(c)) {
+            has_sci;
+            break;
+        }
+        else if (c == '.') {
+            has_dot = true;
+        }
+        else if (!IsNumericSymbol(c)) {
+            has_err = true;
+            break;
+        }
+    }
+
+    if (has_err) {
+        token->type = TOK_UNKNOWN;
+    }
+    else if (has_sci) {
+        token->type = TOK_SCI;
+    }
+    else if (has_dot) {
+        token->type = TOK_FLOAT;
+    }
+    else {
+        token->type = TOK_INT;
+    }
 }
 
 Token GetToken(Tokenizer *tokenizer)
@@ -573,9 +601,23 @@ Token GetToken(Tokenizer *tokenizer)
     case ',':
         token.type = TOK_COMMA;
         break;
+
     case '.':
-        token.type = TOK_DOT;
-        break;
+    {
+        TokenType next_type = LookAheadNextTokenType(tokenizer);
+        if (next_type == TOK_INT)
+        {
+            ParseNumeric(tokenizer, &token);
+            token.is_rval = true;
+        }
+        else
+        {
+            token.type = TOK_DOT;
+        }
+
+    }
+    break;
+
     case '/':
         token.type = TOK_SLASH;
         break;
