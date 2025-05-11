@@ -44,24 +44,19 @@ struct Component {
     Str type_copy;
     Array<Parameter> params;
 
-    /*
-    DeclareDef declare;
-    InitializeDef init;
-    TraceDef trace;
-    FinalizeDef finalize;
-    */
+    bool flag_noacc;
+    Str dependency_str;
+
+    Str share_block;
+    Str uservars_block;
+    Str declare_block;
+    Str initalize_block;
+    Str trace_block;
+    Str finally_block;
+    Str display_block;
+
+    bool parse_error;
 };
-
-
-void ExpectToken(Tokenizer *t, TokenType exp, bool optional) {
-
-    Token got = GetToken(t);
-
-    if (got.type == exp) {
-
-    }
-
-}
 
 
 enum ParseTokenResult {
@@ -98,11 +93,11 @@ ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
     Token tok = GetToken(t);
     *tok_out = tok;
 
-    if (tok.type == req) {
+        if (tok.type == req) {
         return PTR_OK;
     }
     else {
-        printf("\n\nERROR: Expected: '%s' got: '%s'\n", TokenTypeToSymbol(req), TokenTypeToSymbol(tok.type));
+        printf("\n\nERROR: Expected: '%s' got: '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");
@@ -270,8 +265,170 @@ Component *ComponentParse(MArena *a_dest, char *text) {
     //      Or repeat the information - but this seems hard to control, potentially buggy
 
     Required(t, &token, TOK_RBRACK);
-
     PackArrayAllocation(a_dest, &comp->params);
+
+    while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OK) {
+        if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
+            Required(t, &token, TOK_STRING);
+            printf("Paresed DEP\n");
+            comp->dependency_str = token.GetValue();
+        }
+
+        if (StrEqual( StrL("NOACC"), token.GetValue())) {
+            printf("Paresed NOACC\n");
+            comp->flag_noacc;
+        }
+    }
+
+    // SHARE block
+    if (Optional(t, &token, TOK_MCSTAS_SHARE) == PTR_OK) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+
+        char *block_start = t->at;
+        while(true) {
+            Token block = GetToken(t);
+            if (block.type == TOK_RPERCENTBRACE) {
+                comp->share_block.str = block_start;
+                comp->share_block.len = (block.text - block_start);
+
+                break;
+            }
+            else if (block.type == TOK_ENDOFSTREAM) {
+                comp->parse_error = true;
+
+                return comp;
+            }
+        }        
+    }
+
+    if (Optional(t, &token, TOK_MCSTAS_USERVARS) == PTR_OK) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+
+        char *block_start = t->at;
+        while(true) {
+            Token block = GetToken(t);
+            if (block.type == TOK_RPERCENTBRACE) {
+                comp->share_block.str = block_start;
+                comp->share_block.len = (block.text - block_start);
+
+                break;
+            }
+            else if (block.type == TOK_ENDOFSTREAM) {
+                comp->parse_error = true;
+
+                return comp;
+            }
+        }        
+    }
+
+    if (Required(t, &token, TOK_MCSTAS_DECLARE) == PTR_OK) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+
+        char *block_start = t->at;
+        while(true) {
+            Token block = GetToken(t);
+            if (block.type == TOK_RPERCENTBRACE) {
+                comp->share_block.str = block_start;
+                comp->share_block.len = (block.text - block_start);
+
+                break;
+            }
+            else if (block.type == TOK_ENDOFSTREAM) {
+                comp->parse_error = true;
+
+                return comp;
+            }
+        }        
+    }
+
+    if (Required(t, &token, TOK_MCSTAS_INITIALIZE) == PTR_OK) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+
+        char *block_start = t->at;
+        while(true) {
+            Token block = GetToken(t);
+            if (block.type == TOK_RPERCENTBRACE) {
+                comp->share_block.str = block_start;
+                comp->share_block.len = (block.text - block_start);
+
+                break;
+            }
+            else if (block.type == TOK_ENDOFSTREAM) {
+                comp->parse_error = true;
+
+                return comp;
+            }
+        }        
+    }
+
+
+    if (Required(t, &token, TOK_MCSTAS_TRACE) == PTR_OK) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+
+        char *block_start = t->at;
+        while(true) {
+            Token block = GetToken(t);
+            if (block.type == TOK_RPERCENTBRACE) {
+                comp->share_block.str = block_start;
+                comp->share_block.len = (block.text - block_start);
+
+                break;
+            }
+            else if (block.type == TOK_ENDOFSTREAM) {
+                comp->parse_error = true;
+
+                return comp;
+            }
+        }        
+    }
+
+    if (Optional(t, &token, TOK_MCSTAS_FINALLY) == PTR_OK) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+
+        char *block_start = t->at;
+        while(true) {
+            Token block = GetToken(t);
+            if (block.type == TOK_RPERCENTBRACE) {
+                comp->share_block.str = block_start;
+                comp->share_block.len = (block.text - block_start);
+
+                break;
+            }
+            else if (block.type == TOK_ENDOFSTREAM) {
+                comp->parse_error = true;
+
+                return comp;
+            }
+        }        
+    }
+
+    if (Optional(t, &token, TOK_MCSTAS_MCDISPLAY) == PTR_OK) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+
+        char *block_start = t->at;
+        while(true) {
+            Token block = GetToken(t);
+            if (block.type == TOK_RPERCENTBRACE) {
+                comp->share_block.str = block_start;
+                comp->share_block.len = (block.text - block_start);
+
+                break;
+            }
+            else if (block.type == TOK_ENDOFSTREAM) {
+                comp->parse_error = true;
+
+                return comp;
+            }
+        }        
+    }
+
+
+    // DECLARE %( ... %)
+    // INITIALIZE %( ... %)
+    // TRACE %( ... %)
+    // FINALLY %( ... %)
+    // MCDISPLAY %( ... %)
+
 
     return comp;
 }
@@ -298,6 +455,37 @@ void ComponentPrint(Component *comp) {
         }
         printf("\n");
     }
+
+    if (comp->share_block.len) {
+        printf("\nSHARE:\n");
+        StrPrint(comp->share_block);
+        printf("\n");
+    }
+
+    if (comp->declare_block.len) {
+        printf("\nDECLARE:\n");
+        StrPrint(comp->declare_block);
+        printf("\n");
+    }
+
+    if (comp->initalize_block.len) {
+        printf("\nINITIALIZE:\n");
+        StrPrint(comp->initalize_block);
+        printf("\n");
+    }
+
+    if (comp->trace_block.len) {
+        printf("\nTRACE:\n");
+        StrPrint(comp->trace_block);
+        printf("\n");
+    }
+
+    if (comp->display_block.len) {
+        printf("\nMCDISPLAY:\n");
+        StrPrint(comp->display_block);
+        printf("\n");
+    }
 }
+
 
 #endif

@@ -29,7 +29,7 @@ Array<StructMember> ParseStructMembers(Tokenizer *tokenizer, MArena *stack)
         }
         break;
 
-        case TOK_RPERBRACE:
+        case TOK_RPERCENTBRACE:
         {
             parsing = false;
             tokenizer->at -= token.len;
@@ -746,7 +746,7 @@ Array<CompDecl> ParseTraceComps(Tokenizer *tokenizer, MArena *stack)
                 // extend [OPTIONAL]
                 else if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "EXTEND", false))
                 {
-                    comp.extend = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+                    comp.extend = CopyBracketedTextBlock(tokenizer, TOK_LPERCENTBRACE, TOK_RPERCENTBRACE, false, stack);
                     continue;
                 }
 
@@ -809,24 +809,24 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, MArena *stack)
     // declare [OPTIONAL]
     if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE", false))
     {
-        instr.declare.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+        instr.declare.text = CopyBracketedTextBlock(tokenizer, TOK_LPERCENTBRACE, TOK_RPERCENTBRACE, false, stack);
     }
 
     // uservars [OPTIONAL]
     if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "USERVARS", false))
     {
-        instr.uservars.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, true, stack);
-        if (!RequireToken(tokenizer, &token, TOK_LPERBRACE))
+        instr.uservars.text = CopyBracketedTextBlock(tokenizer, TOK_LPERCENTBRACE, TOK_RPERCENTBRACE, true, stack);
+        if (!RequireToken(tokenizer, &token, TOK_LPERCENTBRACE))
             exit(1);
         instr.uservars.decls = ParseStructMembers(tokenizer, stack);
-        if (!RequireToken(tokenizer, &token, TOK_RPERBRACE))
+        if (!RequireToken(tokenizer, &token, TOK_RPERCENTBRACE))
             exit(1);
     }
 
     // initialize [OPTIONAL]
     if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE", false))
     {
-        instr.init.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+        instr.init.text = CopyBracketedTextBlock(tokenizer, TOK_LPERCENTBRACE, TOK_RPERCENTBRACE, false, stack);
     }
 
     // trace
@@ -839,7 +839,7 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, MArena *stack)
     // finalize [OPTIONAL]
     if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALLY", false))
     {
-        instr.finalize.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+        instr.finalize.text = CopyBracketedTextBlock(tokenizer, TOK_LPERCENTBRACE, TOK_RPERCENTBRACE, false, stack);
     }
 
     return instr;

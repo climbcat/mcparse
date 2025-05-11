@@ -97,7 +97,6 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {
         printed_cnt++;
     }
 
-
     printf("\n");
     printf("Parsed %d, registered %d components; total data size %lu bytes\n", comp_count_parsed, comp_count_registered, a_parse->used + a_files.used);
     printf("Printed %d components (%d slots and %d collisions)\n", printed_cnt, iter.occ_slots_cnt, iter.occ_colliders_cnt);

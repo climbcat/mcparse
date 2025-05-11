@@ -39,8 +39,8 @@ enum TokenType {
     TOK_OR, // |
     TOK_AND, // &
     TOK_PERCENT,
-    TOK_RPERBRACE, // %{
-    TOK_LPERBRACE, // %}
+    TOK_RPERCENTBRACE, // %{
+    TOK_LPERCENTBRACE, // %}
 
     TOK_CHAR,
     TOK_STRING,
@@ -58,6 +58,7 @@ enum TokenType {
     TOK_MCSTAS_SETTING,
     TOK_MCSTAS_PARAMETERS,
     TOK_MCSTAS_SHARE,
+    TOK_MCSTAS_USERVARS,
     TOK_MCSTAS_DECLARE,
     TOK_MCSTAS_INITIALIZE,
     TOK_MCSTAS_TRACE,
@@ -101,8 +102,8 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_OR: return "TOK_OR";
         case TOK_AND: return "TOK_AND";
         case TOK_PERCENT: return "TOK_PERCENT";
-        case TOK_RPERBRACE: return "TOK_RPERBRACE";
-        case TOK_LPERBRACE: return "TOK_LPERBRACE";
+        case TOK_RPERCENTBRACE: return "TOK_RPERBRACE";
+        case TOK_LPERCENTBRACE: return "TOK_LPERBRACE";
 
         case TOK_CHAR: return "TOK_CHAR";
         case TOK_STRING: return "TOK_STRING";
@@ -120,6 +121,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_SETTING: return "TOK_MCSTAS_SETTING";
         case TOK_MCSTAS_PARAMETERS: return "TOK_MCSTAS_PARAMETERS";
         case TOK_MCSTAS_SHARE: return "TOK_MCSTAS_SHARE";
+        case TOK_MCSTAS_USERVARS: return "TOK_MCSTAS_USERVARS";
         case TOK_MCSTAS_DECLARE: return "TOK_MCSTAS_DECLARE";
         case TOK_MCSTAS_INITIALIZE: return "TOK_MCSTAS_INITIALIZE";
         case TOK_MCSTAS_TRACE: return "TOK_MCSTAS_TRACE";
@@ -166,8 +168,8 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_OR: return "|";
         case TOK_AND: return "&";
         case TOK_PERCENT: return "%";
-        case TOK_RPERBRACE: return "%{";
-        case TOK_LPERBRACE: return "%}";
+        case TOK_RPERCENTBRACE: return "%{";
+        case TOK_LPERCENTBRACE: return "%}";
 
         case TOK_CHAR: return "char";
         case TOK_STRING: return "string";
@@ -185,6 +187,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_SETTING: return "SETTING";
         case TOK_MCSTAS_PARAMETERS: return "PARAMETERS";
         case TOK_MCSTAS_SHARE: return "SHARE";
+        case TOK_MCSTAS_USERVARS: return "USERVARS";
         case TOK_MCSTAS_DECLARE: return "DECLARE";
         case TOK_MCSTAS_INITIALIZE: return "INITIALIZE";
         case TOK_MCSTAS_TRACE: return "TRACE";
@@ -680,13 +683,13 @@ Token GetToken(Tokenizer *tokenizer)
     {
         if (tokenizer->at[0] && tokenizer->at[0] == '{')
         {
-            token.type = TOK_LPERBRACE;
+            token.type = TOK_LPERCENTBRACE;
             token.len = 2;
             ++tokenizer->at;
         }
         else if (tokenizer->at[0] && tokenizer->at[0] == '}')
         {
-            token.type = TOK_RPERBRACE;
+            token.type = TOK_RPERCENTBRACE;
             token.len = 2;
             ++tokenizer->at;
         }
@@ -766,6 +769,7 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "SETTING")) { token.type = TOK_MCSTAS_SETTING; }
             else if (TokenEquals(&token, "PARAMETERS")) { token.type = TOK_MCSTAS_PARAMETERS; }
             else if (TokenEquals(&token, "SHARE")) { token.type = TOK_MCSTAS_SHARE; }
+            else if (TokenEquals(&token, "USERVARS")) { token.type = TOK_MCSTAS_USERVARS; }
             else if (TokenEquals(&token, "DECLARE")) { token.type = TOK_MCSTAS_DECLARE; }
             else if (TokenEquals(&token, "INITIALIZE")) { token.type = TOK_MCSTAS_INITIALIZE; }
             else if (TokenEquals(&token, "TRACE")) { token.type = TOK_MCSTAS_TRACE; }
