@@ -143,8 +143,16 @@ ParseTokenResult OptionalDontAdvance(Tokenizer *t, TokenType opt) {
     }
 }
 
+void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
+    s32 diff = arr_at_tail->max - arr_at_tail->len;
+    a_src->used -= diff * sizeof(Parameter);
+    arr_at_tail->max = arr_at_tail->len;
+}
 
-Component ComponentParse(MArena *a_dest, char *text) {
+
+Component *ComponentParse(MArena *a_dest, char *text) {
+    TimeFunction;
+
     // req:
     // DEFINE COMPONENT <compname> <newline>
     
@@ -179,20 +187,25 @@ Component ComponentParse(MArena *a_dest, char *text) {
     Tokenizer tokenizer = {};
     tokenizer.Init(text);
     Tokenizer *t = &tokenizer;
-    Component comp = {};
-    comp.params = InitArray<Parameter>(a_dest, 100);
-
     Token token;
+    Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));
+
+    comp->params = InitArray<Parameter>(a_dest, 100);
+
     Required(t, &token, TOK_MCSTAS_DEFINE);
     Required(t, &token, TOK_MCSTAS_COMPONENT);
 
     Required(t, &token, TOK_IDENTIFIER);
-    comp.type = token.GetValue();
+    comp->type = token.GetValue();
 
     if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OK) {
         Required(t, &token, TOK_IDENTIFIER);
-        comp.type_copy = token.GetValue();
+        comp->type_copy = token.GetValue();
     }
+
+
+    //
+    //  parse  settings
 
     Required(t, &token, TOK_MCSTAS_SETTING);
     Required(t, &token, TOK_MCSTAS_PARAMETERS);
@@ -245,32 +258,31 @@ Component ComponentParse(MArena *a_dest, char *text) {
                 // TODO: deal with parameter type 'vector' which is inline initialization a-la {0,0,0}
             }
 
-            comp.params.Add(p);
+            comp->params.Add(p);
 
             iterate = Optional(t, &token, TOK_COMMA) == PTR_OK; // <-- iterates a parameter parse
         }
     }
 
-    // TODO: On error, we want to present optional keywords as alternatives to ')'.
-    //      This way, the parser can guide users and act as a form of in-line documentation
+    // TODO: On error, can we present all optional keywords as alternatives?
+    //      That way, the parser could guide users and act as a form of in-line documentation
     //      Thus merge Required() with the Optional call above.
+    //      Or repeat the information - but this seems hard to control, potentially buggy
+
     Required(t, &token, TOK_RBRACK);
 
-    // Done! Now we have parsed the component declaration; let's explore it by parsing all of them
-
-
-    // TODO: shorten up the parameters array & allocation
+    PackArrayAllocation(a_dest, &comp->params);
 
     return comp;
 }
 
 
-void ComponentPrint(Component comp) {
+void ComponentPrint(Component *comp) {
 
-    printf("type: "); StrPrint(comp.type); printf("\n");
+    printf("type: "); StrPrint(comp->type); printf("\n");
 
-    for (u32 i = 0; i < comp.params.len; ++i) {
-        Parameter p = comp.params.arr[i];
+    for (u32 i = 0; i < comp->params.len; ++i) {
+        Parameter p = comp->params.arr[i];
 
         printf("    ");
         StrPrint(p.name);

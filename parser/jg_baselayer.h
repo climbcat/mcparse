@@ -1808,6 +1808,16 @@ u64 Hash64(u64 x) {
     #define Hash Hash64
 #endif
 
+u64 HashStringValue(Str skey) {
+    u32 key4 = 0;
+    for (u32 i = 0; i < skey.len; ++i) {
+        u32 val = skey.str[i] << i % 4;
+        key4 += val;
+    }
+
+    u64 hashval = Hash(key4);
+    return hashval;
+}
 
 u32 HashStringValue(Str key, u32 mod) {
     u32 key4 = 0;
@@ -1818,6 +1828,7 @@ u32 HashStringValue(Str key, u32 mod) {
     u32 slot = Hash(key4) % mod;
     return slot;
 }
+
 u64 HashStringValue(const char *key) {
     u32 key4 = 0;
     u32 i = 0;
@@ -1829,186 +1840,6 @@ u64 HashStringValue(const char *key) {
     }
     u64 hashval = Hash(key4);
     return hashval;
-}
-
-
-// TODO: also be a GPA?
-// TODO: if max-len key (200 chars?), storage can be an array with
-//      slot_size = sz(hdr) + 200 + sz(T), and with some tricks we can
-//      also do un-ordered delete for removal, compressing it always
-
-
-struct DictKeyVal {
-    DictKeyVal *chain;  // collision chaining
-    DictKeyVal *nxt;    // walk to next
-    DictKeyVal *prv;    // walk to prev
-    Str key;            // the full key
-    void *val;          // the value
-    u32 sz_val;
-};
-
-
-struct Dict {
-    // fixed-size values dict with string keys
-    u32 nslots;
-    u32 sz_val;
-    MArena *a_storage;
-    List<u64> slots;
-    DictKeyVal *head;
-    DictKeyVal *tail;
-    u32 ncollisions;
-    bool debug_print;
-};
-
-Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
-    Dict dct = {};
-    dct.nslots = nslots;
-    dct.sz_val = sz_val;
-
-    MArena a = ArenaCreate();
-    dct.a_storage = (MArena *) ArenaPush(&a, &a, sizeof(MArena));
-    dct.slots = InitList<u64>(dct.a_storage, nslots);
-    dct.slots.len = nslots;
-
-    return dct;
-}
-
-
-// TODO: how do we remove chained values?
-
-
-u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
-    DictKeyVal *hdr = NULL;
-    DictKeyVal *collider = NULL;
-
-    // collision or value reset
-    bool is_collision = false;
-    bool is_resetval = false;
-    if (slot_ptr != 0) {
-        assert(dct->head != NULL);
-        assert(dct->tail != NULL);
-
-        is_collision = true;
-        collider = (DictKeyVal*) slot_ptr;
-        while (true) {
-            if (StrEqual(key, collider->key)) {
-                hdr = collider;
-                is_resetval = true;
-                is_collision = false;
-            }
-            if (collider->chain == NULL) {
-                break;
-            }
-            else {
-                collider = collider->chain;
-            }
-        }
-        dct->ncollisions += is_collision;
-    }
-    if (hdr == NULL) {
-        assert(is_resetval == false);
-
-        hdr = (DictKeyVal*) ArenaAlloc(dct->a_storage, sizeof(DictKeyVal));
-    }
-
-    // fix the linked list
-    if (is_resetval) {
-        // don't change anything
-    }
-    else if (dct->head == NULL) {
-        assert(dct->tail == NULL);
-        assert(is_resetval == false);
-        assert(is_collision == false);
-
-        dct->head = hdr;
-        dct->tail = hdr;
-    }
-    else {
-        assert(dct->tail != NULL);
-        assert(dct->tail->nxt == NULL || is_resetval);
-
-        dct->tail->nxt = hdr;
-        hdr->prv = dct->tail;
-        dct->tail = hdr;
-    }
-
-    // save key and value
-    if (is_resetval) {
-        assert(sz_val == collider->sz_val && "demand the same size for reset-vals");
-        _memcpy(collider->val, val, sz_val);
-    }
-    else {
-        hdr->sz_val = sz_val;
-        hdr->key.len = key.len;
-        hdr->key.str = (char*) ArenaPush(dct->a_storage, key.str, key.len);
-        hdr->val = ArenaPush(dct->a_storage, val, sz_val);
-    }
-
-    // collision chain
-    if (is_collision) {
-        collider->chain = hdr;
-    }
-
-    // return
-    if (slot_ptr == 0) {
-        return (u64) hdr;
-    }
-    else {
-        return slot_ptr;
-    }
-}
-void DictStorageWalk(Dict *dct) {
-    DictKeyVal *kv = dct->head;
-    while (kv != NULL) {
-        printf("%s : %u\n", StrZeroTerm(kv->key), *((u32*) kv->val));
-
-        kv = kv->nxt;
-    }
-}
-
-void DictPut(Dict *dct, Str key, void *val, u32 sz = 0) {
-    assert(sz != 0 || dct->sz_val != 0);
-    if (sz == 0) {
-        sz = dct->sz_val;
-    }
-
-    u32 slot = HashStringValue(key, dct->slots.len);
-    if (dct->debug_print) {
-        printf("slot: %u\n", slot);
-    }
-
-    u64 ptr = dct->slots.lst[slot];
-    ptr = DictStoragePush(dct, key, val, sz, ptr);
-    dct->slots.lst[slot] = ptr;
-}
-inline
-void DictPut(Dict *dct, char *key, void *val, u32 sz = 0) {
-    return DictPut(dct, Str { key, _strlen(key) }, val, sz);
-}
-inline
-void DictPut(Dict *dct, const char *key, void *val, u32 sz = 0) {
-    return DictPut(dct, Str { (char*) key, _strlen( (char*) key) }, val, sz);
-}
-
-void *DictGet(Dict *dct, Str key) {
-    u32 slot = HashStringValue(key, dct->slots.len);
-    DictKeyVal *kv = (DictKeyVal *) dct->slots.lst[slot];
-
-    while (kv) {
-        if (StrEqual(key, kv->key)) {
-            return kv->val;
-        }
-        kv = kv->chain;
-    }
-    return NULL;
-}
-inline
-void *DictGet(Dict *dct, char *key) {
-    return DictGet(dct, Str { key, _strlen(key) } );
-}
-inline
-void *DictGet(Dict *dct, const char *key) {
-    return DictGet(dct, Str { (char*) key, _strlen((char*) key) } );
 }
 
 
@@ -2112,6 +1943,11 @@ bool MapPut(HashMap *map, u64 key, void *val) {
     return MapPut(map, key, (u64) val);
 }
 
+inline
+bool MapPut(HashMap *map, Str skey, void *val) {
+    return MapPut(map, HashStringValue(skey), (u64) val);
+}
+
 u64 MapGet(HashMap *map, u64 key) {
     u32 slot = Hash(key) % map->slots.len;
     HashMapKeyVal kv_slot = map->slots.lst[slot];
@@ -2130,6 +1966,10 @@ u64 MapGet(HashMap *map, u64 key) {
     }
 
     return 0;
+}
+inline
+u64 MapGet(HashMap *map, Str skey) {
+    return MapGet(map, HashStringValue(skey));
 }
 
 bool MapRemove(HashMap *map, u64 key, void *val) {
