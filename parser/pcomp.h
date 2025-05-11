@@ -55,6 +55,14 @@ struct Component {
     Str finally_block;
     Str display_block;
 
+    Str share_type_copy;
+    Str uservars_type_copy;
+    Str declare_type_copy;
+    Str initalize_type_copy;
+    Str trace_type_copy;
+    Str finally_type_copy;
+    Str display_type_copy;
+
     bool parse_error;
 };
 
@@ -145,65 +153,10 @@ void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
 }
 
 
-Component *ComponentParse(MArena *a_dest, char *text) {
-    TimeFunction;
+void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
+    *params = InitArray<Parameter>(a_dest, 1024);
 
-    // req:
-    // DEFINE COMPONENT <compname> <newline>
-    
-    // opt:
-    // DEFINITION PARAMETERS ( ... )
-    // SETTING PARAMETERS ( ... )
-    // OTUPUT PARAMETERS ( ... )
-
-    // opt:
-    // SHARE %( ... %)
-
-    // req:
-    // DECLARE %( ... %)
-    // INITIALIZE %( ... %)
-    // TRACE %( ... %)
-    // FINALLY %( ... %)
-    // MCDISPLAY %( ... %)
-
-    // req:
-    // END
-
-    /*
     Token token;
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DEFINE"))
-        exit(1);
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "COMPONENT"))
-        exit(1);
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER))
-        exit(1);
-    */
-
-    Tokenizer tokenizer = {};
-    tokenizer.Init(text);
-    Tokenizer *t = &tokenizer;
-    Token token;
-    Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));
-
-    comp->params = InitArray<Parameter>(a_dest, 100);
-
-    Required(t, &token, TOK_MCSTAS_DEFINE);
-    Required(t, &token, TOK_MCSTAS_COMPONENT);
-
-    Required(t, &token, TOK_IDENTIFIER);
-    comp->type = token.GetValue();
-
-    if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OK) {
-        Required(t, &token, TOK_IDENTIFIER);
-        comp->type_copy = token.GetValue();
-    }
-
-
-    //
-    //  parse  settings
-
-    Required(t, &token, TOK_MCSTAS_SETTING);
-    Required(t, &token, TOK_MCSTAS_PARAMETERS);
     Required(t, &token, TOK_LBRACK);
 
     if (OptionalDontAdvance(t, TOK_IDENTIFIER) == PTR_OK) { // <-- initiates a parameter parse
@@ -252,8 +205,7 @@ Component *ComponentParse(MArena *a_dest, char *text) {
                 }
                 // TODO: deal with parameter type 'vector' which is inline initialization a-la {0,0,0}
             }
-
-            comp->params.Add(p);
+            params->Add(p);
 
             iterate = Optional(t, &token, TOK_COMMA) == PTR_OK; // <-- iterates a parameter parse
         }
@@ -265,8 +217,96 @@ Component *ComponentParse(MArena *a_dest, char *text) {
     //      Or repeat the information - but this seems hard to control, potentially buggy
 
     Required(t, &token, TOK_RBRACK);
-    PackArrayAllocation(a_dest, &comp->params);
 
+    PackArrayAllocation(a_dest, params);
+}
+
+
+bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy) {
+    Token token;
+
+    if (Optional(t, &token, block_type) == PTR_OK) {
+        if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OK) {
+            Required(t, &token, TOK_IDENTIFIER);
+            *type_copy = token.GetValue();
+        }
+
+        else {
+            Required(t, &token, TOK_LPERCENTBRACE);
+
+            char *block_start = t->at;
+            while (true) {
+                token = GetToken(t);
+                if (token.type == TOK_RPERCENTBRACE) {
+                    block->str = block_start;
+                    block->len = (token.text - block_start);
+
+                    break;
+                }
+                else if (token.type == TOK_ENDOFSTREAM) {
+                    //comp->parse_error = true;
+                    assert(1 == 0 && "DBG break");
+
+                    return false;
+                }
+            }        
+        }
+    }
+    return true;
+}
+
+Component *ParseComponent(MArena *a_dest, char *text) {
+    TimeFunction;
+
+    // req:
+    // DEFINE COMPONENT <compname> <newline>
+    
+    // opt:
+    // DEFINITION PARAMETERS ( ... )
+    // SETTING PARAMETERS ( ... )
+    // OTUPUT PARAMETERS ( ... )
+
+    // opt:
+    // SHARE %( ... %)
+
+    // req:
+    // DECLARE %( ... %)
+    // INITIALIZE %( ... %)
+    // TRACE %( ... %)
+    // FINALLY %( ... %)
+    // MCDISPLAY %( ... %)
+
+    // req:
+    // END
+
+    Tokenizer tokenizer = {};
+    tokenizer.Init(text);
+    Tokenizer *t = &tokenizer;
+    Token token;
+    Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));
+
+    // type
+    Required(t, &token, TOK_MCSTAS_DEFINE);
+    Required(t, &token, TOK_MCSTAS_COMPONENT);
+    Required(t, &token, TOK_IDENTIFIER);
+    comp->type = token.GetValue();
+    if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OK) {
+        Required(t, &token, TOK_IDENTIFIER);
+        comp->type_copy = token.GetValue();
+    }
+
+    // setting parameters
+    Required(t, &token, TOK_MCSTAS_SETTING);
+    Required(t, &token, TOK_MCSTAS_PARAMETERS);
+    ParseParams(a_dest, t, &comp->params);
+
+    // output parameters
+    if (Optional(t, &token, TOK_MCSTAS_OUTPUT) == PTR_OK) {
+        Required(t, &token, TOK_MCSTAS_PARAMETERS);
+        ParseParams(a_dest, t, &comp->params);
+    }
+
+    // flags
     while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OK) {
         if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
             Required(t, &token, TOK_STRING);
@@ -280,155 +320,19 @@ Component *ComponentParse(MArena *a_dest, char *text) {
         }
     }
 
-    // SHARE block
-    if (Optional(t, &token, TOK_MCSTAS_SHARE) == PTR_OK) {
-        Required(t, &token, TOK_LPERCENTBRACE);
+    // code blocks
+    bool block_ok;
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_SHARE, &comp->share_block, &comp->share_type_copy);
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &comp->uservars_block, &comp->uservars_type_copy);
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &comp->declare_block, &comp->declare_type_copy);
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &comp->initalize_block, &comp->initalize_type_copy);
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_TRACE, &comp->trace_block, &comp->trace_type_copy);
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->trace_block, &comp->trace_type_copy);
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &comp->finally_block, &comp->finally_type_copy);
+    block_ok = ParseCodeBlock(t, TOK_MCSTAS_MCDISPLAY, &comp->display_block, &comp->display_type_copy);
 
-        char *block_start = t->at;
-        while(true) {
-            Token block = GetToken(t);
-            if (block.type == TOK_RPERCENTBRACE) {
-                comp->share_block.str = block_start;
-                comp->share_block.len = (block.text - block_start);
-
-                break;
-            }
-            else if (block.type == TOK_ENDOFSTREAM) {
-                comp->parse_error = true;
-
-                return comp;
-            }
-        }        
-    }
-
-    if (Optional(t, &token, TOK_MCSTAS_USERVARS) == PTR_OK) {
-        Required(t, &token, TOK_LPERCENTBRACE);
-
-        char *block_start = t->at;
-        while(true) {
-            Token block = GetToken(t);
-            if (block.type == TOK_RPERCENTBRACE) {
-                comp->share_block.str = block_start;
-                comp->share_block.len = (block.text - block_start);
-
-                break;
-            }
-            else if (block.type == TOK_ENDOFSTREAM) {
-                comp->parse_error = true;
-
-                return comp;
-            }
-        }        
-    }
-
-    if (Required(t, &token, TOK_MCSTAS_DECLARE) == PTR_OK) {
-        Required(t, &token, TOK_LPERCENTBRACE);
-
-        char *block_start = t->at;
-        while(true) {
-            Token block = GetToken(t);
-            if (block.type == TOK_RPERCENTBRACE) {
-                comp->share_block.str = block_start;
-                comp->share_block.len = (block.text - block_start);
-
-                break;
-            }
-            else if (block.type == TOK_ENDOFSTREAM) {
-                comp->parse_error = true;
-
-                return comp;
-            }
-        }        
-    }
-
-    if (Required(t, &token, TOK_MCSTAS_INITIALIZE) == PTR_OK) {
-        Required(t, &token, TOK_LPERCENTBRACE);
-
-        char *block_start = t->at;
-        while(true) {
-            Token block = GetToken(t);
-            if (block.type == TOK_RPERCENTBRACE) {
-                comp->share_block.str = block_start;
-                comp->share_block.len = (block.text - block_start);
-
-                break;
-            }
-            else if (block.type == TOK_ENDOFSTREAM) {
-                comp->parse_error = true;
-
-                return comp;
-            }
-        }        
-    }
-
-
-    if (Required(t, &token, TOK_MCSTAS_TRACE) == PTR_OK) {
-        Required(t, &token, TOK_LPERCENTBRACE);
-
-        char *block_start = t->at;
-        while(true) {
-            Token block = GetToken(t);
-            if (block.type == TOK_RPERCENTBRACE) {
-                comp->share_block.str = block_start;
-                comp->share_block.len = (block.text - block_start);
-
-                break;
-            }
-            else if (block.type == TOK_ENDOFSTREAM) {
-                comp->parse_error = true;
-
-                return comp;
-            }
-        }        
-    }
-
-    if (Optional(t, &token, TOK_MCSTAS_FINALLY) == PTR_OK) {
-        Required(t, &token, TOK_LPERCENTBRACE);
-
-        char *block_start = t->at;
-        while(true) {
-            Token block = GetToken(t);
-            if (block.type == TOK_RPERCENTBRACE) {
-                comp->share_block.str = block_start;
-                comp->share_block.len = (block.text - block_start);
-
-                break;
-            }
-            else if (block.type == TOK_ENDOFSTREAM) {
-                comp->parse_error = true;
-
-                return comp;
-            }
-        }        
-    }
-
-    if (Optional(t, &token, TOK_MCSTAS_MCDISPLAY) == PTR_OK) {
-        Required(t, &token, TOK_LPERCENTBRACE);
-
-        char *block_start = t->at;
-        while(true) {
-            Token block = GetToken(t);
-            if (block.type == TOK_RPERCENTBRACE) {
-                comp->share_block.str = block_start;
-                comp->share_block.len = (block.text - block_start);
-
-                break;
-            }
-            else if (block.type == TOK_ENDOFSTREAM) {
-                comp->parse_error = true;
-
-                return comp;
-            }
-        }        
-    }
-
-
-    // DECLARE %( ... %)
-    // INITIALIZE %( ... %)
-    // TRACE %( ... %)
-    // FINALLY %( ... %)
-    // MCDISPLAY %( ... %)
-
+    // end
+    Required(t, &token, TOK_MCSTAS_END);
 
     return comp;
 }

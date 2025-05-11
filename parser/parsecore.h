@@ -56,12 +56,14 @@ enum TokenType {
     TOK_MCSTAS_COMPONENT,
     TOK_MCSTAS_COPY,
     TOK_MCSTAS_SETTING,
+    TOK_MCSTAS_OUTPUT,
     TOK_MCSTAS_PARAMETERS,
     TOK_MCSTAS_SHARE,
     TOK_MCSTAS_USERVARS,
     TOK_MCSTAS_DECLARE,
     TOK_MCSTAS_INITIALIZE,
     TOK_MCSTAS_TRACE,
+    TOK_MCSTAS_SAVE,
     TOK_MCSTAS_FINALLY,
     TOK_MCSTAS_MCDISPLAY,
     TOK_MCSTAS_AT,
@@ -119,12 +121,14 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_COMPONENT: return "TOK_MCSTAS_COMPONENT";
         case TOK_MCSTAS_COPY: return "TOK_MCSTAS_COPY";
         case TOK_MCSTAS_SETTING: return "TOK_MCSTAS_SETTING";
+        case TOK_MCSTAS_OUTPUT: return "TOK_MCSTAS_OUTPUT";
         case TOK_MCSTAS_PARAMETERS: return "TOK_MCSTAS_PARAMETERS";
         case TOK_MCSTAS_SHARE: return "TOK_MCSTAS_SHARE";
         case TOK_MCSTAS_USERVARS: return "TOK_MCSTAS_USERVARS";
         case TOK_MCSTAS_DECLARE: return "TOK_MCSTAS_DECLARE";
         case TOK_MCSTAS_INITIALIZE: return "TOK_MCSTAS_INITIALIZE";
         case TOK_MCSTAS_TRACE: return "TOK_MCSTAS_TRACE";
+        case TOK_MCSTAS_SAVE: return "TOK_MCSTAS_SAVE";
         case TOK_MCSTAS_FINALLY: return "TOK_MCSTAS_FINALLY";
         case TOK_MCSTAS_MCDISPLAY: return "TOK_MCSTAS_MCDISPLAY";
         case TOK_MCSTAS_AT: return "TOK_MCSTAS_AT";
@@ -185,12 +189,14 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_COMPONENT: return "COMPONENT";
         case TOK_MCSTAS_COPY: return "COPY";
         case TOK_MCSTAS_SETTING: return "SETTING";
+        case TOK_MCSTAS_OUTPUT: return "OUTPUT";
         case TOK_MCSTAS_PARAMETERS: return "PARAMETERS";
         case TOK_MCSTAS_SHARE: return "SHARE";
         case TOK_MCSTAS_USERVARS: return "USERVARS";
         case TOK_MCSTAS_DECLARE: return "DECLARE";
         case TOK_MCSTAS_INITIALIZE: return "INITIALIZE";
         case TOK_MCSTAS_TRACE: return "TRACE";
+        case TOK_MCSTAS_SAVE: return "SAVE";
         case TOK_MCSTAS_FINALLY: return "FINALLY";
         case TOK_MCSTAS_MCDISPLAY: return "MCDISPLAY";
         case TOK_MCSTAS_AT: return "AT";
@@ -767,12 +773,14 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "COMPONENT")) { token.type = TOK_MCSTAS_COMPONENT; }
             else if (TokenEquals(&token, "COPY")) { token.type = TOK_MCSTAS_COPY; }
             else if (TokenEquals(&token, "SETTING")) { token.type = TOK_MCSTAS_SETTING; }
+            else if (TokenEquals(&token, "OUTPUT")) { token.type = TOK_MCSTAS_OUTPUT; }
             else if (TokenEquals(&token, "PARAMETERS")) { token.type = TOK_MCSTAS_PARAMETERS; }
             else if (TokenEquals(&token, "SHARE")) { token.type = TOK_MCSTAS_SHARE; }
             else if (TokenEquals(&token, "USERVARS")) { token.type = TOK_MCSTAS_USERVARS; }
             else if (TokenEquals(&token, "DECLARE")) { token.type = TOK_MCSTAS_DECLARE; }
             else if (TokenEquals(&token, "INITIALIZE")) { token.type = TOK_MCSTAS_INITIALIZE; }
             else if (TokenEquals(&token, "TRACE")) { token.type = TOK_MCSTAS_TRACE; }
+            else if (TokenEquals(&token, "SAVE")) { token.type = TOK_MCSTAS_SAVE; }
             else if (TokenEquals(&token, "FINALLY")) { token.type = TOK_MCSTAS_FINALLY; }
             else if (TokenEquals(&token, "MCDISPLAY")) { token.type = TOK_MCSTAS_MCDISPLAY; }
             else if (TokenEquals(&token, "AT")) { token.type = TOK_MCSTAS_AT; }

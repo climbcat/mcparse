@@ -77,7 +77,7 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {
         }
 
         printf("parsing  #%.3d: %s \n", comp_count_parsed, filename);
-        Component *comp = ComponentParse(a_parse, text);
+        Component *comp = ParseComponent(a_parse, text);
         comp_count_parsed++;
 
         if (RegisterComponentType(comp, &map_comps)) {
