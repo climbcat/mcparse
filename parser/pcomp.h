@@ -98,7 +98,7 @@ ParseTokenResult RequiredRVal(Tokenizer *t, Token *tok_out) {
         return PTR_TERMINAL;
     }
     else {
-        printf("\n\nERROR: Expected: 'r-value' got: '%s'\n", TokenTypeToSymbol(tok.type));
+        printf("\n\nERROR: Expected r-value, got '%s'\n", TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");
@@ -113,11 +113,11 @@ ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
     Token tok = GetToken(t);
     *tok_out = tok;
 
-        if (tok.type == req) {
+    if (tok.type == req) {
         return PTR_TERMINAL;
     }
     else {
-        printf("\n\nERROR: Expected: '%s' got: '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
+        printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");
@@ -152,9 +152,48 @@ ParseTokenResult BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[
         printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
 
+        assert(1 == 0 && "DBG break");
+
         return PTR_ERROR;
     }
 }
+
+bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2) {
+    Token tok = GetToken(t);
+    *tok_out = tok;
+
+    if (tok.type == opt0 || tok.type == opt1 || tok.type == opt2) {
+        return true;
+    }
+    else {
+        printf("\n\nERROR: Expected '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(tok.type));
+        PrintLineError(t, &tok, "");
+
+        assert(1 == 0 && "DBG break");
+
+        return false;
+    }
+}
+
+bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
+    Token tok = GetToken(t);
+    *tok_out = tok;
+
+    if (tok.type == opt0 || tok.type == opt1) {
+        return true;
+    }
+    else {
+        printf("\n\nERROR: Expected '%s' or '%s', got %s\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(tok.type));
+        PrintLineError(t, &tok, "");
+
+
+        assert(1 == 0 && "DBG break");
+
+        return false;
+    }
+}
+
+
 
 ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
     Tokenizer was = *t;
@@ -173,6 +212,7 @@ ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
     }
 }
 
+// TODO: useful or not?
 ParseTokenResult OptionalRequired(Tokenizer *t, Token *tok_out, TokenType opt, TokenType req) {
     Tokenizer was = *t;
 
@@ -193,6 +233,8 @@ ParseTokenResult OptionalRequired(Tokenizer *t, Token *tok_out, TokenType opt, T
         printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt), TokenTypeToSymbol(req), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
 
+        assert(1 == 0 && "DBG break");
+
         return PTR_ERROR;
     }
 }
@@ -210,8 +252,9 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
     Required(t, &token, TOK_LBRACK);
 
     Tokenizer was = *t;
-    if (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
-        *t = was; // re-parse that ID
+    OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_RBRACK);
+    if (token.type == TOK_IDENTIFIER) {
+        *t = was; // re-parse the opening identifier
 
         bool iterate = true;
         while (iterate) {
@@ -232,9 +275,11 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
                 p.name = tok_parname_or_partype.GetValue();
             }
 
-            if (Optional(t, &token, TOK_ASSIGN) == PTR_OPTIONAL) {
-                // = and default value
+            // branch
+            OptionOfThree(t, &token, TOK_ASSIGN, TOK_COMMA, TOK_RBRACK);
 
+            if (token.type == TOK_ASSIGN) {
+                // parse default value
                 if (p.type.len == 6 && StrEqual(p.type, "vector")) {
 
                     if (Optional(t, &token, TOK_NULL) == PTR_OPTIONAL) {
@@ -256,19 +301,15 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
                     RequiredRVal(t, &token);
                     p.default_val = token.GetValue();
                 }
+
+                // branch
+                OptionOfTwo(t, &token, TOK_COMMA, TOK_RBRACK);
             }
             params->Add(p);
 
-            iterate = Optional(t, &token, TOK_COMMA) == PTR_OPTIONAL; // <-- iterates a parameter parse
+            iterate = token.type == TOK_COMMA;
         }
     }
-
-    // TODO: On error, can we present all optional keywords as alternatives?
-    //      That way, the parser could guide users and act as a form of in-line documentation
-    //      Thus merge Required() with the Optional call above.
-    //      Or repeat the information - but this seems hard to control, potentially buggy
-
-    Required(t, &token, TOK_RBRACK);
 
     PackArrayAllocation(a_dest, params);
 }
@@ -371,7 +412,6 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     }
 
 
-    // DBG / experiment
     TokenType options[] = {
         TOK_MCSTAS_SHARE,
         TOK_MCSTAS_USERVARS,
@@ -412,8 +452,6 @@ Component *ParseComponent(MArena *a_dest, char *text) {
         }
     }
 
-    // TODO: handle EXTEND
-
     // end
     Required(t, &token, TOK_MCSTAS_END);
 
@@ -421,7 +459,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
 }
 
 
-void ComponentPrint(Component *comp) {
+void ComponentPrint(Component *comp, bool print_blocks = false) {
 
     printf("type: "); StrPrint(comp->type); printf("\n");
 
@@ -443,35 +481,38 @@ void ComponentPrint(Component *comp) {
         printf("\n");
     }
 
-    if (comp->share_block.len) {
-        printf("\nSHARE:\n");
-        StrPrint(comp->share_block);
-        printf("\n");
+    if (print_blocks) {
+        if (comp->share_block.len) {
+            printf("\nSHARE:\n");
+            StrPrint(comp->share_block);
+            printf("\n");
+        }
+
+        if (comp->declare_block.len) {
+            printf("\nDECLARE:\n");
+            StrPrint(comp->declare_block);
+            printf("\n");
+        }
+
+        if (comp->initalize_block.len) {
+            printf("\nINITIALIZE:\n");
+            StrPrint(comp->initalize_block);
+            printf("\n");
+        }
+
+        if (comp->trace_block.len) {
+            printf("\nTRACE:\n");
+            StrPrint(comp->trace_block);
+            printf("\n");
+        }
+
+        if (comp->display_block.len) {
+            printf("\nMCDISPLAY:\n");
+            StrPrint(comp->display_block);
+            printf("\n");
+        }
     }
 
-    if (comp->declare_block.len) {
-        printf("\nDECLARE:\n");
-        StrPrint(comp->declare_block);
-        printf("\n");
-    }
-
-    if (comp->initalize_block.len) {
-        printf("\nINITIALIZE:\n");
-        StrPrint(comp->initalize_block);
-        printf("\n");
-    }
-
-    if (comp->trace_block.len) {
-        printf("\nTRACE:\n");
-        StrPrint(comp->trace_block);
-        printf("\n");
-    }
-
-    if (comp->display_block.len) {
-        printf("\nMCDISPLAY:\n");
-        StrPrint(comp->display_block);
-        printf("\n");
-    }
 }
 
 

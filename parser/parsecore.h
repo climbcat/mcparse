@@ -231,10 +231,13 @@ void TokenTypePrint(TokenType tpe, bool newline = true) {
 
 struct Tokenizer {
     char *at;
-    u32 line = 1;
+    s32 line;
     char *at_linestart;
+    s32 line_indent;
 
     void Init(char *text) {
+        *this = {};
+
         line = 1;
         at = text;
         at_linestart = text;
@@ -242,6 +245,14 @@ struct Tokenizer {
     void AtNewLineChar() {
         ++line;
         at_linestart = at + 1;
+        line_indent = 0;
+
+        // measure line indentation for printing error column
+        char *at_indent = at + 1;
+        while (at_indent[0] == ' ') {
+            ++at_indent;
+            ++line_indent;
+        }
     }
 };
 
@@ -277,6 +288,12 @@ bool IsWhitespace(char c) {
         c == '\v' ||
         c == '\f' ||
         IsEndOfLine(c);
+}
+
+inline
+bool IsSpace(char c) {
+    return
+        c == ' ';
 }
 
 inline
@@ -487,7 +504,8 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
 
     // print line nb. tag
     char lineno_tag[200];
-    sprintf(lineno_tag, "%d| ", tokenizer->line);
+    s32 col = (tokenizer->at - tokenizer->at_linestart) - tokenizer->line_indent;
+    sprintf(lineno_tag, "%d,%d| ", tokenizer->line, col);
     printf("%s", lineno_tag);
 
     // print line
@@ -499,6 +517,24 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
         printf(" ");
     }
     printf("^\n");
+
+
+    // S.O. example how to get terminal width s.t. we can avoid line wrap, which would break the ^ location cursor
+    /*
+    #include <sys/ioctl.h>
+    #include <stdio.h>
+    #include <unistd.h>
+
+    int main (int argc, char **argv)
+    {
+        struct winsize w;
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+        printf ("lines %d\n", w.ws_row);
+        printf ("columns %d\n", w.ws_col);
+        return 0;  // make sure your main returns int
+    }
+    */
 }
 
 Token GetToken(Tokenizer *tokenizer);
