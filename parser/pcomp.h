@@ -388,6 +388,16 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     comp->state_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_STATE, true);
     comp->pol_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_POLARISATION, true);
 
+    // TODO: make agnostic to params blocks ordering (see code block parsing below)
+    /*
+    TokenType options_params[] = {
+        TOK_MCSTAS_SETTING,
+        TOK_MCSTAS_OUTPUT,
+        TOK_MCSTAS_STATE,
+        TOK_MCSTAS_POLARISATION,
+    };
+    */
+
     // flags
     while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
         if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
@@ -403,7 +413,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     }
 
     // code blocks
-    TokenType options[] = {
+    TokenType options_blocks[] = {
         TOK_MCSTAS_SHARE,
         TOK_MCSTAS_USERVARS,
         TOK_MCSTAS_DECLARE,
@@ -418,7 +428,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     while (result != PTR_TERMINAL) {
         Tokenizer dont_advance = *t;
 
-        result = BranchMultiple(&dont_advance, &token, options, 8, "code block", TOK_MCSTAS_END);
+        result = BranchMultiple(&dont_advance, &token, options_blocks, 8, "code block", TOK_MCSTAS_END);
 
         switch (token.type) {
         case TOK_ENDOFSTREAM: { } break;
