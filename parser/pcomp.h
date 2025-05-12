@@ -42,7 +42,10 @@ struct Parameter {
 struct Component {
     Str type;
     Str type_copy;
-    Array<Parameter> params;
+    Array<Parameter> setting_params;
+    Array<Parameter> out_params;
+    Array<Parameter> state_params;
+    Array<Parameter> pol_params;
 
     bool flag_noacc;
     Str dependency_str;
@@ -63,6 +66,14 @@ struct Component {
     Str finally_type_copy;
     Str display_type_copy;
 
+    Str share_extend;
+    Str uservars_extend;
+    Str declare_extend;
+    Str initalize_extend;
+    Str trace_extend;
+    Str finally_extend;
+    Str display_extend;
+
     bool parse_error;
 };
 
@@ -70,9 +81,9 @@ struct Component {
 enum ParseTokenResult {
     PTR_UNDEF,
 
+    PTR_OPTIONAL,
+    PTR_TERMINAL,
     PTR_ERROR,
-    PTR_OK,
-    PTR_UNUSED,
 
     PTR_CNT
 };
@@ -84,13 +95,14 @@ ParseTokenResult RequiredRVal(Tokenizer *t, Token *tok_out) {
     *tok_out = tok;
 
     if (tok.is_rval) {
-        return PTR_OK;
+        return PTR_TERMINAL;
     }
     else {
         printf("\n\nERROR: Expected: 'r-value' got: '%s'\n", TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");
+
         return PTR_ERROR;
     }
 }
@@ -102,13 +114,44 @@ ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
     *tok_out = tok;
 
         if (tok.type == req) {
-        return PTR_OK;
+        return PTR_TERMINAL;
     }
     else {
         printf("\n\nERROR: Expected: '%s' got: '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");
+
+        return PTR_ERROR;
+    }
+}
+
+
+// NOTE: How should we cover this situations: <first options> <more options after> <terminal>, e.g. sequential optional args.
+
+
+ParseTokenResult BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 options_cnt, const char *options_error, TokenType terminal) {
+    Tokenizer was = *t;
+
+    Token tok = GetToken(t);
+    *tok_out = tok;
+
+    for (s32 i = 0; i < options_cnt; ++i) {
+        if (tok.type == options[i]) {
+            *t = was;
+
+            return PTR_OPTIONAL;
+        }
+    }
+
+    if (tok.type == terminal) {
+
+        return PTR_TERMINAL;
+    }
+    else {
+        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal), TokenTypeToString(tok.type));
+        PrintLineError(t, &tok, "");
+
         return PTR_ERROR;
     }
 }
@@ -120,29 +163,37 @@ ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
     *tok_out = tok;
 
     if (tok.type == opt) {
-        return PTR_OK;
+        return PTR_OPTIONAL;
     }
     else {
         // rewind if not used
         *t = was;
 
-        return PTR_UNUSED;
+        return PTR_UNDEF;
     }
 }
 
-ParseTokenResult OptionalDontAdvance(Tokenizer *t, TokenType opt) {
+ParseTokenResult OptionalRequired(Tokenizer *t, Token *tok_out, TokenType opt, TokenType req) {
     Tokenizer was = *t;
 
     Token tok = GetToken(t);
-
-    // rewind
-    *t = was;
+    *tok_out = tok;
 
     if (tok.type == opt) {
-        return PTR_OK;
+        // optional check
+
+        return PTR_OPTIONAL;
+    }
+    else if (tok.type == req) {
+        // terminal comes after
+
+        return PTR_TERMINAL;
     }
     else {
-        return PTR_UNUSED;
+        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt), TokenTypeToSymbol(req), TokenTypeToString(tok.type));
+        PrintLineError(t, &tok, "");
+
+        return PTR_ERROR;
     }
 }
 
@@ -152,14 +203,16 @@ void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
     arr_at_tail->max = arr_at_tail->len;
 }
 
-
 void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
     *params = InitArray<Parameter>(a_dest, 1024);
 
     Token token;
     Required(t, &token, TOK_LBRACK);
 
-    if (OptionalDontAdvance(t, TOK_IDENTIFIER) == PTR_OK) { // <-- initiates a parameter parse
+    Tokenizer was = *t;
+    if (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
+        *t = was; // re-parse that ID
+
         bool iterate = true;
         while (iterate) {
             Parameter p = {};
@@ -168,7 +221,7 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
             Required(t, &tok_parname_or_partype, TOK_IDENTIFIER);
 
             Token tok_parname_or_nothing;
-            if (Optional(t, &tok_parname_or_nothing, TOK_IDENTIFIER) == PTR_OK) {
+            if (Optional(t, &tok_parname_or_nothing, TOK_IDENTIFIER) == PTR_OPTIONAL) {
                 // parameter type and name
                 p.type = tok_parname_or_partype.GetValue();
                 p.name = tok_parname_or_nothing.GetValue();
@@ -179,12 +232,12 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
                 p.name = tok_parname_or_partype.GetValue();
             }
 
-            if (Optional(t, &token, TOK_ASSIGN) == PTR_OK) {
+            if (Optional(t, &token, TOK_ASSIGN) == PTR_OPTIONAL) {
                 // = and default value
 
                 if (p.type.len == 6 && StrEqual(p.type, "vector")) {
 
-                    if (Optional(t, &token, TOK_NULL) == PTR_OK) {
+                    if (Optional(t, &token, TOK_NULL) == PTR_OPTIONAL) {
                         p.default_val.str = token.text;
                         p.default_val.len = token.len;
                     }
@@ -203,11 +256,10 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
                     RequiredRVal(t, &token);
                     p.default_val = token.GetValue();
                 }
-                // TODO: deal with parameter type 'vector' which is inline initialization a-la {0,0,0}
             }
             params->Add(p);
 
-            iterate = Optional(t, &token, TOK_COMMA) == PTR_OK; // <-- iterates a parameter parse
+            iterate = Optional(t, &token, TOK_COMMA) == PTR_OPTIONAL; // <-- iterates a parameter parse
         }
     }
 
@@ -221,63 +273,49 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
     PackArrayAllocation(a_dest, params);
 }
 
-
-bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy) {
+bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy, Str *extend) {
     Token token;
 
-    if (Optional(t, &token, block_type) == PTR_OK) {
-        if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OK) {
+    Str *block_str = block;
+
+    if (Optional(t, &token, block_type) == PTR_OPTIONAL) {
+        if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OPTIONAL) {
             Required(t, &token, TOK_IDENTIFIER);
             *type_copy = token.GetValue();
+
+            if (Optional(t, &token, TOK_MCSTAS_EXTEND) == PTR_OPTIONAL) {
+                block_str = extend;
+            }
+            else {
+                return true;
+            }
         }
 
-        else {
-            Required(t, &token, TOK_LPERCENTBRACE);
+        Required(t, &token, TOK_LPERCENTBRACE);
 
-            char *block_start = t->at;
-            while (true) {
-                token = GetToken(t);
-                if (token.type == TOK_RPERCENTBRACE) {
-                    block->str = block_start;
-                    block->len = (token.text - block_start);
+        char *block_start = t->at;
+        while (true) {
+            token = GetToken(t);
+            if (token.type == TOK_RPERCENTBRACE) {
+                block_str->str = block_start;
+                block_str->len = (token.text - block_start);
 
-                    break;
-                }
-                else if (token.type == TOK_ENDOFSTREAM) {
-                    //comp->parse_error = true;
-                    assert(1 == 0 && "DBG break");
+                break;
+            }
+            else if (token.type == TOK_ENDOFSTREAM) {
+                //comp->parse_error = true;
+                assert(1 == 0 && "DBG break");
 
-                    return false;
-                }
-            }        
-        }
+                return false;
+            }
+        }        
     }
+
     return true;
 }
 
 Component *ParseComponent(MArena *a_dest, char *text) {
     TimeFunction;
-
-    // req:
-    // DEFINE COMPONENT <compname> <newline>
-    
-    // opt:
-    // DEFINITION PARAMETERS ( ... )
-    // SETTING PARAMETERS ( ... )
-    // OTUPUT PARAMETERS ( ... )
-
-    // opt:
-    // SHARE %( ... %)
-
-    // req:
-    // DECLARE %( ... %)
-    // INITIALIZE %( ... %)
-    // TRACE %( ... %)
-    // FINALLY %( ... %)
-    // MCDISPLAY %( ... %)
-
-    // req:
-    // END
 
     Tokenizer tokenizer = {};
     tokenizer.Init(text);
@@ -290,7 +328,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     Required(t, &token, TOK_MCSTAS_COMPONENT);
     Required(t, &token, TOK_IDENTIFIER);
     comp->type = token.GetValue();
-    if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OK) {
+    if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OPTIONAL) {
         Required(t, &token, TOK_IDENTIFIER);
         comp->type_copy = token.GetValue();
     }
@@ -298,16 +336,28 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     // setting parameters
     Required(t, &token, TOK_MCSTAS_SETTING);
     Required(t, &token, TOK_MCSTAS_PARAMETERS);
-    ParseParams(a_dest, t, &comp->params);
+    ParseParams(a_dest, t, &comp->setting_params);
 
     // output parameters
-    if (Optional(t, &token, TOK_MCSTAS_OUTPUT) == PTR_OK) {
+    if (Optional(t, &token, TOK_MCSTAS_OUTPUT) == PTR_OPTIONAL) {
         Required(t, &token, TOK_MCSTAS_PARAMETERS);
-        ParseParams(a_dest, t, &comp->params);
+        ParseParams(a_dest, t, &comp->out_params);
+    }
+
+    // state parameters
+    if (Optional(t, &token, TOK_MCSTAS_STATE) == PTR_OPTIONAL) {
+        Required(t, &token, TOK_MCSTAS_PARAMETERS);
+        ParseParams(a_dest, t, &comp->state_params);
+    }
+
+    // polarisation parameters
+    if (Optional(t, &token, TOK_MCSTAS_POLARISATION) == PTR_OPTIONAL) {
+        Required(t, &token, TOK_MCSTAS_PARAMETERS);
+        ParseParams(a_dest, t, &comp->pol_params);
     }
 
     // flags
-    while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OK) {
+    while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
         if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
             Required(t, &token, TOK_STRING);
             printf("Paresed DEP\n");
@@ -320,16 +370,49 @@ Component *ParseComponent(MArena *a_dest, char *text) {
         }
     }
 
-    // code blocks
-    bool block_ok;
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_SHARE, &comp->share_block, &comp->share_type_copy);
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &comp->uservars_block, &comp->uservars_type_copy);
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &comp->declare_block, &comp->declare_type_copy);
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &comp->initalize_block, &comp->initalize_type_copy);
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_TRACE, &comp->trace_block, &comp->trace_type_copy);
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->trace_block, &comp->trace_type_copy);
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &comp->finally_block, &comp->finally_type_copy);
-    block_ok = ParseCodeBlock(t, TOK_MCSTAS_MCDISPLAY, &comp->display_block, &comp->display_type_copy);
+
+    // DBG / experiment
+    TokenType options[] = {
+        TOK_MCSTAS_SHARE,
+        TOK_MCSTAS_USERVARS,
+        TOK_MCSTAS_DECLARE,
+        TOK_MCSTAS_INITIALIZE,
+        TOK_MCSTAS_TRACE,
+        TOK_MCSTAS_SAVE,
+        TOK_MCSTAS_FINALLY,
+        TOK_MCSTAS_MCDISPLAY
+    };
+
+    ParseTokenResult result = {};
+    while (result != PTR_TERMINAL) {
+        Tokenizer dont_advance = *t;
+
+        result = BranchMultiple(&dont_advance, &token, options, 8, "code block", TOK_MCSTAS_END);
+
+        switch (token.type) {
+        case TOK_ENDOFSTREAM: { } break;
+
+        case TOK_MCSTAS_SHARE: { ParseCodeBlock(t, TOK_MCSTAS_SHARE, &comp->share_block, &comp->share_type_copy, &comp->share_extend); } break;
+        case TOK_MCSTAS_USERVARS: { ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &comp->uservars_block, &comp->uservars_type_copy, &comp->uservars_extend); } break;
+        case TOK_MCSTAS_DECLARE: { ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &comp->declare_block, &comp->declare_type_copy, &comp->declare_extend); } break;
+        case TOK_MCSTAS_INITIALIZE: { ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &comp->initalize_block, &comp->initalize_type_copy, &comp->initalize_extend); } break;
+        case TOK_MCSTAS_TRACE: { ParseCodeBlock(t, TOK_MCSTAS_TRACE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
+        case TOK_MCSTAS_SAVE: { ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
+        case TOK_MCSTAS_FINALLY: { ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &comp->finally_block, &comp->finally_type_copy, &comp->finally_extend); } break;
+        case TOK_MCSTAS_MCDISPLAY: { ParseCodeBlock(t, TOK_MCSTAS_MCDISPLAY, &comp->display_block, &comp->display_type_copy, &comp->display_extend); } break;
+
+        default: {  assert(token.type == TOK_MCSTAS_END); } break;
+        }
+
+        if (result == PTR_ERROR) {
+            comp->parse_error = true;
+            break;
+
+            assert(1 == 0 && "DBG break");
+        }
+    }
+
+    // TODO: handle EXTEND
 
     // end
     Required(t, &token, TOK_MCSTAS_END);
@@ -342,8 +425,8 @@ void ComponentPrint(Component *comp) {
 
     printf("type: "); StrPrint(comp->type); printf("\n");
 
-    for (u32 i = 0; i < comp->params.len; ++i) {
-        Parameter p = comp->params.arr[i];
+    for (u32 i = 0; i < comp->setting_params.len; ++i) {
+        Parameter p = comp->setting_params.arr[i];
 
         printf("    ");
         StrPrint(p.name);

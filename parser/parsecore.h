@@ -55,8 +55,11 @@ enum TokenType {
     TOK_MCSTAS_INSTRUMENT,
     TOK_MCSTAS_COMPONENT,
     TOK_MCSTAS_COPY,
+    TOK_MCSTAS_EXTEND,
     TOK_MCSTAS_SETTING,
     TOK_MCSTAS_OUTPUT,
+    TOK_MCSTAS_STATE,
+    TOK_MCSTAS_POLARISATION,
     TOK_MCSTAS_PARAMETERS,
     TOK_MCSTAS_SHARE,
     TOK_MCSTAS_USERVARS,
@@ -120,8 +123,11 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_INSTRUMENT: return "TOK_MCSTAS_INSTRUMENT";
         case TOK_MCSTAS_COMPONENT: return "TOK_MCSTAS_COMPONENT";
         case TOK_MCSTAS_COPY: return "TOK_MCSTAS_COPY";
+        case TOK_MCSTAS_EXTEND: return "TOK_MCSTAS_EXTEND";
         case TOK_MCSTAS_SETTING: return "TOK_MCSTAS_SETTING";
         case TOK_MCSTAS_OUTPUT: return "TOK_MCSTAS_OUTPUT";
+        case TOK_MCSTAS_STATE: return "TOK_MCSTAS_STATE";
+        case TOK_MCSTAS_POLARISATION: return "TOK_MCSTAS_POLARIZATION";
         case TOK_MCSTAS_PARAMETERS: return "TOK_MCSTAS_PARAMETERS";
         case TOK_MCSTAS_SHARE: return "TOK_MCSTAS_SHARE";
         case TOK_MCSTAS_USERVARS: return "TOK_MCSTAS_USERVARS";
@@ -188,8 +194,11 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_INSTRUMENT: return "INSTRUMENT";
         case TOK_MCSTAS_COMPONENT: return "COMPONENT";
         case TOK_MCSTAS_COPY: return "COPY";
+        case TOK_MCSTAS_EXTEND: return "EXTEND";
         case TOK_MCSTAS_SETTING: return "SETTING";
         case TOK_MCSTAS_OUTPUT: return "OUTPUT";
+        case TOK_MCSTAS_STATE: return "STATE";
+        case TOK_MCSTAS_POLARISATION: return "POLARIZATION";
         case TOK_MCSTAS_PARAMETERS: return "PARAMETERS";
         case TOK_MCSTAS_SHARE: return "SHARE";
         case TOK_MCSTAS_USERVARS: return "USERVARS";
@@ -772,8 +781,11 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "INSTRUMENT")) { token.type = TOK_MCSTAS_INSTRUMENT; }
             else if (TokenEquals(&token, "COMPONENT")) { token.type = TOK_MCSTAS_COMPONENT; }
             else if (TokenEquals(&token, "COPY")) { token.type = TOK_MCSTAS_COPY; }
+            else if (TokenEquals(&token, "EXTEND")) { token.type = TOK_MCSTAS_EXTEND; }
             else if (TokenEquals(&token, "SETTING")) { token.type = TOK_MCSTAS_SETTING; }
             else if (TokenEquals(&token, "OUTPUT")) { token.type = TOK_MCSTAS_OUTPUT; }
+            else if (TokenEquals(&token, "STATE")) { token.type = TOK_MCSTAS_STATE; }
+            else if (TokenEquals(&token, "POLARISATION")) { token.type = TOK_MCSTAS_POLARISATION; }
             else if (TokenEquals(&token, "PARAMETERS")) { token.type = TOK_MCSTAS_PARAMETERS; }
             else if (TokenEquals(&token, "SHARE")) { token.type = TOK_MCSTAS_SHARE; }
             else if (TokenEquals(&token, "USERVARS")) { token.type = TOK_MCSTAS_USERVARS; }
