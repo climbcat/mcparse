@@ -6,7 +6,7 @@
 
 #include "jg_baselayer.h"
 #include "parsecore.h"
-#include "pcomp.h"
+#include "phelpers.h"
 #include "pinstr.h"
 
 
@@ -24,10 +24,10 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool print_details) {
             continue;
         }
 
-        printf("parsing (dry)  #%.3d: %s \n", comp_count_parsed, filename);
+        printf("parsing  #%.3d: %s \n", comp_count_parsed, filename);
 
-        //Instrument *instr = ParseInstrument(a_parse, text);
-        //comp_count_parsed++;
+        Instrument *instr = ParseInstrument(a_parse, text);
+        comp_count_parsed++;
     }
 
     return map_comps;

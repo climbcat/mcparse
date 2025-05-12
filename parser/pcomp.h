@@ -2,43 +2,6 @@
 #define __PCOMP_H__
 
 
-bool IsCompFile(char *filename)
-{
-    // check lenth / get expected location
-    u32 len = strlen(filename);
-    if (len < 6)
-    {
-        return false;
-    }
-
-    const char *match = ".comp";
-    char cf;
-    char cm;
-    for (int i = 0; i < 5; i++)
-    {
-        cf = filename[i + len - 5];
-        cm = match[i];
-        if (cf != cm)
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-
-// TODO: ParDec
-// TODO: ParVal
-
-
-struct Parameter {
-    Str type;
-    Str name;
-    Str default_val;
-};
-
-
 struct Component {
     Str type;
     Str type_copy;
@@ -78,260 +41,20 @@ struct Component {
 };
 
 
-enum ParseTokenResult {
-    PTR_UNDEF,
-
-    PTR_OPTIONAL,
-    PTR_TERMINAL,
-    PTR_ERROR,
-
-    PTR_CNT
-};
-
-ParseTokenResult RequiredRVal(Tokenizer *t, Token *tok_out) {
-    Tokenizer prev = *t;
-
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    if (tok.is_rval) {
-        return PTR_TERMINAL;
-    }
-    else {
-        printf("\n\nERROR: Expected r-value, got '%s'\n", TokenTypeToSymbol(tok.type));
-        PrintLineError(t, &tok, "");
-
-        assert(1 == 0 && "DBG break");
-
-        return PTR_ERROR;
-    }
-}
-
-ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
-    Tokenizer prev = *t;
-
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    if (tok.type == req) {
-        return PTR_TERMINAL;
-    }
-    else {
-        printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
-        PrintLineError(t, &tok, "");
-
-        assert(1 == 0 && "DBG break");
-
-        return PTR_ERROR;
-    }
-}
-
-
-ParseTokenResult BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 options_cnt, const char *options_error, TokenType terminal) {
-    Tokenizer was = *t;
-
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    for (s32 i = 0; i < options_cnt; ++i) {
-        if (tok.type == options[i]) {
-            *t = was;
-
-            return PTR_OPTIONAL;
-        }
-    }
-
-    if (tok.type == terminal) {
-
-        return PTR_TERMINAL;
-    }
-    else {
-        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal), TokenTypeToString(tok.type));
-        PrintLineError(t, &tok, "");
-
-        assert(1 == 0 && "DBG break");
-
-        return PTR_ERROR;
-    }
-}
-
-bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2) {
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    if (tok.type == opt0 || tok.type == opt1 || tok.type == opt2) {
-        return true;
-    }
-    else {
-        printf("\n\nERROR: Expected '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(tok.type));
-        PrintLineError(t, &tok, "");
-
-        assert(1 == 0 && "DBG break");
-
-        return false;
-    }
-}
-
-bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    if (tok.type == opt0 || tok.type == opt1) {
-        return true;
-    }
-    else {
-        printf("\n\nERROR: Expected '%s' or '%s', got %s\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(tok.type));
-        PrintLineError(t, &tok, "");
-
-
-        assert(1 == 0 && "DBG break");
-
-        return false;
-    }
-}
-
-
-
-ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
-    Tokenizer was = *t;
-
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    if (tok.type == opt) {
-        return PTR_OPTIONAL;
-    }
-    else {
-        // rewind if not used
-        *t = was;
-
-        return PTR_UNDEF;
-    }
-}
-
-void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
-    s32 diff = arr_at_tail->max - arr_at_tail->len;
-    a_src->used -= diff * sizeof(Parameter);
-    arr_at_tail->max = arr_at_tail->len;
-}
-
-Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, TokenType params_type, bool is_optional) {
+Array<Parameter> ParseComponentParams(MArena *a_dest, Tokenizer *t, TokenType params_type, bool is_optional) {
     Token token;
     if (is_optional && Optional(t, &token, params_type) != PTR_OPTIONAL) {
         return Array<Parameter> { NULL, 0, 0 };
     }
-    Array<Parameter> params = InitArray<Parameter>(a_dest, 1024);
 
     if (is_optional == false) {
         Required(t, &token, params_type);
     }
     Required(t, &token, TOK_MCSTAS_PARAMETERS);
-    Required(t, &token, TOK_LBRACK);
 
-    Tokenizer was = *t;
-    OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_RBRACK);
-    if (token.type == TOK_IDENTIFIER) {
-        *t = was; // re-parse the opening identifier
-
-        bool iterate = true;
-        while (iterate) {
-            Parameter p = {};
-
-            Token tok_parname_or_partype;
-            Required(t, &tok_parname_or_partype, TOK_IDENTIFIER);
-
-            Token tok_parname_or_nothing;
-            if (Optional(t, &tok_parname_or_nothing, TOK_IDENTIFIER) == PTR_OPTIONAL) {
-                // parameter type and name
-                p.type = tok_parname_or_partype.GetValue();
-                p.name = tok_parname_or_nothing.GetValue();
-            }
-
-            else {
-                // no type, only the parameter name
-                p.name = tok_parname_or_partype.GetValue();
-            }
-
-            // branch
-            OptionOfThree(t, &token, TOK_ASSIGN, TOK_COMMA, TOK_RBRACK);
-
-            if (token.type == TOK_ASSIGN) {
-                // parse default value
-                if (p.type.len == 6 && StrEqual(p.type, "vector")) {
-
-                    if (Optional(t, &token, TOK_NULL) == PTR_OPTIONAL) {
-                        p.default_val.str = token.text;
-                        p.default_val.len = token.len;
-                    }
-                    else {
-                        // capture from '{' to '}'. Do it the lazy-pants way by ignoring everything in-between
-                        Required(t, &token, TOK_LBRACE);
-                        p.default_val.str = token.text;
-                        do {
-                            token = GetToken(t);
-                        }
-                        while (token.type != TOK_RBRACE);
-                        p.default_val.len = token.text - p.default_val.str + 1;
-                    }
-                }
-                else {
-                    RequiredRVal(t, &token);
-                    p.default_val = token.GetValue();
-                }
-
-                // branch
-                OptionOfTwo(t, &token, TOK_COMMA, TOK_RBRACK);
-            }
-            params.Add(p);
-
-            iterate = token.type == TOK_COMMA;
-        }
-    }
-
-    PackArrayAllocation(a_dest, &params);
-    return params;
+    return ParseParamsBlock(a_dest, t);
 }
 
-bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy, Str *extend) {
-    Token token;
-
-    Str *block_str = block;
-
-    if (Optional(t, &token, block_type) == PTR_OPTIONAL) {
-        if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OPTIONAL) {
-            Required(t, &token, TOK_IDENTIFIER);
-            *type_copy = token.GetValue();
-
-            if (Optional(t, &token, TOK_MCSTAS_EXTEND) == PTR_OPTIONAL) {
-                block_str = extend;
-            }
-            else {
-                return true;
-            }
-        }
-
-        Required(t, &token, TOK_LPERCENTBRACE);
-
-        char *block_start = t->at;
-        while (true) {
-            token = GetToken(t);
-            if (token.type == TOK_RPERCENTBRACE) {
-                block_str->str = block_start;
-                block_str->len = (token.text - block_start);
-
-                break;
-            }
-            else if (token.type == TOK_ENDOFSTREAM) {
-                //comp->parse_error = true;
-                assert(1 == 0 && "DBG break");
-
-                return false;
-            }
-        }        
-    }
-
-    return true;
-}
 
 Component *ParseComponent(MArena *a_dest, char *text) {
     TimeFunction;
@@ -353,10 +76,10 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     }
 
     // parameters
-    comp->setting_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_SETTING, false);
-    comp->out_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_OUTPUT, true);
-    comp->state_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_STATE, true);
-    comp->pol_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_POLARISATION, true);
+    comp->setting_params = ParseComponentParams(a_dest, t, TOK_MCSTAS_SETTING, false);
+    comp->out_params = ParseComponentParams(a_dest, t, TOK_MCSTAS_OUTPUT, true);
+    comp->state_params = ParseComponentParams(a_dest, t, TOK_MCSTAS_STATE, true);
+    comp->pol_params = ParseComponentParams(a_dest, t, TOK_MCSTAS_POLARISATION, true);
 
     // TODO: make agnostic to params blocks ordering (see code block parsing below)
     /*

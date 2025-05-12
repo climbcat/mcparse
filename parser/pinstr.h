@@ -2,14 +2,9 @@
 #define __PINSTR_H__
 
 
-struct Parameter2 {
-
-};
-
 struct Instrument {
-    Str type;
-    Str type_copy;
-    Array<Parameter2> setting_params;
+    Str name;
+    Array<Parameter> params;
 
     Str uservars_block;
     Str declare_block;
@@ -20,8 +15,27 @@ struct Instrument {
     bool parse_error;
 };
 
+
 Instrument *ParseInstrument(MArena *a_dest, char *text) {
+    TimeFunction;
+
+    Tokenizer tokenizer = {};
+    tokenizer.Init(text);
+    Tokenizer *t = &tokenizer;
+    Token token;
     Instrument *instr = (Instrument*) ArenaAlloc(a_dest, sizeof(Instrument));
+
+    // component type
+    Required(t, &token, TOK_MCSTAS_DEFINE);
+    Required(t, &token, TOK_MCSTAS_INSTRUMENT);
+    Required(t, &token, TOK_IDENTIFIER);
+    instr->name = token.GetValue();
+
+    // parameters
+
+    instr->params = ParseParamsBlock(a_dest, t);
+
+
     return instr;
 }
 
