@@ -73,7 +73,6 @@ enum TokenType {
     TOK_MCSTAS_RELATIVE,
     TOK_MCSTAS_ROTATED,
     TOK_MCSTAS_SPLIT,
-    TOK_MCSTAS_SPLITS,
     TOK_MCSTAS_USER,
     TOK_MCSTAS_END,
 
@@ -141,7 +140,6 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_RELATIVE: return "TOK_MCSTAS_RELATIVE";
         case TOK_MCSTAS_ROTATED: return "TOK_MCSTAS_ROTATED";
         case TOK_MCSTAS_SPLIT: return "TOK_MCSTAS_SPLIT";
-        case TOK_MCSTAS_SPLITS: return "TOK_MCSTAS_SPLITS";
         case TOK_MCSTAS_USER: return "TOK_MCSTAS_USER";
         case TOK_MCSTAS_END: return "TOK_MCSTAS_END";
 
@@ -212,7 +210,6 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_RELATIVE: return "RELATIVE";
         case TOK_MCSTAS_ROTATED: return "ROTATED";
         case TOK_MCSTAS_SPLIT: return "SPLIT";
-        case TOK_MCSTAS_SPLITS: return "SPLITS";
         case TOK_MCSTAS_USER: return "USER";
         case TOK_MCSTAS_END: return "END";
 
@@ -835,7 +832,6 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "RELATIVE")) { token.type = TOK_MCSTAS_RELATIVE; }
             else if (TokenEquals(&token, "ROTATED")) { token.type = TOK_MCSTAS_ROTATED; }
             else if (TokenEquals(&token, "SPLIT")) { token.type = TOK_MCSTAS_SPLIT; }
-            else if (TokenEquals(&token, "SPLITS")) { token.type = TOK_MCSTAS_SPLITS; }
             else if (TokenEquals(&token, "USER")) { token.type = TOK_MCSTAS_USER; }
             else if (TokenEquals(&token, "END")) { token.type = TOK_MCSTAS_END; }
         }
