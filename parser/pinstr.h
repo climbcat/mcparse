@@ -8,7 +8,10 @@ struct ComponentCall {
     ComponentCall *first;
 
     Str name;
+    Str copy_name;
     Str type;
+    Str extend;
+    Str when;
 
     Str at_x;
     Str at_y;
@@ -65,6 +68,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     // code blocks
     Str _;
     ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
+    ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &instr->declare_block, &_, &_);
     ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &instr->declare_block, &_, &_);
 
     // component calls
@@ -75,13 +79,33 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
         if (Optional(t, &token, TOK_MCSTAS_COMPONENT)) {
             ComponentCall c = {};
 
+            // instance name
             Required(t, &token, TOK_IDENTIFIER);
             c.name = token.GetValue();
-
             Required(t, &token, TOK_ASSIGN);
-            Required(t, &token, TOK_IDENTIFIER);
-            c.type = token.GetValue();
+
+            // type or COPY
+            OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_COPY);
+            if (token.type == TOK_MCSTAS_COPY) {
+                Required(t, &token, TOK_LBRACK);
+                Required(t, &token, TOK_IDENTIFIER);
+                c.copy_name = token.GetValue();
+                Required(t, &token, TOK_RBRACK);
+            }
+            else {
+                c.type = token.GetValue();
+            }
+
+            // args
             c.args = ParseParamsBlock(a_dest, t, true);
+
+            // when
+            if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
+                Required(t, &token, TOK_LBRACK);
+                RequiredRValOrExpression(t, &token);
+                c.when = token.GetValue();
+                Required(t, &token, TOK_RBRACK);
+            }
 
             Required(t, &token, TOK_MCSTAS_AT);
             // parse AT vector:
@@ -97,15 +121,17 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             Required(t, &token, TOK_RBRACK);
 
             // relative / absolute
-            OptionOfTwo(t, &token, TOK_MCSTAS_RELATIVE, TOK_MCSTAS_ABSOLUTE);
+            Optional(t, &token, TOK_MCSTAS_RELATIVE);
             if (token.type == TOK_MCSTAS_RELATIVE) {
-                OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
+                OptionOfThree(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS, TOK_MCSTAS_ABSOLUTE);
                 c.at_relative_to = token.GetValue();
             }
             else {
+                Required(t, &token, TOK_MCSTAS_ABSOLUTE);
                 c.at_absolute = true;
             }
 
+            // rotated
             if (Optional(t, &token, TOK_MCSTAS_ROTATED)) {
                 c.rot_defined = true;
 
@@ -130,11 +156,13 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 else {
                     c.rot_absolute = true;
                 }
+
             }
             else {
 
             }
 
+            ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
             instr->comps.Add(c);
         }
         else {
@@ -158,7 +186,12 @@ void InstrumentPrint(Instrument *instr) {
         ComponentCall cc = instr->comps.arr[j];
 
         StrPrint("", cc.name," (");
-        StrPrint("", cc.type, ")");
+        if (cc.type.len) {
+            StrPrint("", cc.type, ")");
+        }
+        else {
+            StrPrint("COPY (", cc.copy_name, "))");
+        }
         printf("\n");
         for (u32 i = 0; i < cc.args.len; ++i) {
             Parameter p = cc.args.arr[i];
@@ -177,6 +210,11 @@ void InstrumentPrint(Instrument *instr) {
             }
             printf("\n");
         }
+
+        if (cc.when.len) {
+            StrPrint("WHEN (", cc.when, ")\n");
+        }
+
         printf("AT (");
         StrPrint("", cc.at_x ,", ");
         StrPrint("", cc.at_y ,", ");
@@ -201,6 +239,12 @@ void InstrumentPrint(Instrument *instr) {
             else {
                 printf(" ABSOLUTE");
             }
+        }
+
+        if (cc.extend.len) {
+            printf("\n");
+            StrPrint("EXTEND %%(", cc.copy_name, "\n%%)\n");
+
         }
 
         printf("\n\n");
