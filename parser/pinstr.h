@@ -14,14 +14,16 @@ struct ComponentCall {
     Str at_y;
     Str at_z;
 
+    Str at_relative_to;
+    bool at_absolute;
+
+    bool rot_defined;
     Str rot_x;
     Str rot_y;
     Str rot_z;
 
-    bool at_abs;
-    bool rot_abs;
-    Str at_rel;
-    Str rot_rel;
+    Str rot_relative_to;
+    bool rot_absolute;
 
     Array<Parameter> args;
 };
@@ -49,7 +51,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     Tokenizer *t = &tokenizer;
     Token token;
     Instrument *instr = (Instrument*) ArenaAlloc(a_dest, sizeof(Instrument));
-    instr->comps = InitArray<ComponentCall>(a_dest, 1000);
+    instr->comps = InitArray<ComponentCall>(a_dest, 100);
 
     // component type
     Required(t, &token, TOK_MCSTAS_DEFINE);
@@ -81,21 +83,15 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             c.type = token.GetValue();
             c.args = ParseParamsBlock(a_dest, t, true);
 
-            printf("args_len: %u\n", c.args.len);
-
             Required(t, &token, TOK_MCSTAS_AT);
-
             // parse AT vector:
             Required(t, &token, TOK_LBRACK);
-            //OptionOfTwo(t, &token, TOK_INT, TOK_FLOAT);
             RequiredRValOrExpression(t, &token);
             c.at_x = token.GetValue();
             Required(t, &token, TOK_COMMA);
-            //OptionOfTwo(t, &token, TOK_INT, TOK_FLOAT);
             RequiredRValOrExpression(t, &token);
             c.at_y = token.GetValue();
             Required(t, &token, TOK_COMMA);
-            //OptionOfTwo(t, &token, TOK_INT, TOK_FLOAT);
             RequiredRValOrExpression(t, &token);
             c.at_z = token.GetValue();
             Required(t, &token, TOK_RBRACK);
@@ -104,24 +100,23 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             OptionOfTwo(t, &token, TOK_MCSTAS_RELATIVE, TOK_MCSTAS_ABSOLUTE);
             if (token.type == TOK_MCSTAS_RELATIVE) {
                 OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
-                c.at_rel = token.GetValue();
+                c.at_relative_to = token.GetValue();
             }
             else {
-                c.at_abs = true;
+                c.at_absolute = true;
             }
 
             if (Optional(t, &token, TOK_MCSTAS_ROTATED)) {
+                c.rot_defined = true;
+
                 // parse ROTATED vector:
                 Required(t, &token, TOK_LBRACK);
-                //OptionOfTwo(t, &token, TOK_INT, TOK_FLOAT);
                 RequiredRValOrExpression(t, &token);
                 c.rot_x = token.GetValue();
                 Required(t, &token, TOK_COMMA);
-                //OptionOfTwo(t, &token, TOK_INT, TOK_FLOAT);
                 RequiredRValOrExpression(t, &token);
                 c.rot_y = token.GetValue();
                 Required(t, &token, TOK_COMMA);
-                //OptionOfTwo(t, &token, TOK_INT, TOK_FLOAT);
                 RequiredRValOrExpression(t, &token);
                 c.rot_z = token.GetValue();
                 Required(t, &token, TOK_RBRACK);
@@ -130,25 +125,22 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 OptionOfTwo(t, &token, TOK_MCSTAS_RELATIVE, TOK_MCSTAS_ABSOLUTE);
                 if (token.type == TOK_MCSTAS_RELATIVE) {
                     OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
-                    c.rot_rel = token.GetValue();
+                    c.rot_relative_to = token.GetValue();
                 }
                 else {
-                    c.rot_abs = true;
+                    c.rot_absolute = true;
                 }
             }
+            else {
 
+            }
 
             instr->comps.Add(c);
-            // DBG
-            break;
         }
         else {
             break;
         }
-
-
     }
-
 
 
     //Required(t, &token, TOK_MCSTAS_END);
@@ -162,24 +154,56 @@ void InstrumentPrint(Instrument *instr) {
     printf("    comps: %u\n", instr->comps.len);
 
     // print THE FIRST component's parameters
-    ComponentCall cc = instr->comps.arr[0];
+    for (s32 j = 0; j < instr->comps.len; ++j) {
+        ComponentCall cc = instr->comps.arr[j];
 
-    for (u32 i = 0; i < cc.args.len; ++i) {
-        Parameter p = cc.args.arr[i];
-
-        printf("    ");
-        StrPrint(p.name);
-        if (p.default_val.len) {
-            printf(" = ");
-            StrPrint(p.default_val);
-        }
-
-        if (p.type.len) {
-            printf(" (");
-            StrPrint(p.type);
-            printf(")");
-        }
+        StrPrint("", cc.name," (");
+        StrPrint("", cc.type, ")");
         printf("\n");
+        for (u32 i = 0; i < cc.args.len; ++i) {
+            Parameter p = cc.args.arr[i];
+
+            printf("    ");
+            StrPrint(p.name);
+            if (p.default_val.len) {
+                printf(" = ");
+                StrPrint(p.default_val);
+            }
+
+            if (p.type.len) {
+                printf(" (");
+                StrPrint(p.type);
+                printf(")");
+            }
+            printf("\n");
+        }
+        printf("AT (");
+        StrPrint("", cc.at_x ,", ");
+        StrPrint("", cc.at_y ,", ");
+        StrPrint("", cc.at_z ,")");
+
+        if (cc.at_absolute == false) {
+            StrPrint(" RELATIVE ", cc.at_relative_to, "");
+        }
+        else {
+            printf(" ABSOLUTE ");
+        }
+
+        if (cc.rot_defined) {
+            printf(" ROTATED (");
+            StrPrint("", cc.rot_x ,", ");
+            StrPrint("", cc.rot_y ,", ");
+            StrPrint("", cc.rot_z ,")");
+
+            if (cc.rot_absolute == false) {
+                StrPrint(" RELATIVE ", cc.at_relative_to, "");
+            }
+            else {
+                printf(" ABSOLUTE");
+            }
+        }
+
+        printf("\n\n");
     }
 }
 #endif

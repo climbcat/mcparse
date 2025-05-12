@@ -92,8 +92,9 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
         }
     }
 
-    token.len = tok.text - token.text + tok.len;
+    token.len = tok.text - token.text;
     token.is_rval = true;
+    *tok_out = token;
     *t = was;
 
     return PTR_TERMINAL;
