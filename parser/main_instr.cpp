@@ -27,6 +27,8 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool print_details) {
         printf("parsing  #%.3d: %s \n", comp_count_parsed, filename);
 
         Instrument *instr = ParseInstrument(a_parse, text);
+        InstrumentPrint(instr);
+
         comp_count_parsed++;
     }
 

@@ -71,6 +71,8 @@ enum TokenType {
     TOK_MCSTAS_MCDISPLAY,
     TOK_MCSTAS_AT,
     TOK_MCSTAS_RELATIVE,
+    TOK_MCSTAS_ABSOLUTE,
+    TOK_MCSTAS_PREVIOUS,
     TOK_MCSTAS_ROTATED,
     TOK_MCSTAS_SPLIT,
     TOK_MCSTAS_USER,
@@ -138,6 +140,8 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_MCDISPLAY: return "TOK_MCSTAS_MCDISPLAY";
         case TOK_MCSTAS_AT: return "TOK_MCSTAS_AT";
         case TOK_MCSTAS_RELATIVE: return "TOK_MCSTAS_RELATIVE";
+        case TOK_MCSTAS_ABSOLUTE: return "TOK_MCSTAS_ABSOLUTE";
+        case TOK_MCSTAS_PREVIOUS: return "TOK_MCSTAS_PREVIOUS";
         case TOK_MCSTAS_ROTATED: return "TOK_MCSTAS_ROTATED";
         case TOK_MCSTAS_SPLIT: return "TOK_MCSTAS_SPLIT";
         case TOK_MCSTAS_USER: return "TOK_MCSTAS_USER";
@@ -208,6 +212,8 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_MCDISPLAY: return "MCDISPLAY";
         case TOK_MCSTAS_AT: return "AT";
         case TOK_MCSTAS_RELATIVE: return "RELATIVE";
+        case TOK_MCSTAS_ABSOLUTE: return "ABSOLUTE";
+        case TOK_MCSTAS_PREVIOUS: return "PREVIOUS";
         case TOK_MCSTAS_ROTATED: return "ROTATED";
         case TOK_MCSTAS_SPLIT: return "SPLIT";
         case TOK_MCSTAS_USER: return "USER";
@@ -225,6 +231,9 @@ void TokenTypePrint(TokenType tpe, bool newline = true) {
         printf("\n");
     }
 }
+
+bool IsWhitespace(char c);
+
 
 struct Tokenizer {
     char *at;
@@ -245,10 +254,12 @@ struct Tokenizer {
         line_indent = 0;
 
         // measure line indentation for printing error column
-        char *at_indent = at + 1;
-        while (at_indent[0] == ' ') {
+        char *at_indent = at_linestart;
+        while (IsWhitespace(at_indent[0])) {
             ++at_indent;
-            ++line_indent;
+            if (at_indent[0] == ' ') {
+                ++line_indent;
+            }
         }
     }
 };
@@ -830,6 +841,8 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "MCDISPLAY")) { token.type = TOK_MCSTAS_MCDISPLAY; }
             else if (TokenEquals(&token, "AT")) { token.type = TOK_MCSTAS_AT; }
             else if (TokenEquals(&token, "RELATIVE")) { token.type = TOK_MCSTAS_RELATIVE; }
+            else if (TokenEquals(&token, "ABSOLUTE")) { token.type = TOK_MCSTAS_ABSOLUTE; }
+            else if (TokenEquals(&token, "PREVIOUS")) { token.type = TOK_MCSTAS_PREVIOUS; }
             else if (TokenEquals(&token, "ROTATED")) { token.type = TOK_MCSTAS_ROTATED; }
             else if (TokenEquals(&token, "SPLIT")) { token.type = TOK_MCSTAS_SPLIT; }
             else if (TokenEquals(&token, "USER")) { token.type = TOK_MCSTAS_USER; }

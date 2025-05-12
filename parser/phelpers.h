@@ -37,6 +37,68 @@ ParseTokenResult RequiredRVal(Tokenizer *t, Token *tok_out) {
     }
 }
 
+ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
+
+    Tokenizer was;
+    Token tok;
+    Token token;
+
+    s32 brack_level = 0;
+    bool first = true;
+    bool search = true;
+    while (search) {
+        was = *t;
+
+        tok = GetToken(t);
+        if (first) {
+            first = false;
+            if (tok.type == TOK_COMMA || tok.type == TOK_RBRACK) {
+                // alarm
+                *tok_out = tok;
+                // TODO: line error
+                assert(1 == 0 && "DBG break");
+
+                return PTR_ERROR;
+            }
+            token = {};
+            token.type = TOK_UNKNOWN; // TODO: should be TOK_MCSTAS_EXPRESSION or what
+            token.text = tok.text;
+        }
+
+        switch (tok.type)
+        {
+        case TOK_COMMA: {
+                search = false;
+        } break;
+
+        case TOK_LBRACK: {
+            ++brack_level;
+        } break;
+
+        case TOK_RBRACK: {
+            if (brack_level == 0) {
+                search = false;
+            }
+            else {
+                --brack_level;
+            }
+        } break;
+        
+        case TOK_ENDOFSTREAM: {
+            assert(1 == 0 && "DBG break");
+        } break;
+
+        default: break;
+        }
+    }
+
+    token.len = tok.text - token.text + tok.len;
+    token.is_rval = true;
+    *t = was;
+
+    return PTR_TERMINAL;
+}
+
 ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
     Tokenizer prev = *t;
 
@@ -143,7 +205,7 @@ void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
 }
 
 
-Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t) {
+Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value_expression = false) {
     Array<Parameter> params = InitArray<Parameter>(a_dest, 1024);
     Token token;
 
@@ -195,7 +257,12 @@ Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t) {
                     }
                 }
                 else {
-                    RequiredRVal(t, &token);
+                    if (allow_value_expression) {
+                        RequiredRValOrExpression(t, &token);
+                    }
+                    else {
+                        RequiredRVal(t, &token);
+                    }
                     p.default_val = token.GetValue();
                 }
 
