@@ -6,7 +6,6 @@
 
 #include "jg_baselayer.h"
 #include "parsecore.h"
-#include "phelpers.h"
 #include "pinstr.h"
 #include "pcomp.h"
 
@@ -24,39 +23,6 @@ bool RegisterComponentType(Component *comp, HashMap *map) {
     return unreg;
 }
 
-
-struct MapIter {
-    s32 slot_idx;
-    s32 coll_idx;
-
-    s32 occ_slots_cnt = 0;
-    s32 occ_colliders_cnt = 0;
-};
-
-u64 MapNextVal(HashMap *map, MapIter *iter) {
-    while (iter->slot_idx < map->slots.len) {
-        HashMapKeyVal kv = map->slots.lst[iter->slot_idx++];
-
-        if (kv.val) {
-            iter->occ_slots_cnt++;
-
-            return kv.val;
-        }
-
-    }
-    while (iter->coll_idx < map->colls.len) {
-        HashMapKeyVal kv = map->colls.lst[iter->coll_idx++];
-        if (kv.val) {
-            iter->occ_colliders_cnt++;
-
-            return kv.val;
-        }
-    }
-
-    return 0;
-}
-
-
 HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {
     MArena a_files = ArenaCreate();
 
@@ -66,11 +32,6 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {
     
     while (fpaths) {
         char *filename = StrLstNext(&fpaths);
-        if (!IsCompFile(filename)) {
-            printf("skipping #%.3d: %s\n", comp_count_parsed, filename);
-            continue;
-        }
-
         char *text = (char*) LoadFileFSeek(&a_files, filename);
         if (text == NULL) {
             continue;
@@ -105,21 +66,12 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {
 }
 
 
-void ParseInstr(MArena *a, Str instr) {
-    StrPrint("\n%s\n", instr);
-}
-
 int main (int argc, char **argv) {
     TimeProgram;
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("[instr]:         instrument file\n");
+        printf("[component]:     folder or component file\n");
         printf("--help:          display help (this text)\n");
-        printf("--test:          run test function\n");
-        exit(0);
-    }
-    if (CLAContainsArg("--test", argc, argv)) {
-        printf("No registered tests ...\n");
         exit(0);
     }
     else if (argc != 2) {

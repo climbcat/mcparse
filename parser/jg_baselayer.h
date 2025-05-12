@@ -1891,6 +1891,36 @@ void MapClear(HashMap *map) {
     map->slots.len = nslots;
 }
 
+struct MapIter {
+    s32 slot_idx;
+    s32 coll_idx;
+
+    s32 occ_slots_cnt = 0;
+    s32 occ_colliders_cnt = 0;
+};
+
+u64 MapNextVal(HashMap *map, MapIter *iter) {
+    while (iter->slot_idx < map->slots.len) {
+        HashMapKeyVal kv = map->slots.lst[iter->slot_idx++];
+
+        if (kv.val) {
+            iter->occ_slots_cnt++;
+
+            return kv.val;
+        }
+
+    }
+    while (iter->coll_idx < map->colls.len) {
+        HashMapKeyVal kv = map->colls.lst[iter->coll_idx++];
+        if (kv.val) {
+            iter->occ_colliders_cnt++;
+
+            return kv.val;
+        }
+    }
+
+    return 0;
+}
 
 bool MapPut(HashMap *map, u64 key, u64 val) {
     assert(key != 0 && "null ptr can not be used as a key");
@@ -2689,7 +2719,7 @@ const char *getBuild() { // courtesy of S.O.
         }
 
         StrLst *GetFiles(char *rootpath, const char *extension_filter = NULL, bool do_recurse = true) {
-            StrLst *fpaths = GetFilePaths_Rec(rootpath, NULL, NULL, "comp", do_recurse)->first;
+            StrLst *fpaths = GetFilePaths_Rec(rootpath, NULL, NULL, extension_filter, do_recurse)->first;
             return fpaths;
         }
 

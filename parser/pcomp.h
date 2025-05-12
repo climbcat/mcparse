@@ -127,9 +127,6 @@ ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
 }
 
 
-// NOTE: How should we cover this situations: <first options> <more options after> <terminal>, e.g. sequential optional args.
-
-
 ParseTokenResult BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 options_cnt, const char *options_error, TokenType terminal) {
     Tokenizer was = *t;
 
@@ -209,33 +206,6 @@ ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
         *t = was;
 
         return PTR_UNDEF;
-    }
-}
-
-// TODO: useful or not?
-ParseTokenResult OptionalRequired(Tokenizer *t, Token *tok_out, TokenType opt, TokenType req) {
-    Tokenizer was = *t;
-
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    if (tok.type == opt) {
-        // optional check
-
-        return PTR_OPTIONAL;
-    }
-    else if (tok.type == req) {
-        // terminal comes after
-
-        return PTR_TERMINAL;
-    }
-    else {
-        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt), TokenTypeToSymbol(req), TokenTypeToString(tok.type));
-        PrintLineError(t, &tok, "");
-
-        assert(1 == 0 && "DBG break");
-
-        return PTR_ERROR;
     }
 }
 

@@ -6,86 +6,51 @@
 
 #include "jg_baselayer.h"
 #include "parsecore.h"
-#include "phelpers.h"
+#include "pcomp.h"
 #include "pinstr.h"
 
 
-int ParseInstrMain(int argc, char **argv) {
+HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool print_details) {
+    MArena a_files = ArenaCreate();
 
-    char *input = argv[1];
-
-    if (argc != 2) {
-        printf("Input folder or file.\n");
-        exit(0);
-    }
-
-    MArena stack_files = ArenaCreate();
-    MArena stack_work = ArenaCreate();
-    StringInit();
-
-    StrLst *fpaths = NULL;
-    bool print_detailed = false;
-
-    if (IsInstrFile(input)) {
-        fpaths = StrLstPush(fpaths, input);
-        print_detailed = true;
-    }
-    else {
-        fpaths = GetFilesInFolderPaths(&stack_files, input);
-    }
-
-    s32 i = 0;
+    HashMap map_comps = InitMap(a_parse, 1000);
+    s32 comp_count_registered = 0;
+    s32 comp_count_parsed = 0;
+    
     while (fpaths) {
-        ArenaClear(&stack_work);
         char *filename = StrLstNext(&fpaths);
-
-        if (!IsInstrFile(filename)) {
-            printf("skipping #%.3d: %s\n", i, filename);
-            continue;
-        }
-
-        char *text = (char*) LoadFileFSeek(&stack_files, filename);
+        char *text = (char*) LoadFileFSeek(&a_files, filename);
         if (text == NULL) {
             continue;
         }
-        Tokenizer tokenizer = {};
-        tokenizer.Init(text);
 
-        printf("parsing  #%.3d: %s  ", i, filename);
-        InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
-        printf(" -> %s: OK\n", instr.name);
+        printf("parsing (dry)  #%.3d: %s \n", comp_count_parsed, filename);
 
-        if (print_detailed) {
-            PrintInstrumentParse(instr);
-            exit(0);
-        }
-
-        ++i;
+        //Instrument *instr = ParseInstrument(a_parse, text);
+        //comp_count_parsed++;
     }
-    return 0;
+
+    return map_comps;
 }
 
-
-void ParseInstr(MArena *a, Str instr) {
-    StrPrint("\n%s\n", instr);
-}
 
 int main (int argc, char **argv) {
-    CLAInit(argc, argv);
-    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("[instr]:         instrument file\n");
-        printf("--help:          display help (this text)\n");
-        printf("--test:          run test function\n");
-        exit(0);
-    }
-    if (CLAContainsArg("--test", argc, argv)) {
-        printf("No registered tests ...\n");
-        exit(0);
-    }
-    if (argc != 2) {
-        printf("Supply instrument file (.instr) to parse.\n");
-        exit(0);
-    }
+    TimeProgram;
 
-    return ParseInstrMain(argc, argv);
+    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
+        printf("[instr]:         folder or instrument file\n");
+        printf("--help:          display help (this text)\n");
+        exit(0);
+    }
+    else if (argc != 2) {
+        printf("Provide an instrument file (.instr) or folder containing instrument files\n");
+        exit(0);
+    }
+    else {
+        StringInit();
+        StrLst *fpaths = GetFiles(argv[1], "instr", true);
+
+        MArena a_work = ArenaCreate();
+        ParseInstruments(&a_work, fpaths, true);
+    }
 }
