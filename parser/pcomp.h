@@ -245,10 +245,17 @@ void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
     arr_at_tail->max = arr_at_tail->len;
 }
 
-void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
-    *params = InitArray<Parameter>(a_dest, 1024);
-
+Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, TokenType params_type, bool is_optional) {
     Token token;
+    if (is_optional && Optional(t, &token, params_type) != PTR_OPTIONAL) {
+        return Array<Parameter> { NULL, 0, 0 };
+    }
+    Array<Parameter> params = InitArray<Parameter>(a_dest, 1024);
+
+    if (is_optional == false) {
+        Required(t, &token, params_type);
+    }
+    Required(t, &token, TOK_MCSTAS_PARAMETERS);
     Required(t, &token, TOK_LBRACK);
 
     Tokenizer was = *t;
@@ -305,13 +312,14 @@ void ParseParams(MArena *a_dest, Tokenizer *t, Array<Parameter> *params) {
                 // branch
                 OptionOfTwo(t, &token, TOK_COMMA, TOK_RBRACK);
             }
-            params->Add(p);
+            params.Add(p);
 
             iterate = token.type == TOK_COMMA;
         }
     }
 
-    PackArrayAllocation(a_dest, params);
+    PackArrayAllocation(a_dest, &params);
+    return params;
 }
 
 bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy, Str *extend) {
@@ -364,7 +372,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     Token token;
     Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));
 
-    // type
+    // component type
     Required(t, &token, TOK_MCSTAS_DEFINE);
     Required(t, &token, TOK_MCSTAS_COMPONENT);
     Required(t, &token, TOK_IDENTIFIER);
@@ -374,28 +382,11 @@ Component *ParseComponent(MArena *a_dest, char *text) {
         comp->type_copy = token.GetValue();
     }
 
-    // setting parameters
-    Required(t, &token, TOK_MCSTAS_SETTING);
-    Required(t, &token, TOK_MCSTAS_PARAMETERS);
-    ParseParams(a_dest, t, &comp->setting_params);
-
-    // output parameters
-    if (Optional(t, &token, TOK_MCSTAS_OUTPUT) == PTR_OPTIONAL) {
-        Required(t, &token, TOK_MCSTAS_PARAMETERS);
-        ParseParams(a_dest, t, &comp->out_params);
-    }
-
-    // state parameters
-    if (Optional(t, &token, TOK_MCSTAS_STATE) == PTR_OPTIONAL) {
-        Required(t, &token, TOK_MCSTAS_PARAMETERS);
-        ParseParams(a_dest, t, &comp->state_params);
-    }
-
-    // polarisation parameters
-    if (Optional(t, &token, TOK_MCSTAS_POLARISATION) == PTR_OPTIONAL) {
-        Required(t, &token, TOK_MCSTAS_PARAMETERS);
-        ParseParams(a_dest, t, &comp->pol_params);
-    }
+    // parameters
+    comp->setting_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_SETTING, false);
+    comp->out_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_OUTPUT, true);
+    comp->state_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_STATE, true);
+    comp->pol_params = ParseParamsBlock(a_dest, t, TOK_MCSTAS_POLARISATION, true);
 
     // flags
     while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
@@ -411,7 +402,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
         }
     }
 
-
+    // code blocks
     TokenType options[] = {
         TOK_MCSTAS_SHARE,
         TOK_MCSTAS_USERVARS,
