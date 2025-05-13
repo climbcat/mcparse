@@ -61,34 +61,34 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
                 return PTR_ERROR;
             }
             token = {};
-            token.type = TOK_UNKNOWN; // TODO: should be TOK_MCSTAS_EXPRESSION or what
+            token.type = TOK_MCSTAS_C_EXPRESSION; // TODO: should be TOK_MCSTAS_EXPRESSION or what
             token.text = tok.text;
         }
 
         switch (tok.type)
         {
-        case TOK_COMMA: {
+            case TOK_COMMA: {
                 search = false;
-        } break;
+            } break;
 
-        case TOK_LBRACK: {
-            ++brack_level;
-        } break;
+            case TOK_LBRACK: {
+                ++brack_level;
+            } break;
 
-        case TOK_RBRACK: {
-            if (brack_level == 0) {
-                search = false;
-            }
-            else {
-                --brack_level;
-            }
-        } break;
-        
-        case TOK_ENDOFSTREAM: {
-            assert(1 == 0 && "DBG break");
-        } break;
+            case TOK_RBRACK: {
+                if (brack_level == 0) {
+                    search = false;
+                }
+                else {
+                    --brack_level;
+                }
+            } break;
 
-        default: break;
+            case TOK_ENDOFSTREAM: {
+                assert(1 == 0 && "DBG break");
+            } break;
+
+            default: break;
         }
     }
 
