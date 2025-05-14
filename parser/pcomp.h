@@ -81,16 +81,6 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     comp->state_params = ParseComponentParams(a_dest, t, TOK_MCSTAS_STATE, true);
     comp->pol_params = ParseComponentParams(a_dest, t, TOK_MCSTAS_POLARISATION, true);
 
-    // TODO: make agnostic to params blocks ordering (see code block parsing below)
-    /*
-    TokenType options_params[] = {
-        TOK_MCSTAS_SETTING,
-        TOK_MCSTAS_OUTPUT,
-        TOK_MCSTAS_STATE,
-        TOK_MCSTAS_POLARISATION,
-    };
-    */
-
     // flags
     while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
         if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 

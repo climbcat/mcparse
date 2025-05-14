@@ -51,7 +51,7 @@ COMPONENT dett=TOF_monitor(
   ymin = -.06, ymax = .06,
   nt=500, dt=10,
   filename="tout.det")
-At (0,0,1) RELATIVE mod
+AT (0,0,1) RELATIVE mod
 
 COMPONENT det=Monitor_nD(
   xwidth = 1, yheight = 1,

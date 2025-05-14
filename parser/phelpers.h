@@ -70,7 +70,7 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
         switch (tok.type)
         {
             case TOK_COMMA: {
-                search = false;
+                search = brack_level > 0;
             } break;
 
             case TOK_LBRACK: {
@@ -253,23 +253,19 @@ Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value
             OptionOfThree(t, &token, TOK_ASSIGN, TOK_COMMA, TOK_RBRACK);
 
             if (token.type == TOK_ASSIGN) {
-                // parse default value
-                if (p.type.len == 6 && StrEqual(p.type, "vector")) {
-
-                    if (Optional(t, &token, TOK_NULL) == PTR_OPTIONAL) {
-                        p.default_val.str = token.text;
-                        p.default_val.len = token.len;
+                if (Optional(t, &token, TOK_LBRACE)) {
+                    p.default_val.str = token.text;
+                    do {
+                        token = GetToken(t);
                     }
-                    else {
-                        // capture from '{' to '}'. Do it the lazy-pants way by ignoring everything in-between
-                        Required(t, &token, TOK_LBRACE);
-                        p.default_val.str = token.text;
-                        do {
-                            token = GetToken(t);
-                        }
-                        while (token.type != TOK_RBRACE);
-                        p.default_val.len = token.text - p.default_val.str + 1;
-                    }
+                    while (token.type != TOK_RBRACE);
+                    p.default_val.len = token.text - p.default_val.str + 1;
+                    p.type = StrL("vector");
+                }
+                else if (Optional(t, &token, TOK_NULL)) {
+                    p.default_val.str = token.text;
+                    p.default_val.len = token.len;
+                    p.type = StrL("vector");
                 }
                 else {
                     if (allow_value_expression) {

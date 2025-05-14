@@ -33,6 +33,7 @@ struct ComponentCall {
 
 struct Instrument {
     Str name;
+    Str dependency_str;
     Array<Parameter> params;
     Array<ComponentCall> comps;
 
@@ -54,9 +55,9 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     Tokenizer *t = &tokenizer;
     Token token;
     Instrument *instr = (Instrument*) ArenaAlloc(a_dest, sizeof(Instrument));
-    instr->comps = InitArray<ComponentCall>(a_dest, 100);
+    instr->comps = InitArray<ComponentCall>(a_dest, 1000);
 
-    // component type
+    // instrument name
     Required(t, &token, TOK_MCSTAS_DEFINE);
     Required(t, &token, TOK_MCSTAS_INSTRUMENT);
     Required(t, &token, TOK_IDENTIFIER);
@@ -65,6 +66,25 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     // parameters
     instr->params = ParseParamsBlock(a_dest, t);
 
+    // flags
+    while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
+        if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
+            Required(t, &token, TOK_STRING);
+            instr->dependency_str = token.GetValue();
+        }
+    }
+
+
+    // TODO: code block be ordering-agnostic
+    /*
+    TokenType options_params[] = {
+        TOK_MCSTAS_SETTING,
+        TOK_MCSTAS_OUTPUT,
+        TOK_MCSTAS_STATE,
+        TOK_MCSTAS_POLARISATION,
+    };
+    */
+
     // code blocks
     Str _;
     ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
@@ -72,7 +92,6 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &instr->initalize_block, &_, &_);
 
     // component calls
-
     Required(t, &token, TOK_MCSTAS_TRACE);
     while (true) {
 
@@ -80,11 +99,6 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             ComponentCall c = {};
 
             // instance name
-            Required(t, &token, TOK_IDENTIFIER);
-            c.name = token.GetValue();
-            Required(t, &token, TOK_ASSIGN);
-
-            // type or COPY
             OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_COPY);
             if (token.type == TOK_MCSTAS_COPY) {
                 Required(t, &token, TOK_LBRACK);
@@ -93,11 +107,30 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 Required(t, &token, TOK_RBRACK);
             }
             else {
+                c.name = token.GetValue();
+            }
+            Required(t, &token, TOK_ASSIGN);
+
+            // type or COPY
+            OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_COPY);
+            if (token.type == TOK_MCSTAS_COPY) {
+                Required(t, &token, TOK_LBRACK);
+                OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
+                c.copy_name = token.GetValue();
+                Required(t, &token, TOK_RBRACK);
+            }
+            else {
                 c.type = token.GetValue();
             }
 
             // args
-            c.args = ParseParamsBlock(a_dest, t, true);
+            Tokenizer was = *t;
+            bool has_explicit_params = Optional(t, &token, TOK_LBRACK) == PTR_OPTIONAL;
+            *t = was;
+
+            if (has_explicit_params) {
+                c.args = ParseParamsBlock(a_dest, t, true);
+            }
 
             // when
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
@@ -150,7 +183,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 // relative / absolute
                 OptionOfTwo(t, &token, TOK_MCSTAS_RELATIVE, TOK_MCSTAS_ABSOLUTE);
                 if (token.type == TOK_MCSTAS_RELATIVE) {
-                    OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
+                    OptionOfThree(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS, TOK_MCSTAS_ABSOLUTE);
                     c.rot_relative_to = token.GetValue();
                 }
                 else {
