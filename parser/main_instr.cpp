@@ -36,17 +36,41 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool print_details) {
 }
 
 
+void TestLookForToken(int argc, char **argv) {
+    printf("TestLookForToken\n");
+
+    StringInit();
+    StrLst *fpaths = GetFiles(argv[2], "instr", true);
+    MArena a_files = ArenaCreate();
+
+    while (fpaths) {
+        char *filename = StrLstNext(&fpaths);
+        char *text = (char*) LoadFileFSeek(&a_files, filename);
+        if (text == NULL) {
+            continue;
+        }
+
+        TestPrintTokensOfType(text, TOK_MCSTAS_C_EXPRESSION);
+    }
+}
+
+
 int main (int argc, char **argv) {
     TimeProgram;
+
+    if (CLAContainsArg("--dbg", argc, argv)) {
+        dbg_print = true;
+    }
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("[instr]:         folder or instrument file\n");
         printf("--help:          display help (this text)\n");
+        printf("--dbg:           display help (this text)\n");
+        printf("--test:          run test functions\n");
         exit(0);
     }
-    else if (argc != 2) {
-        printf("Provide an instrument file (.instr) or folder containing instrument files\n");
-        exit(0);
+    else if (CLAContainsArg("--test", argc, argv)) {
+        TestLookForToken(argc, argv);
     }
     else {
         StringInit();

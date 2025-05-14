@@ -68,8 +68,8 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     // code blocks
     Str _;
     ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
-    ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &instr->declare_block, &_, &_);
-    ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &instr->declare_block, &_, &_);
+    ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &instr->uservars_block, &_, &_);
+    ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &instr->initalize_block, &_, &_);
 
     // component calls
 
@@ -178,8 +178,41 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
 
 void InstrumentPrint(Instrument *instr) {
 
+    printf("\n");
     printf("name: "); StrPrint(instr->name); printf("\n");
+    printf("params: ");
+    printf("\n\n");
+    Array<Parameter> ips = instr->params;
+    for (u32 i = 0; i < ips.len; ++i) {
+        Parameter p = ips.arr[i];
+
+        StrPrint(p.name);
+        if (p.default_val.len) {
+            printf(" = ");
+            StrPrint(p.default_val);
+        }
+
+        if (p.type.len) {
+            printf(" (");
+            StrPrint(p.type);
+            printf(")");
+        }
+        printf("\n");
+    }
+
+
+    printf("\n");
+    if (instr->declare_block.len) {
+        printf("\nDECLARE:\n");
+        StrPrint(instr->declare_block);
+        printf("\n");
+    }
+
+
+    printf("\n");
     printf("    comps: %u\n", instr->comps.len);
+
+    return;
 
     // print THE FIRST component's parameters
     for (s32 j = 0; j < instr->comps.len; ++j) {

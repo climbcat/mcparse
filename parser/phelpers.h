@@ -2,6 +2,8 @@
 #define __PHELPERS_H__
 
 
+static bool dbg_print;
+
 struct Parameter {
     Str type;
     Str name;
@@ -84,6 +86,14 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
                 }
             } break;
 
+            case TOK_FLOAT: {
+                token.type = TOK_FLOAT;
+            } break;
+
+            case TOK_INT: {
+                token.type = TOK_INT;
+            } break;
+
             case TOK_ENDOFSTREAM: {
                 assert(1 == 0 && "DBG break");
             } break;
@@ -97,6 +107,10 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
     *tok_out = token;
     *t = was;
 
+    if (dbg_print && token.type == TOK_MCSTAS_C_EXPRESSION) {
+        StrPrint("", token.GetValue(), "\n");
+    }
+    
     return PTR_TERMINAL;
 }
 
@@ -315,10 +329,28 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
 
                 return false;
             }
-        }        
+        }
     }
 
     return true;
+}
+
+void TestPrintTokensOfType(char *text, TokenType tpe) {
+    Tokenizer tokenizer = {};
+    tokenizer.Init(text);
+    Tokenizer *t = &tokenizer;
+
+    printf("Looking for tokens of type %s:\n\n", TokenTypeToString(tpe));
+
+    Token token = {};
+    while (token.type != TOK_ENDOFSTREAM) {
+        token = GetToken(t);
+
+        if (tpe == token.type) {
+            StrPrint("", token.GetValue(), "\n");
+        }
+    }
+    printf("\n");
 }
 
 
