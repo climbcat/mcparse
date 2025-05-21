@@ -1,6 +1,6 @@
 # parser
 
-Manually parses .instr and .comp files into an AST.
+Custom parser for mcstas/mxtrace .instr and .comp files.
 
 # mctrac
 
