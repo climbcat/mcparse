@@ -83,5 +83,7 @@ int main (int argc, char **argv) {
             ComponentPrint(comp, true, true, true, false);
             printed_cnt++;
         }
+
+        // call the component cogen function
     }
 }
