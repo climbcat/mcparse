@@ -50,17 +50,8 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {
         printf("WARN: increase map slot count (ncomps: %d, nslots: %u)\n", comp_count_registered, map_comps.slots.len);
     }
 
-    // print registered components
-    s32 printed_cnt = 0;
-    MapIter iter = {};
-    while (Component *comp = (Component*) MapNextVal(&map_comps, &iter)) {
-        ComponentPrint(comp);
-        printed_cnt++;
-    }
-
     printf("\n");
     printf("Parsed %d, registered %d components; total data size %lu bytes\n", comp_count_parsed, comp_count_registered, a_parse->used + a_files.used);
-    printf("Printed %d components (%d slots and %d collisions)\n", printed_cnt, iter.occ_slots_cnt, iter.occ_colliders_cnt);
 
     return map_comps;
 }
@@ -83,6 +74,14 @@ int main (int argc, char **argv) {
         StrLst *fpaths = GetFiles(argv[1], "comp", true);
 
         MArena a_work = ArenaCreate();
-        ParseComponents(&a_work, fpaths, true);
+        HashMap map_comps = ParseComponents(&a_work, fpaths, true);
+
+        // print registered components
+        s32 printed_cnt = 0;
+        MapIter iter = {};
+        while (Component *comp = (Component*) MapNextVal(&map_comps, &iter)) {
+            ComponentPrint(comp, true, true, true, false);
+            printed_cnt++;
+        }
     }
 }

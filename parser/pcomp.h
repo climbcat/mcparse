@@ -143,26 +143,31 @@ Component *ParseComponent(MArena *a_dest, char *text) {
 }
 
 
-void ComponentPrint(Component *comp, bool print_blocks = false) {
+void ComponentPrint(Component *comp, bool print_name = true, bool print_params = false, bool print_display_block = false, bool print_blocks = false) {
 
-    printf("type: "); StrPrint(comp->type); printf("\n");
+    printf("\n");
+    if (print_name) {
+        printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
+    }
 
-    for (u32 i = 0; i < comp->setting_params.len; ++i) {
-        Parameter p = comp->setting_params.arr[i];
+    if (print_params) {
+        for (u32 i = 0; i < comp->setting_params.len; ++i) {
+            Parameter p = comp->setting_params.arr[i];
 
-        printf("    ");
-        StrPrint(p.name);
-        if (p.default_val.len) {
-            printf(" = ");
-            StrPrint(p.default_val);
+            printf("    ");
+            StrPrint(p.name);
+            if (p.default_val.len) {
+                printf(" = ");
+                StrPrint(p.default_val);
+            }
+
+            if (p.type.len) {
+                printf(" (");
+                StrPrint(p.type);
+                printf(")");
+            }
+            printf("\n");
         }
-
-        if (p.type.len) {
-            printf(" (");
-            StrPrint(p.type);
-            printf(")");
-        }
-        printf("\n");
     }
 
     if (print_blocks) {
@@ -190,13 +195,53 @@ void ComponentPrint(Component *comp, bool print_blocks = false) {
             printf("\n");
         }
 
+    }
+
+    if (print_display_block) {
         if (comp->display_block.len) {
             printf("\nMCDISPLAY:\n");
             StrPrint(comp->display_block);
-            printf("\n");
         }
     }
+}
 
+
+void ComponentCogen(Component *comp) {
+    /*
+    What's the cogen gonna be: Using the example component "AComp.comp"
+    - base functions: AComp.h 
+    - shared library: AComp_share.h - all of the share block, which can be a lot of code
+    - meta/reflection: AComp_meta.h - component type name, parameter type info/names, doc strings
+            which is all of the stuff that can be provided through cogen - now that we are at it.
+            With this info, we can build UI, get function pointers for the type-agnostic simulation core.
+
+    Let's focus on AComp.h for now. We would provide the following:
+    - header guard
+    - include any AComp_share.h file
+    - component struct: declare block (parsed for symbol mapping)
+    - component struct: Transform t; Transform *parent; comp_type_name, comp_name (instance name)
+    - symbols: define each declare block sumbols as #define sym comp->sym - for the entire file ! 
+
+    - AComp AComp_Init() {} returning a component struct; runs init code and returns
+    - void Trace(Acomp *comp) {}
+    - Finally
+    - Display
+
+    - un-define symbols
+    - end header guard
+
+    The AComp_share.h file should contain the following:
+    - header guard
+    - share code block copy-pasted verbatim into the file 
+    - end header guard
+
+    The AComp_meta.h file should contain some of the following things (less specific/brain-stormy)
+    - header guard
+    - include the AComp.h file
+    - void GetCompSignatures(HashMap dest_map) - returns function pointers to trace, finally and display
+    - Wrapper functions that take and return void* arguments? 
+    - ...
+    */
 }
 
 
