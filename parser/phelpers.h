@@ -45,10 +45,11 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
     Token tok;
     Token token;
 
+    s32 line_in = t->line;
     s32 brack_level = 0;
     bool first = true;
     bool search = true;
-    while (search) {
+    while (search && t->line == line_in) {
         was = *t;
 
         tok = GetToken(t);
@@ -87,11 +88,23 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             } break;
 
             case TOK_FLOAT: {
-                token.type = TOK_FLOAT;
+                //
             } break;
 
             case TOK_INT: {
-                token.type = TOK_INT;
+                //
+            } break;
+
+            case TOK_ASSIGN: {
+                //
+            } break;
+
+            case TOK_IDENTIFIER: {
+                //
+            } break;
+
+            case TOK_EXCLAMATION: {
+                //
             } break;
 
             case TOK_ENDOFSTREAM: {
@@ -170,6 +183,23 @@ bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1,
     }
     else {
         printf("\n\nERROR: Expected '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(tok.type));
+        PrintLineError(t, &tok, "");
+
+        assert(1 == 0 && "DBG break");
+
+        return false;
+    }
+}
+
+bool OptionOfFour(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2, TokenType opt3) {
+    Token tok = GetToken(t);
+    *tok_out = tok;
+
+    if (tok.type == opt0 || tok.type == opt1 || tok.type == opt2 || tok.type == opt3) {
+        return true;
+    }
+    else {
+        printf("\n\nERROR: Expected '%s', '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(opt3), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
         assert(1 == 0 && "DBG break");

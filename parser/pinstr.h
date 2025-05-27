@@ -12,6 +12,9 @@ struct ComponentCall {
     Str type;
     Str extend;
     Str when;
+    Str jump;
+
+    Str split;
 
     Str at_x;
     Str at_y;
@@ -85,6 +88,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     };
     */
 
+
     // code blocks
     Str _;
     ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
@@ -95,9 +99,12 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     Required(t, &token, TOK_MCSTAS_TRACE);
     while (true) {
 
+        Tokenizer rewind = *t;
         //
-        if (OptionOfThree(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_END)) {
-            if (token.type == TOK_MCSTAS_END) {
+        if (OptionOfFour(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END)) {
+            if (token.type == TOK_MCSTAS_END || token.type == TOK_MCSTAS_FINALLY) {
+                *t = rewind;
+
                 break;
             }
 
@@ -105,21 +112,12 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
 
             // handle SPLIT prefix
             if (token.type == TOK_MCSTAS_SPLIT) {
-
                 if (OptionOfTwoRewind(t, &token, TOK_INT, TOK_IDENTIFIER) == PTR_OPTIONAL) {
-                    if (token.type == TOK_INT) {
-                        // a number
-                        // TODO: record the amount of split
-                    }
-                    else {
-                        // an identifier s.a. instr parameter or declared field
-                        // TODO: record the amount of split
-                    }
+                    c.split = token.GetValue();
                 }
                 else {
-                    // TODO: record split = 1
+                    c.split = StrL("1");
                 }
-
                 Required(t, &token, TOK_MCSTAS_COMPONENT);
             }
 
@@ -157,13 +155,17 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 c.args = ParseParamsBlock(a_dest, t, true);
             }
 
+
             // when
+            if (Optional(t, &token, TOK_MCSTAS_JUMP)) {
+                Required(t, &token, TOK_IDENTIFIER);
+                c.jump = token.GetValue();
+            }
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
-                Required(t, &token, TOK_LBRACK);
                 RequiredRValOrExpression(t, &token);
                 c.when = token.GetValue();
-                Required(t, &token, TOK_RBRACK);
             }
+
 
             Required(t, &token, TOK_MCSTAS_AT);
             // parse AT vector:
@@ -214,11 +216,20 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 else {
                     c.rot_absolute = true;
                 }
-
             }
-            else {
 
+
+            // when once more
+            // TODO: make agnostic to ordering of WHEN / AT 
+            if (Optional(t, &token, TOK_MCSTAS_JUMP)) {
+                Required(t, &token, TOK_IDENTIFIER);
+                c.jump = token.GetValue();
             }
+            if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
+                RequiredRValOrExpression(t, &token);
+                c.when = token.GetValue();
+            }
+
 
             ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
             instr->comps.Add(c);
@@ -227,6 +238,9 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             break;
         }
     }
+
+    ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &instr->finally_block, &_, &_);
+    OptionOfTwo(t, &token, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END);
 
     return instr;
 }

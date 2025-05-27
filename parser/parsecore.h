@@ -77,6 +77,7 @@ enum TokenType {
     TOK_MCSTAS_SPLIT,
     TOK_MCSTAS_USER,
     TOK_MCSTAS_WHEN,
+    TOK_MCSTAS_JUMP,
     TOK_MCSTAS_END,
 
     TOK_MCSTAS_C_EXPRESSION,
@@ -149,6 +150,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_SPLIT: return "TOK_MCSTAS_SPLIT";
         case TOK_MCSTAS_USER: return "TOK_MCSTAS_USER";
         case TOK_MCSTAS_WHEN: return "TOK_MCSTAS_WHEN";
+        case TOK_MCSTAS_JUMP: return "TOK_MCSTAS_JUMP";
         case TOK_MCSTAS_END: return "TOK_MCSTAS_END";
 
         case TOK_MCSTAS_C_EXPRESSION: return "TOK_MCSTAS_C_EXPRESSION";
@@ -224,6 +226,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_SPLIT: return "SPLIT";
         case TOK_MCSTAS_USER: return "USER";
         case TOK_MCSTAS_WHEN: return "WHEN";
+        case TOK_MCSTAS_JUMP: return "JUMP";
         case TOK_MCSTAS_END: return "END";
 
         case TOK_MCSTAS_C_EXPRESSION: return "C_EXPRESSION";
@@ -856,6 +859,7 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "SPLIT")) { token.type = TOK_MCSTAS_SPLIT; }
             else if (TokenEquals(&token, "USER")) { token.type = TOK_MCSTAS_USER; }
             else if (TokenEquals(&token, "WHEN")) { token.type = TOK_MCSTAS_WHEN; }
+            else if (TokenEquals(&token, "JUMP")) { token.type = TOK_MCSTAS_JUMP; }
             else if (TokenEquals(&token, "END")) { token.type = TOK_MCSTAS_END; }
 
             else if (TokenEquals(&token, "C_EXPRESSION")) { token.type = TOK_MCSTAS_C_EXPRESSION; }
