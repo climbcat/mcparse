@@ -79,6 +79,7 @@ enum TokenType {
     TOK_MCSTAS_WHEN,
     TOK_MCSTAS_JUMP,
     TOK_MCSTAS_END,
+    TOK_MCSTAS_PINCLUDE,
 
     TOK_MCSTAS_C_EXPRESSION,
 
@@ -152,6 +153,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_WHEN: return "TOK_MCSTAS_WHEN";
         case TOK_MCSTAS_JUMP: return "TOK_MCSTAS_JUMP";
         case TOK_MCSTAS_END: return "TOK_MCSTAS_END";
+        case TOK_MCSTAS_PINCLUDE: return "TOK_MCSTAS_PINCLUDE";
 
         case TOK_MCSTAS_C_EXPRESSION: return "TOK_MCSTAS_C_EXPRESSION";
 
@@ -228,6 +230,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_WHEN: return "WHEN";
         case TOK_MCSTAS_JUMP: return "JUMP";
         case TOK_MCSTAS_END: return "END";
+        case TOK_MCSTAS_PINCLUDE: return "%%include";
 
         case TOK_MCSTAS_C_EXPRESSION: return "C_EXPRESSION";
 
@@ -763,6 +766,16 @@ Token GetToken(Tokenizer *tokenizer)
             token.type = TOK_RPERCENTBRACE;
             token.len = 2;
             ++tokenizer->at;
+        }
+        else if (tokenizer->at[0] && tokenizer->at[0] == 'i') {
+            Tokenizer was = *tokenizer;
+            Token nxt = GetToken(tokenizer);
+            if (nxt.type == TOK_IDENTIFIER && StrEqual( StrL("include"), nxt.GetValue())) {
+                token.type = TOK_MCSTAS_PINCLUDE;
+            }
+            else {
+                *tokenizer = was;
+            }
         }
         else
         {

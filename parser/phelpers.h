@@ -128,8 +128,6 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
 }
 
 ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
-    Tokenizer prev = *t;
-
     Token tok = GetToken(t);
     *tok_out = tok;
 
@@ -227,10 +225,11 @@ bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
 }
 
 bool OptionOfTwoRewind(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
+    Tokenizer was = *t;
+
     Token tok = GetToken(t);
     *tok_out = tok;
 
-    Tokenizer was = *t;
     if (tok.type == opt0 || tok.type == opt1) {
         return true;
     }
@@ -251,7 +250,6 @@ ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
         return PTR_OPTIONAL;
     }
     else {
-        // rewind if not used
         *t = was;
 
         return PTR_UNDEF;
@@ -371,6 +369,9 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
                 return false;
             }
         }
+    }
+    else {
+        return false;
     }
 
     return true;

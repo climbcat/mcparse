@@ -39,6 +39,7 @@ struct Instrument {
     Str dependency_str;
     Array<Parameter> params;
     Array<ComponentCall> comps;
+    Array<Str> includes;
 
     Str uservars_block;
     Str declare_block;
@@ -59,6 +60,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     Token token;
     Instrument *instr = (Instrument*) ArenaAlloc(a_dest, sizeof(Instrument));
     instr->comps = InitArray<ComponentCall>(a_dest, 1000);
+    instr->includes = InitArray<Str>(a_dest, 10);
 
     // instrument name
     Required(t, &token, TOK_MCSTAS_DEFINE);
@@ -98,6 +100,11 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     // component calls
     Required(t, &token, TOK_MCSTAS_TRACE);
     while (true) {
+
+        if (Optional(t, &token, TOK_MCSTAS_PINCLUDE) == PTR_OPTIONAL) {
+            Required(t, &token, TOK_STRING);
+            instr->includes.Add(token.GetValue());
+        }
 
         Tokenizer rewind = *t;
         //
@@ -231,7 +238,11 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             }
 
 
-            ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
+            bool has_extend = ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
+            if (has_extend) {
+                StrPrint("", c.extend, "\n");
+                printf(".");
+            }
             instr->comps.Add(c);
         }
         else {
@@ -346,7 +357,7 @@ void InstrumentPrint(Instrument *instr, bool print_instr_details, bool print_com
 
                 if (cc.extend.len) {
                     printf("\n");
-                    StrPrint("EXTEND %%(", cc.copy_name, "\n%%)\n");
+                    StrPrint("EXTEND %%(", cc.extend, "\n%%)\n");
 
                 }
                 printf("\n\n");
