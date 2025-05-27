@@ -196,6 +196,21 @@ bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
     }
 }
 
+bool OptionOfTwoRewind(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
+    Token tok = GetToken(t);
+    *tok_out = tok;
+
+    Tokenizer was = *t;
+    if (tok.type == opt0 || tok.type == opt1) {
+        return true;
+    }
+    else {
+        *t = was;
+
+        return false;
+    }
+}
+
 ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
     Tokenizer was = *t;
 

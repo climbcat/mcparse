@@ -12,15 +12,12 @@
 
 bool RegisterComponentType(Component *comp, HashMap *map) {
     u64 val = MapGet(map, comp->type);
-    bool unreg = (val == 0);
-    if (unreg) {
+    bool type_was_unique = (val == 0);
+    if (type_was_unique) {
         MapPut(map, comp->type, comp);
-
-        u64 check = MapGet(map, comp->type);
-        assert(check == (u64) comp);
     }
 
-    return unreg;
+    return type_was_unique;
 }
 
 HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool print_details) {

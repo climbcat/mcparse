@@ -95,10 +95,35 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     Required(t, &token, TOK_MCSTAS_TRACE);
     while (true) {
 
-        if (Optional(t, &token, TOK_MCSTAS_COMPONENT)) {
+        //
+        if (OptionOfThree(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_END)) {
+            if (token.type == TOK_MCSTAS_END) {
+                break;
+            }
+
             ComponentCall c = {};
 
-            // instance name
+            // handle SPLIT prefix
+            if (token.type == TOK_MCSTAS_SPLIT) {
+
+                if (OptionOfTwoRewind(t, &token, TOK_INT, TOK_IDENTIFIER) == PTR_OPTIONAL) {
+                    if (token.type == TOK_INT) {
+                        // a number
+                        // TODO: record the amount of split
+                    }
+                    else {
+                        // an identifier s.a. instr parameter or declared field
+                        // TODO: record the amount of split
+                    }
+                }
+                else {
+                    // TODO: record split = 1
+                }
+
+                Required(t, &token, TOK_MCSTAS_COMPONENT);
+            }
+
+            // comp instance name
             OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_COPY);
             if (token.type == TOK_MCSTAS_COPY) {
                 Required(t, &token, TOK_LBRACK);
@@ -203,16 +228,14 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
         }
     }
 
-
-    //Required(t, &token, TOK_MCSTAS_END);
     return instr;
 }
 
 
-void InstrumentPrint(Instrument *instr) {
+void InstrumentPrint(Instrument *instr, bool print_instr_details, bool print_comps, bool print_comp_details) {
 
     printf("\n");
-    printf("name: "); StrPrint(instr->name); printf("\n");
+    printf("INSTRUMENT: "); StrPrint(instr->name); printf("\n");
     printf("params: ");
     printf("\n\n");
     Array<Parameter> ips = instr->params;
@@ -233,87 +256,89 @@ void InstrumentPrint(Instrument *instr) {
         printf("\n");
     }
 
-
-    printf("\n");
-    if (instr->declare_block.len) {
-        printf("\nDECLARE:\n");
-        StrPrint(instr->declare_block);
+    if (print_instr_details) {
         printf("\n");
+        if (instr->declare_block.len) {
+            printf("\nDECLARE:\n");
+            StrPrint(instr->declare_block);
+            printf("\n");
+        }
     }
 
-
-    printf("\n");
-    printf("    comps: %u\n", instr->comps.len);
-
-    return;
-
-    // print THE FIRST component's parameters
-    for (s32 j = 0; j < instr->comps.len; ++j) {
-        ComponentCall cc = instr->comps.arr[j];
-
-        StrPrint("", cc.name," (");
-        if (cc.type.len) {
-            StrPrint("", cc.type, ")");
-        }
-        else {
-            StrPrint("COPY (", cc.copy_name, "))");
-        }
+    if (print_comps) {
         printf("\n");
-        for (u32 i = 0; i < cc.args.len; ++i) {
-            Parameter p = cc.args.arr[i];
+        printf("    comps: %u\n", instr->comps.len);
 
-            printf("    ");
-            StrPrint(p.name);
-            if (p.default_val.len) {
-                printf(" = ");
-                StrPrint(p.default_val);
+        if (print_comp_details) {
+            for (s32 j = 0; j < instr->comps.len; ++j) {
+                ComponentCall cc = instr->comps.arr[j];
+
+                StrPrint("", cc.name," (");
+                if (cc.type.len) {
+                    StrPrint("", cc.type, ")");
+                }
+                else {
+                    StrPrint("COPY (", cc.copy_name, "))");
+                }
+
+                printf("\n");
+                for (u32 i = 0; i < cc.args.len; ++i) {
+                    Parameter p = cc.args.arr[i];
+
+                    printf("    ");
+                    StrPrint(p.name);
+                    if (p.default_val.len) {
+                        printf(" = ");
+                        StrPrint(p.default_val);
+                    }
+
+                    if (p.type.len) {
+                        printf(" (");
+                        StrPrint(p.type);
+                        printf(")");
+                    }
+                    printf("\n");
+                }
+
+                if (cc.when.len) {
+                    StrPrint("WHEN (", cc.when, ")\n");
+                }
+
+                printf("AT (");
+                StrPrint("", cc.at_x ,", ");
+                StrPrint("", cc.at_y ,", ");
+                StrPrint("", cc.at_z ,")");
+
+                if (cc.at_absolute == false) {
+                    StrPrint(" RELATIVE ", cc.at_relative_to, "");
+                }
+                else {
+                    printf(" ABSOLUTE ");
+                }
+
+                if (cc.rot_defined) {
+                    printf(" ROTATED (");
+                    StrPrint("", cc.rot_x ,", ");
+                    StrPrint("", cc.rot_y ,", ");
+                    StrPrint("", cc.rot_z ,")");
+
+                    if (cc.rot_absolute == false) {
+                        StrPrint(" RELATIVE ", cc.at_relative_to, "");
+                    }
+                    else {
+                        printf(" ABSOLUTE");
+                    }
+                }
+
+                if (cc.extend.len) {
+                    printf("\n");
+                    StrPrint("EXTEND %%(", cc.copy_name, "\n%%)\n");
+
+                }
+                printf("\n\n");
             }
-
-            if (p.type.len) {
-                printf(" (");
-                StrPrint(p.type);
-                printf(")");
-            }
-            printf("\n");
         }
 
-        if (cc.when.len) {
-            StrPrint("WHEN (", cc.when, ")\n");
-        }
-
-        printf("AT (");
-        StrPrint("", cc.at_x ,", ");
-        StrPrint("", cc.at_y ,", ");
-        StrPrint("", cc.at_z ,")");
-
-        if (cc.at_absolute == false) {
-            StrPrint(" RELATIVE ", cc.at_relative_to, "");
-        }
-        else {
-            printf(" ABSOLUTE ");
-        }
-
-        if (cc.rot_defined) {
-            printf(" ROTATED (");
-            StrPrint("", cc.rot_x ,", ");
-            StrPrint("", cc.rot_y ,", ");
-            StrPrint("", cc.rot_z ,")");
-
-            if (cc.rot_absolute == false) {
-                StrPrint(" RELATIVE ", cc.at_relative_to, "");
-            }
-            else {
-                printf(" ABSOLUTE");
-            }
-        }
-
-        if (cc.extend.len) {
-            printf("\n");
-            StrPrint("EXTEND %%(", cc.copy_name, "\n%%)\n");
-
-        }
-
-        printf("\n\n");
     }
 }
 #endif
