@@ -377,23 +377,5 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
     return true;
 }
 
-void TestPrintTokensOfType(char *text, TokenType tpe) {
-    Tokenizer tokenizer = {};
-    tokenizer.Init(text);
-    Tokenizer *t = &tokenizer;
-
-    printf("Looking for tokens of type %s:\n\n", TokenTypeToString(tpe));
-
-    Token token = {};
-    while (token.type != TOK_ENDOFSTREAM) {
-        token = GetToken(t);
-
-        if (tpe == token.type) {
-            StrPrint("", token.GetValue(), "\n");
-        }
-    }
-    printf("\n");
-}
-
 
 #endif

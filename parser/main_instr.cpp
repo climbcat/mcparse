@@ -46,6 +46,25 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool print_details) {
 }
 
 
+void TestPrintTokensOfType(char *text, TokenType tpe) {
+    Tokenizer tokenizer = {};
+    tokenizer.Init(text);
+    Tokenizer *t = &tokenizer;
+
+    printf("Looking for tokens of type %s:\n\n", TokenTypeToString(tpe));
+
+    Token token = {};
+    while (token.type != TOK_ENDOFSTREAM) {
+        token = GetToken(t);
+
+        if (tpe == token.type) {
+            StrPrint("", token.GetValue(), "\n");
+        }
+    }
+    printf("\n");
+}
+
+
 void TestLookForToken(int argc, char **argv) {
     printf("TestLookForToken\n");
 
