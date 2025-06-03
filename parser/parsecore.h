@@ -527,7 +527,7 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
 
     // print line nb. tag
     char lineno_tag[200];
-    s32 col = (tokenizer->at - tokenizer->at_linestart) - tokenizer->line_indent;
+    s32 col = (tokenizer->at - toklen) - tokenizer->at_linestart;
     sprintf(lineno_tag, "%d,%d| ", tokenizer->line, col);
     printf("%s", lineno_tag);
 
@@ -535,8 +535,8 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
     printf("%.*s\n", DistEndOfLine(tokenizer->at_linestart), tokenizer->at_linestart);
 
     // print marker
-    u32 mark = (tokenizer->at - toklen) - tokenizer->at_linestart + strlen(lineno_tag);
-    for (u32 i = 0; i < mark; i++) {
+    s32 mark = (tokenizer->at - toklen) - tokenizer->at_linestart + strlen(lineno_tag);
+    for (s32 i = 0; i < mark; i++) {
         printf(" ");
     }
     printf("^\n");
