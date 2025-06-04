@@ -43,7 +43,7 @@ struct Component {
 
 Array<Parameter> ParseComponentParams(MArena *a_dest, Tokenizer *t, TokenType params_type, bool is_optional) {
     Token token;
-    if (is_optional && Optional(t, &token, params_type) != PTR_OPTIONAL) {
+    if (is_optional && Optional(t, &token, params_type) == false) {
         return Array<Parameter> { NULL, 0, 0 };
     }
 
@@ -70,7 +70,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     Required(t, &token, TOK_MCSTAS_COMPONENT);
     Required(t, &token, TOK_IDENTIFIER);
     comp->type = token.GetValue();
-    if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OPTIONAL) {
+    if (Optional(t, &token, TOK_MCSTAS_COPY)) {
         Required(t, &token, TOK_IDENTIFIER);
         comp->type_copy = token.GetValue();
     }
@@ -82,7 +82,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     comp->pol_params = ParseComponentParams(a_dest, t, TOK_MCSTAS_POLARISATION, true);
 
     // flags
-    while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
+    while (Optional(t, &token, TOK_IDENTIFIER)) {
         if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
             Required(t, &token, TOK_STRING);
             printf("Paresed DEP\n");
@@ -107,32 +107,29 @@ Component *ParseComponent(MArena *a_dest, char *text) {
         TOK_MCSTAS_MCDISPLAY
     };
 
-    ParseTokenResult result = {};
-    while (result != PTR_TERMINAL) {
+    bool block_parse = true;
+    while (block_parse) {
         Tokenizer dont_advance = *t;
 
-        result = BranchMultiple(&dont_advance, &token, options_blocks, 8, "code block", TOK_MCSTAS_END);
+        if (BranchMultiple(&dont_advance, &token, options_blocks, 8, "code block", TOK_MCSTAS_END)) {
 
-        switch (token.type) {
-        case TOK_ENDOFSTREAM: { } break;
+            switch (token.type) {
+            case TOK_ENDOFSTREAM: { } break;
 
-        case TOK_MCSTAS_SHARE: { ParseCodeBlock(t, TOK_MCSTAS_SHARE, &comp->share_block, &comp->share_type_copy, &comp->share_extend); } break;
-        case TOK_MCSTAS_USERVARS: { ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &comp->uservars_block, &comp->uservars_type_copy, &comp->uservars_extend); } break;
-        case TOK_MCSTAS_DECLARE: { ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &comp->declare_block, &comp->declare_type_copy, &comp->declare_extend); } break;
-        case TOK_MCSTAS_INITIALIZE: { ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &comp->initalize_block, &comp->initalize_type_copy, &comp->initalize_extend); } break;
-        case TOK_MCSTAS_TRACE: { ParseCodeBlock(t, TOK_MCSTAS_TRACE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
-        case TOK_MCSTAS_SAVE: { ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
-        case TOK_MCSTAS_FINALLY: { ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &comp->finally_block, &comp->finally_type_copy, &comp->finally_extend); } break;
-        case TOK_MCSTAS_MCDISPLAY: { ParseCodeBlock(t, TOK_MCSTAS_MCDISPLAY, &comp->display_block, &comp->display_type_copy, &comp->display_extend); } break;
+            case TOK_MCSTAS_SHARE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_SHARE, &comp->share_block, &comp->share_type_copy, &comp->share_extend); } break;
+            case TOK_MCSTAS_USERVARS: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &comp->uservars_block, &comp->uservars_type_copy, &comp->uservars_extend); } break;
+            case TOK_MCSTAS_DECLARE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &comp->declare_block, &comp->declare_type_copy, &comp->declare_extend); } break;
+            case TOK_MCSTAS_INITIALIZE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &comp->initalize_block, &comp->initalize_type_copy, &comp->initalize_extend); } break;
+            case TOK_MCSTAS_TRACE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_TRACE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
+            case TOK_MCSTAS_SAVE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
+            case TOK_MCSTAS_FINALLY: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &comp->finally_block, &comp->finally_type_copy, &comp->finally_extend); } break;
+            case TOK_MCSTAS_MCDISPLAY: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_MCDISPLAY, &comp->display_block, &comp->display_type_copy, &comp->display_extend); } break;
 
-        default: {  assert(token.type == TOK_MCSTAS_END); } break;
-        }
-
-        if (result == PTR_ERROR) {
-            comp->parse_error = true;
-            break;
-
-            assert(1 == 0 && "DBG break");
+            default: { 
+                assert(token.type == TOK_MCSTAS_END);
+                block_parse = false;
+            } break;
+            }
         }
     }
 

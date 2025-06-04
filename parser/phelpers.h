@@ -10,36 +10,30 @@ struct Parameter {
     Str default_val;
 };
 
-enum ParseTokenResult {
-    PTR_UNDEF,
+bool RequiredRVal(Tokenizer *t, Token *tok_out) {
+    if (t->parse_error) return false;
 
-    PTR_OPTIONAL,
-    PTR_TERMINAL,
-    PTR_ERROR,
-
-    PTR_CNT
-};
-
-ParseTokenResult RequiredRVal(Tokenizer *t, Token *tok_out) {
     Tokenizer prev = *t;
 
     Token tok = GetToken(t);
     *tok_out = tok;
 
     if (tok.is_rval) {
-        return PTR_TERMINAL;
+        return true;
     }
     else {
         printf("\n\nERROR: Expected r-value, got '%s'\n", TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
+        // TODO: call hanlde error function
         assert(1 == 0 && "DBG break");
 
-        return PTR_ERROR;
+        return false;
     }
 }
 
-ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
+bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
+    if (t->parse_error) return false;
 
     Tokenizer was;
     Token tok;
@@ -58,10 +52,12 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             if (tok.type == TOK_COMMA || tok.type == TOK_RBRACK) {
                 // alarm
                 *tok_out = tok;
+
                 // TODO: line error
+                // TODO: call hanlde error function
                 assert(1 == 0 && "DBG break");
 
-                return PTR_ERROR;
+                return false;
             }
             token = {};
             token.type = TOK_MCSTAS_C_EXPRESSION; // TODO: should be TOK_MCSTAS_EXPRESSION or what
@@ -108,6 +104,7 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             } break;
 
             case TOK_ENDOFSTREAM: {
+                // TODO: call hanlde error function
                 assert(1 == 0 && "DBG break");
             } break;
 
@@ -124,29 +121,34 @@ ParseTokenResult RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
         StrPrint("", token.GetValue(), "\n");
     }
     
-    return PTR_TERMINAL;
+    return true;
 }
 
-ParseTokenResult Required(Tokenizer *t, Token *tok_out, TokenType req) {
+bool Required(Tokenizer *t, Token *tok_out, TokenType req) {
+    if (t->parse_error) return false;
+
     Token tok = GetToken(t);
     *tok_out = tok;
 
     if (tok.type == req) {
-        return PTR_TERMINAL;
+        return true;
     }
     else {
         printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
 
+        // TODO: call HandleParseError
         assert(1 == 0 && "DBG break");
 
-        return PTR_ERROR;
+        return false;
     }
 }
 
-ParseTokenResult BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 options_cnt, const char *options_error, TokenType terminal) {
-    Tokenizer was = *t;
 
+bool BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 options_cnt, const char *options_error, TokenType terminal_rewind) {
+    if (t->parse_error) return false;
+
+    Tokenizer was = *t;
     Token tok = GetToken(t);
     *tok_out = tok;
 
@@ -154,25 +156,30 @@ ParseTokenResult BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[
         if (tok.type == options[i]) {
             *t = was;
 
-            return PTR_OPTIONAL;
+            return true;
         }
     }
 
-    if (tok.type == terminal) {
+    if (tok.type == terminal_rewind) {
+        *t = was;
 
-        return PTR_TERMINAL;
+        return true;
     }
     else {
-        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal), TokenTypeToString(tok.type));
+        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal_rewind), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
 
+        // TODO: call HandleParseError
         assert(1 == 0 && "DBG break");
 
-        return PTR_ERROR;
+        return false;
     }
 }
 
+// TODO: replace with Options(cnt) og OptionalMultiple
 bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2) {
+    if (t->parse_error) return false;
+
     Token tok = GetToken(t);
     *tok_out = tok;
 
@@ -183,13 +190,17 @@ bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1,
         printf("\n\nERROR: Expected '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
+        // TODO: call HandleParseError
         assert(1 == 0 && "DBG break");
 
         return false;
     }
 }
 
+// TODO: replace with Options(cnt)
 bool OptionOfFour(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2, TokenType opt3) {
+    if (t->parse_error) return false;
+
     Token tok = GetToken(t);
     *tok_out = tok;
 
@@ -200,13 +211,38 @@ bool OptionOfFour(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, 
         printf("\n\nERROR: Expected '%s', '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(opt3), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
+        // TODO: call HandleParseError
         assert(1 == 0 && "DBG break");
 
         return false;
     }
 }
 
+// TODO: replace with Options(cnt)
+bool OptionOfFive(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2, TokenType opt3, TokenType opt4) {
+    if (t->parse_error) return false;
+
+    Token tok = GetToken(t);
+    *tok_out = tok;
+
+    if (tok.type == opt0 || tok.type == opt1 || tok.type == opt2 || tok.type == opt3 || tok.type == opt4) {
+        return true;
+    }
+    else {
+        printf("\n\nERROR: Expected '%s', '%s', '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(opt3), TokenTypeToSymbol(opt4), TokenTypeToSymbol(tok.type));
+        PrintLineError(t, &tok, "");
+
+        // TODO: call HandleParseError
+        assert(1 == 0 && "DBG break");
+
+        return false;
+    }
+}
+
+// TODO: replace with Options(cnt)
 bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
+    if (t->parse_error) return false;
+
     Token tok = GetToken(t);
     *tok_out = tok;
 
@@ -225,8 +261,9 @@ bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
 }
 
 bool OptionOfTwoRewind(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
-    Tokenizer was = *t;
+    if (t->parse_error) return false;
 
+    Tokenizer was = *t;
     Token tok = GetToken(t);
     *tok_out = tok;
 
@@ -240,19 +277,20 @@ bool OptionOfTwoRewind(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType o
     }
 }
 
-ParseTokenResult Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
-    Tokenizer was = *t;
+bool Optional(Tokenizer *t, Token *tok_out, TokenType opt) {
+    if (t->parse_error) return false;
 
+    Tokenizer was = *t;
     Token tok = GetToken(t);
     *tok_out = tok;
 
     if (tok.type == opt) {
-        return PTR_OPTIONAL;
+        return true;
     }
     else {
         *t = was;
 
-        return PTR_UNDEF;
+        return false;
     }
 }
 
@@ -281,7 +319,7 @@ Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value
             Required(t, &tok_parname_or_partype, TOK_IDENTIFIER);
 
             Token tok_parname_or_nothing;
-            if (Optional(t, &tok_parname_or_nothing, TOK_IDENTIFIER) == PTR_OPTIONAL) {
+            if (Optional(t, &tok_parname_or_nothing, TOK_IDENTIFIER)) {
                 // parameter type and name
                 p.type = tok_parname_or_partype.GetValue();
                 p.name = tok_parname_or_nothing.GetValue();
@@ -334,16 +372,18 @@ Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value
 }
 
 bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy, Str *extend) {
-    Token token;
+    if (t->parse_error) return false; // technically not necessary perhaps
+
+    Token token = {};
 
     Str *block_str = block;
 
-    if (Optional(t, &token, block_type) == PTR_OPTIONAL) {
-        if (Optional(t, &token, TOK_MCSTAS_COPY) == PTR_OPTIONAL) {
+    if (Optional(t, &token, block_type)) {
+        if (Optional(t, &token, TOK_MCSTAS_COPY)) {
             Required(t, &token, TOK_IDENTIFIER);
             *type_copy = token.GetValue();
 
-            if (Optional(t, &token, TOK_MCSTAS_EXTEND) == PTR_OPTIONAL) {
+            if (Optional(t, &token, TOK_MCSTAS_EXTEND)) {
                 block_str = extend;
             }
             else {
@@ -363,7 +403,7 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
                 break;
             }
             else if (token.type == TOK_ENDOFSTREAM) {
-                //comp->parse_error = true;
+                // TODO: do HandleParseError
                 assert(1 == 0 && "DBG break");
 
                 return false;

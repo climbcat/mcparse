@@ -75,6 +75,7 @@ enum TokenType {
     TOK_MCSTAS_PREVIOUS,
     TOK_MCSTAS_ROTATED,
     TOK_MCSTAS_SPLIT,
+    TOK_MCSTAS_REMOVABLE,
     TOK_MCSTAS_USER,
     TOK_MCSTAS_WHEN,
     TOK_MCSTAS_JUMP,
@@ -149,6 +150,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_PREVIOUS: return "TOK_MCSTAS_PREVIOUS";
         case TOK_MCSTAS_ROTATED: return "TOK_MCSTAS_ROTATED";
         case TOK_MCSTAS_SPLIT: return "TOK_MCSTAS_SPLIT";
+        case TOK_MCSTAS_REMOVABLE: return "TOK_MCSTAS_RELATIVE";
         case TOK_MCSTAS_USER: return "TOK_MCSTAS_USER";
         case TOK_MCSTAS_WHEN: return "TOK_MCSTAS_WHEN";
         case TOK_MCSTAS_JUMP: return "TOK_MCSTAS_JUMP";
@@ -226,6 +228,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_PREVIOUS: return "PREVIOUS";
         case TOK_MCSTAS_ROTATED: return "ROTATED";
         case TOK_MCSTAS_SPLIT: return "SPLIT";
+        case TOK_MCSTAS_REMOVABLE: return "REMOVABLE";
         case TOK_MCSTAS_USER: return "USER";
         case TOK_MCSTAS_WHEN: return "WHEN";
         case TOK_MCSTAS_JUMP: return "JUMP";
@@ -255,6 +258,7 @@ struct Tokenizer {
     s32 line;
     char *at_linestart;
     s32 line_indent;
+    bool parse_error;
 
     void Init(char *text) {
         *this = {};
@@ -278,6 +282,12 @@ struct Tokenizer {
         }
     }
 };
+
+Tokenizer TokenizerInit(char *text) {
+    Tokenizer t = {};
+    t.Init(text);
+    return t;
+}
 
 struct Token {
     TokenType type;
@@ -632,13 +642,17 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
     }
 }
 
+
 Token GetToken(Tokenizer *tokenizer)
 {
+    if (tokenizer->parse_error) return {};
+
     EatWhiteSpacesAndComments(tokenizer);
 
     Token token = {};
     token.text = tokenizer->at;
     token.len = 1;
+
 
     char c = tokenizer->at[0];
     ++tokenizer->at;
@@ -870,6 +884,7 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "PREVIOUS")) { token.type = TOK_MCSTAS_PREVIOUS; }
             else if (TokenEquals(&token, "ROTATED")) { token.type = TOK_MCSTAS_ROTATED; }
             else if (TokenEquals(&token, "SPLIT")) { token.type = TOK_MCSTAS_SPLIT; }
+            else if (TokenEquals(&token, "REMOVABLE")) { token.type = TOK_MCSTAS_REMOVABLE; }
             else if (TokenEquals(&token, "USER")) { token.type = TOK_MCSTAS_USER; }
             else if (TokenEquals(&token, "WHEN")) { token.type = TOK_MCSTAS_WHEN; }
             else if (TokenEquals(&token, "JUMP")) { token.type = TOK_MCSTAS_JUMP; }

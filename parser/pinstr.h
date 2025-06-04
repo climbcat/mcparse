@@ -15,6 +15,7 @@ struct ComponentCall {
     Str jump;
 
     Str split;
+    bool removable;
 
     Str at_x;
     Str at_y;
@@ -72,7 +73,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     instr->params = ParseParamsBlock(a_dest, t);
 
     // flags
-    while (Optional(t, &token, TOK_IDENTIFIER) == PTR_OPTIONAL) {
+    while (Optional(t, &token, TOK_IDENTIFIER)) {
         if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
             Required(t, &token, TOK_STRING);
             instr->dependency_str = token.GetValue();
@@ -101,14 +102,14 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     Required(t, &token, TOK_MCSTAS_TRACE);
     while (true) {
 
-        if (Optional(t, &token, TOK_MCSTAS_PINCLUDE) == PTR_OPTIONAL) {
+        if (Optional(t, &token, TOK_MCSTAS_PINCLUDE)) {
             Required(t, &token, TOK_STRING);
             instr->includes.Add(token.GetValue());
         }
 
         Tokenizer rewind = *t;
         //
-        if (OptionOfFour(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END)) {
+        if (OptionOfFive(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_REMOVABLE, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END)) {
             if (token.type == TOK_MCSTAS_END || token.type == TOK_MCSTAS_FINALLY) {
                 *t = rewind;
 
@@ -119,12 +120,19 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
 
             // handle SPLIT prefix
             if (token.type == TOK_MCSTAS_SPLIT) {
-                if (OptionOfTwoRewind(t, &token, TOK_INT, TOK_IDENTIFIER) == PTR_OPTIONAL) {
+                if (OptionOfTwoRewind(t, &token, TOK_INT, TOK_IDENTIFIER)) {
                     c.split = token.GetValue();
                 }
                 else {
                     c.split = StrL("1");
                 }
+                Required(t, &token, TOK_MCSTAS_COMPONENT);
+            }
+
+            if (token.type == TOK_MCSTAS_REMOVABLE) {
+                // TODO: record the REMOVABLE data on the component instance 
+                c.removable = true;
+
                 Required(t, &token, TOK_MCSTAS_COMPONENT);
             }
 
@@ -155,7 +163,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
 
             // args
             Tokenizer was = *t;
-            bool has_explicit_params = Optional(t, &token, TOK_LBRACK) == PTR_OPTIONAL;
+            bool has_explicit_params = Optional(t, &token, TOK_LBRACK);
             *t = was;
 
             if (has_explicit_params) {
@@ -238,11 +246,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             }
 
 
-            bool has_extend = ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
-            if (has_extend) {
-                StrPrint("", c.extend, "\n");
-                printf(".");
-            }
+            ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
             instr->comps.Add(c);
         }
         else {
