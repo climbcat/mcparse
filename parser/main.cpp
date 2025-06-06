@@ -36,9 +36,9 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
     MArena a_files = ArenaCreate();
 
     HashMap map_instrs = InitMap(a_parse, StrListLen(fpaths) * 3);
-    s32 comp_count_registered = 0;
-    s32 comp_count_parsed = 0;
-    
+    s32 registered_cnt = 0;
+    s32 parsed_cnt = 0;
+
     while (fpaths) {
         char *filename = StrLstNext(&fpaths);
         char *text = (char*) LoadFileFSeek(&a_files, filename);
@@ -46,24 +46,25 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
             continue;
         }
 
-        printf("parsing  #%.3d: %s \n", comp_count_parsed, filename);
+        printf("parsing  #%.3d: %s \n", parsed_cnt, filename);
         Instrument *instr = ParseInstrument(a_parse, text);
-        RegisterInstrument(instr, &map_instrs);
+        parsed_cnt++;
 
-        comp_count_parsed++;
+        if (RegisterInstrument(instr, &map_instrs)) {
+            registered_cnt++;
+        }
     }
 
     return map_instrs;
 }
 
-
-HashMap ParseComponents(MArena *a_parse, StrLst *fpaths) {
+HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print = false) {
     MArena a_files = ArenaCreate();
 
     HashMap map_comps = InitMap(a_parse, StrListLen(fpaths) * 3);
-    s32 comp_count_registered = 0;
-    s32 comp_count_parsed = 0;
-    
+    s32 registered_cnt = 0;
+    s32 parsed_cnt = 0;
+
     while (fpaths) {
         char *filename = StrLstNext(&fpaths);
         char *text = (char*) LoadFileFSeek(&a_files, filename);
@@ -71,20 +72,45 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths) {
             continue;
         }
 
-        printf("parsing  #%.3d: %s \n", comp_count_parsed, filename);
+        if (dbg_print) printf("parsing  #%.3d: %s \n", parsed_cnt, filename);
         Component *comp = ParseComponent(a_parse, text);
-        comp_count_parsed++;
+        parsed_cnt++;
 
         if (RegisterComponentType(comp, &map_comps)) {
-            comp_count_registered++;
+            registered_cnt++;
         }
     }
 
-    printf("\n");
-    printf("Parsed %d, registered %d components; total data size %lu bytes\n", comp_count_parsed, comp_count_registered, a_parse->used + a_files.used);
-    printf("\n");
+    if (dbg_print) {
+        printf("\n");
+        printf("Parsed %d, registered %d components; total data size %lu bytes\n", parsed_cnt, registered_cnt, a_parse->used + a_files.used);
+        printf("\n");
+    }
 
     return map_comps;
+}
+
+
+bool TypeCheckInstrument(Instrument *instr, HashMap *comps) {
+    bool has_error = false;
+    for (s32 i = 0; i < instr->comps.len; ++i) {
+        ComponentCall c = instr->comps.arr[i];
+
+        // TODO: here we have to deal wih COPY declarations; 
+        //      A copy component has no type defined; it is implicit
+        //      and defined by the name of another comp declaration
+        //      in the instrument 
+
+        u64 comp_exists = MapGet(comps, c.type);
+
+        if (comp_exists == 0) {
+            has_error = true;
+
+            printf("\n    Missing component type: ");
+            StrPrint(c.type);
+        }
+    }
+    return has_error;
 }
 
 
@@ -96,6 +122,7 @@ int main (int argc, char **argv) {
     }
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
+        printf("[comp_lib]:      component files path\n");
         printf("[instr]:         folder or instrument file\n");
         printf("--help:          display help (this text)\n");
         printf("--dbg:           enable debug print\n");
@@ -106,24 +133,33 @@ int main (int argc, char **argv) {
         printf("No registered tests ...\n");
     }
     else {
+        char *comp_lib_path = argv[1];
+        char *instr_path = argv[2];
+
         StringInit();
-        StrLst *comp_paths = GetFiles(argv[1], "comp", true);
-        StrLst *instr_paths = GetFiles(argv[1], "instr", true);
+        StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
+        StrLst *instr_paths = GetFiles(instr_path, "instr", true);
 
         MArena a_work = ArenaCreate();
         HashMap components = ParseComponents(&a_work, comp_paths);
         HashMap instruments = ParseInstruments(&a_work, instr_paths);
 
-        printf("\nParsed %d Components:\n\n", components.noccupants);
+        printf("\nParsed %d Components\n", components.noccupants);
         MapIter iter = {};
-        while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
-            printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
-        }
 
-        printf("\nParsed %d Instruments:\n\n", instruments.noccupants);
+        //while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
+        //    printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
+        //}
+
+        printf("\nParsed %d Instruments\n\n", instruments.noccupants);
         iter = {};
         while (Instrument *instr = (Instrument*) MapNextVal(&instruments, &iter)) {
-            printf("INSTRUMENT: "); StrPrint(instr->name); printf("\n");
+            printf("INSTRUMENT: "); StrPrint(instr->name);
+            bool has_error = TypeCheckInstrument(instr, &components);
+            if (has_error == false) {
+                printf(" - OK");
+            }
+            printf("\n");
         }
     }
 }
