@@ -105,7 +105,7 @@ COMPONENT sampleGu = SANS_Guinier(transm=0.5, Rg=300, qmax=0.031416,
   AT (0, 0, Dlen-0.05) RELATIVE sample
 */
 
-Component Bstop = Beamstop(xwidth=1.5*NGblen, yheight = 1.5*NGblen)
+COMPONENT Bstop = Beamstop(xwidth=1.5*NGblen, yheight = 1.5*NGblen)
 WHEN (sample)
   AT (0, 0, Dlen-0.005) RELATIVE sample
 

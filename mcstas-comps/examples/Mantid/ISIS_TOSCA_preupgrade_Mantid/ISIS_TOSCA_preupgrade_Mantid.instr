@@ -308,7 +308,7 @@ COMPONENT Histo10 = Monitor_nD(xwidth=0.2, yheight=0.1762, user1="t_prime", opti
     AT (0,0,0.46548) RELATIVE powder GROUP alltof
 
 COMPONENT CalcT = Arm()
-WHEN (eventmode==1) AT (0,0,0) relative powder
+WHEN (eventmode==1) AT (0,0,0) RELATIVE powder
 GROUP detectors
 EXTEND %{
   t = t-t_minE/1e6;
@@ -357,7 +357,7 @@ COMPONENT TOF_10 = Monitor_nD(xwidth=0.2, yheight=0.1762, options="square x limi
   WHEN (eventmode==1) AT (0, 0.4165+0.09-0.18/13*7, -0.46548) RELATIVE arm_bank10  GROUP detectors
 
   COMPONENT Catchall = Arm()
-  WHEN (eventmode==0)  AT (0,0,0) relative powder
+  WHEN (eventmode==0)  AT (0,0,0) RELATIVE powder
 GROUP detectors
   EXTEND %{
   if(INSTRUMENT_GETPAR(eventmode)==0) SCATTER;
