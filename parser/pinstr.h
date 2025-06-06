@@ -13,6 +13,7 @@ struct ComponentCall {
     Str extend;
     Str when;
     Str jump;
+    Str group;
 
     Str split;
     bool removable;
@@ -102,13 +103,13 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     Required(t, &token, TOK_MCSTAS_TRACE);
     while (true) {
 
-        if (Optional(t, &token, TOK_MCSTAS_PINCLUDE)) {
+        while (Optional(t, &token, TOK_MCSTAS_PINCLUDE)) {
             Required(t, &token, TOK_STRING);
             instr->includes.Add(token.GetValue());
         }
 
         Tokenizer rewind = *t;
-        //
+        // TODO: integrate the "%include" keyword somehow; or maybe handle it differently
         if (OptionOfFive(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_REMOVABLE, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END)) {
             if (token.type == TOK_MCSTAS_END || token.type == TOK_MCSTAS_FINALLY) {
                 *t = rewind;
@@ -171,7 +172,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             }
 
 
-            // when
+            // when / jump
             if (Optional(t, &token, TOK_MCSTAS_JUMP)) {
                 Required(t, &token, TOK_IDENTIFIER);
                 c.jump = token.GetValue();
@@ -181,8 +182,9 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 c.when = token.GetValue();
             }
 
-
+            // at
             Required(t, &token, TOK_MCSTAS_AT);
+
             // parse AT vector:
             Required(t, &token, TOK_LBRACK);
             RequiredRValOrExpression(t, &token);
@@ -233,9 +235,15 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
                 }
             }
 
+            // TODO: make GROUP / JUMP agnostic to ordering of WHEN / AT 
+
+            // group
+            if (Optional(t, &token, TOK_MCSTAS_GROUP)) {
+                Required(t, &token, TOK_IDENTIFIER);
+                c.group = token.GetValue();
+            }
 
             // when once more
-            // TODO: make agnostic to ordering of WHEN / AT 
             if (Optional(t, &token, TOK_MCSTAS_JUMP)) {
                 Required(t, &token, TOK_IDENTIFIER);
                 c.jump = token.GetValue();

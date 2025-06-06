@@ -43,14 +43,13 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
     s32 brack_level = 0;
     bool first = true;
     bool search = true;
-    while (search && t->line == line_in) {
+    while (search) {
         was = *t;
 
         tok = GetToken(t);
         if (first) {
             first = false;
             if (tok.type == TOK_COMMA || tok.type == TOK_RBRACK) {
-                // alarm
                 *tok_out = tok;
 
                 // TODO: line error
@@ -63,6 +62,9 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             token.type = TOK_MCSTAS_C_EXPRESSION; // TODO: should be TOK_MCSTAS_EXPRESSION or what
             token.text = tok.text;
         }
+
+        // TODO: If brack_level < 0 -> we actually have a parse error at this point.
+        //      We need to completely re-write this part of the parser.
 
         switch (tok.type)
         {
@@ -99,6 +101,70 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
                 //
             } break;
 
+            case TOK_STRING: {
+                //
+            } break;
+
+            case TOK_ASTERISK: {
+                //
+            } break;
+
+            case TOK_SLASH: {
+                //
+            } break;
+
+            case TOK_OR: {
+                //
+            } break;
+
+            case TOK_AND: {
+                //
+            } break;
+
+            case TOK_DASH: {
+                //
+            } break;
+
+            case TOK_PLUS: {
+                //
+            } break;
+
+            case TOK_LEDGE: {
+                //
+            } break;
+
+            case TOK_REDGE: {
+                //
+            } break;
+
+            case TOK_QUESTION: {
+                //
+            } break;
+
+            case TOK_COLON: {
+                //
+            } break;
+
+            case TOK_DOT: {
+                //
+            } break;
+
+            case TOK_LSBRACK: {
+                //
+            } break;
+
+            case TOK_RSBRACK: {
+                //
+            } break;
+
+            case TOK_UNKNOWN: {
+                // tolerate TOK_UNKNOWN
+            } break;
+
+            case TOK_MCSTAS_PREVIOUS: {
+                // whitelist TOK_MCSTAS_PREVIOUS
+            } break;
+
             case TOK_EXCLAMATION: {
                 //
             } break;
@@ -108,7 +174,10 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
                 assert(1 == 0 && "DBG break");
             } break;
 
-            default: break;
+            default: {
+                // break for non-whitelisted symbol
+                search = false;
+            }
         }
     }
 
@@ -221,6 +290,8 @@ bool OptionOfFour(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, 
 // TODO: replace with Options(cnt)
 bool OptionOfFive(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2, TokenType opt3, TokenType opt4) {
     if (t->parse_error) return false;
+
+    Tokenizer rewind = *t;
 
     Token tok = GetToken(t);
     *tok_out = tok;

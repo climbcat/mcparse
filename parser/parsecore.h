@@ -17,28 +17,29 @@ enum TokenType {
     TOK_UNKNOWN, // catch-all for things that aren't defined yet
 
     TOK_LBRACK, // (
-    TOK_RBRACK,
+    TOK_RBRACK, // )
     TOK_LBRACE, // {
-    TOK_RBRACE,
+    TOK_RBRACE, // }
     TOK_LSBRACK, // [
-    TOK_RSBRACK,
+    TOK_RSBRACK, // ]
     TOK_LEDGE, // <
-    TOK_REDGE,
+    TOK_REDGE, // >
     TOK_POUND, // #
-    TOK_ASTERISK,
-    TOK_COMMA,
-    TOK_DOT,
+    TOK_ASTERISK, // *
+    TOK_COMMA, // ,
+    TOK_DOT, // .
     TOK_SLASH, // /
     TOK_DASH, // -
-    TOK_PLUS,
-    TOK_COLON,
-    TOK_SEMICOLON,
+    TOK_PLUS, // +
+    TOK_COLON, // :
+    TOK_SEMICOLON, // ;
     TOK_ASSIGN, // =
-    TOK_EXCLAMATION,
-    TOK_TILDE,
+    TOK_EXCLAMATION, // !
+    TOK_QUESTION, // ?
+    TOK_TILDE, // ~
     TOK_OR, // |
     TOK_AND, // &
-    TOK_PERCENT,
+    TOK_PERCENT, // %
     TOK_RPERCENTBRACE, // %{
     TOK_LPERCENTBRACE, // %}
 
@@ -79,6 +80,7 @@ enum TokenType {
     TOK_MCSTAS_USER,
     TOK_MCSTAS_WHEN,
     TOK_MCSTAS_JUMP,
+    TOK_MCSTAS_GROUP,
     TOK_MCSTAS_END,
     TOK_MCSTAS_PINCLUDE,
 
@@ -110,6 +112,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_SEMICOLON: return "TOK_SEMICOLON";
         case TOK_ASSIGN: return "TOK_ASSIGN";
         case TOK_EXCLAMATION: return "TOK_EXCLAMATION";
+        case TOK_QUESTION: return "TOK_QUESTION";
         case TOK_TILDE: return "TOK_TILDE";
         case TOK_OR: return "TOK_OR";
         case TOK_AND: return "TOK_AND";
@@ -154,6 +157,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_MCSTAS_USER: return "TOK_MCSTAS_USER";
         case TOK_MCSTAS_WHEN: return "TOK_MCSTAS_WHEN";
         case TOK_MCSTAS_JUMP: return "TOK_MCSTAS_JUMP";
+        case TOK_MCSTAS_GROUP: return "TOK_MCSTAS_GROUP";
         case TOK_MCSTAS_END: return "TOK_MCSTAS_END";
         case TOK_MCSTAS_PINCLUDE: return "TOK_MCSTAS_PINCLUDE";
 
@@ -188,6 +192,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_SEMICOLON: return ";";
         case TOK_ASSIGN: return "=";
         case TOK_EXCLAMATION: return "!";
+        case TOK_QUESTION: return "?";
         case TOK_TILDE: return "~";
         case TOK_OR: return "|";
         case TOK_AND: return "&";
@@ -232,6 +237,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_MCSTAS_USER: return "USER";
         case TOK_MCSTAS_WHEN: return "WHEN";
         case TOK_MCSTAS_JUMP: return "JUMP";
+        case TOK_MCSTAS_GROUP: return "GROUP";
         case TOK_MCSTAS_END: return "END";
         case TOK_MCSTAS_PINCLUDE: return "%%include";
 
@@ -336,14 +342,8 @@ bool IsNumeric(char c) {
 }
 
 inline
-bool IsNumericSymbol(char c) {
-    bool issymb = ((c == '.') || (c == 'e') || (c == 'E') || (c == '-') || (c == '+'));
-    return issymb;
-}
-
-inline
 bool IsSciSymbol(char c) {
-    bool issymb = ((c == 'e') || (c == 'E'));
+    bool issymb = ((c == '.') || (c == 'e') || (c == 'E') || (c == '-') || (c == '+'));
     return issymb;
 }
 
@@ -587,7 +587,7 @@ s32 ParseGetWordLen(char *at) {
     s32 result = 0;
     char c = *at;
     while (true) {
-        if (c && c != ' ' && (IsAlphaOrUnderscore(c) || IsNumeric(c) || IsNumericSymbol(c))) {
+        if (c && c != ' ' && (IsAlphaOrUnderscore(c) || IsNumeric(c) || IsSciSymbol(c))) {
             result++;
             at ++;
             c = *at;
@@ -606,7 +606,7 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
     tokenizer->at += token->len - len_was;
 
     bool has_dot = false;
-    bool has_sci = false;
+    bool has_sci_e = false;
     bool has_err = false;
 
     for (s32 i = 0; i < token->len; ++i) {
@@ -615,14 +615,17 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
         if (IsNumeric(c)) {
             continue;
         }
-        else if (IsSciSymbol(c)) {
-            has_sci;
+        else if (((c == 'e') || (c == 'E'))) {
+            has_sci_e;
             break;
         }
         else if (c == '.') {
             has_dot = true;
         }
-        else if (!IsNumericSymbol(c)) {
+        else if (has_sci_e && IsSciSymbol(c)) {
+            // continue
+        }
+        else {
             has_err = true;
             break;
         }
@@ -631,7 +634,7 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
     if (has_err) {
         token->type = TOK_UNKNOWN;
     }
-    else if (has_sci) {
+    else if (has_sci_e) {
         token->type = TOK_SCI;
     }
     else if (has_dot) {
@@ -756,6 +759,9 @@ Token GetToken(Tokenizer *tokenizer)
         break;
     case '!':
         token.type = TOK_EXCLAMATION;
+        break;
+    case '?':
+        token.type = TOK_QUESTION;
         break;
     case '~':
         token.type = TOK_TILDE;
@@ -888,6 +894,7 @@ Token GetToken(Tokenizer *tokenizer)
             else if (TokenEquals(&token, "USER")) { token.type = TOK_MCSTAS_USER; }
             else if (TokenEquals(&token, "WHEN")) { token.type = TOK_MCSTAS_WHEN; }
             else if (TokenEquals(&token, "JUMP")) { token.type = TOK_MCSTAS_JUMP; }
+            else if (TokenEquals(&token, "GROUP")) { token.type = TOK_MCSTAS_GROUP; }
             else if (TokenEquals(&token, "END")) { token.type = TOK_MCSTAS_END; }
 
             else if (TokenEquals(&token, "C_EXPRESSION")) { token.type = TOK_MCSTAS_C_EXPRESSION; }
