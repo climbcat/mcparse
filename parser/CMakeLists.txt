@@ -3,5 +3,6 @@ project(parseinstr VERSION 0.1.0)
 
 add_executable(instrp main_instr.cpp)
 add_executable(compp main_comp.cpp)
+add_executable(parser main.cpp)
 
 

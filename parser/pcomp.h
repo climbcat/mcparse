@@ -85,12 +85,10 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     while (Optional(t, &token, TOK_IDENTIFIER)) {
         if (StrEqual( StrL("DEPENDENCY"), token.GetValue())) { 
             Required(t, &token, TOK_STRING);
-            printf("Paresed DEP\n");
             comp->dependency_str = token.GetValue();
         }
 
         if (StrEqual( StrL("NOACC"), token.GetValue())) {
-            printf("Paresed NOACC\n");
             comp->flag_noacc;
         }
     }

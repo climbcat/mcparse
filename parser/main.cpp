@@ -7,8 +7,19 @@
 #include "jg_baselayer.h"
 #include "parsecore.h"
 #include "phelpers.h"
+#include "pcomp.h"
 #include "pinstr.h"
 
+
+bool RegisterComponentType(Component *comp, HashMap *map) {
+    u64 val = MapGet(map, comp->type);
+    bool type_was_unique = (val == 0);
+    if (type_was_unique) {
+        MapPut(map, comp->type, comp);
+    }
+
+    return type_was_unique;
+}
 
 bool RegisterInstrument(Instrument *instr, HashMap *map) {
     u64 val = MapGet(map, instr->name);
@@ -21,7 +32,7 @@ bool RegisterInstrument(Instrument *instr, HashMap *map) {
 }
 
 
-HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool print_details) {
+HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
     MArena a_files = ArenaCreate();
 
     HashMap map_instrs = InitMap(a_parse, StrListLen(fpaths) * 3);
@@ -46,32 +57,13 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool print_details) {
 }
 
 
-void TestPrintTokensOfType(char *text, TokenType tpe) {
-    Tokenizer tokenizer = {};
-    tokenizer.Init(text);
-    Tokenizer *t = &tokenizer;
-
-    printf("Looking for tokens of type %s:\n\n", TokenTypeToString(tpe));
-
-    Token token = {};
-    while (token.type != TOK_ENDOFSTREAM) {
-        token = GetToken(t);
-
-        if (tpe == token.type) {
-            StrPrint("", token.GetValue(), "\n");
-        }
-    }
-    printf("\n");
-}
-
-
-void TestLookForToken(int argc, char **argv) {
-    printf("TestLookForToken\n");
-
-    StringInit();
-    StrLst *fpaths = GetFiles(argv[2], "instr", true);
+HashMap ParseComponents(MArena *a_parse, StrLst *fpaths) {
     MArena a_files = ArenaCreate();
 
+    HashMap map_comps = InitMap(a_parse, StrListLen(fpaths) * 3);
+    s32 comp_count_registered = 0;
+    s32 comp_count_parsed = 0;
+    
     while (fpaths) {
         char *filename = StrLstNext(&fpaths);
         char *text = (char*) LoadFileFSeek(&a_files, filename);
@@ -79,8 +71,20 @@ void TestLookForToken(int argc, char **argv) {
             continue;
         }
 
-        TestPrintTokensOfType(text, TOK_MCSTAS_C_EXPRESSION);
+        printf("parsing  #%.3d: %s \n", comp_count_parsed, filename);
+        Component *comp = ParseComponent(a_parse, text);
+        comp_count_parsed++;
+
+        if (RegisterComponentType(comp, &map_comps)) {
+            comp_count_registered++;
+        }
     }
+
+    printf("\n");
+    printf("Parsed %d, registered %d components; total data size %lu bytes\n", comp_count_parsed, comp_count_registered, a_parse->used + a_files.used);
+    printf("\n");
+
+    return map_comps;
 }
 
 
@@ -99,18 +103,27 @@ int main (int argc, char **argv) {
         exit(0);
     }
     else if (CLAContainsArg("--test", argc, argv)) {
-        TestLookForToken(argc, argv);
+        printf("No registered tests ...\n");
     }
     else {
         StringInit();
-        StrLst *fpaths = GetFiles(argv[1], "instr", true);
+        StrLst *comp_paths = GetFiles(argv[1], "comp", true);
+        StrLst *instr_paths = GetFiles(argv[1], "instr", true);
 
         MArena a_work = ArenaCreate();
-        HashMap map_instrs = ParseInstruments(&a_work, fpaths, true);
+        HashMap components = ParseComponents(&a_work, comp_paths);
+        HashMap instruments = ParseInstruments(&a_work, instr_paths);
 
+        printf("\nParsed %d Components:\n\n", components.noccupants);
         MapIter iter = {};
-        while (Instrument *instr = (Instrument*) MapNextVal(&map_instrs, &iter)) {
-            InstrumentPrint(instr, true, true, true);
+        while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
+            printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
+        }
+
+        printf("\nParsed %d Instruments:\n\n", instruments.noccupants);
+        iter = {};
+        while (Instrument *instr = (Instrument*) MapNextVal(&instruments, &iter)) {
+            printf("INSTRUMENT: "); StrPrint(instr->name); printf("\n");
         }
     }
 }
