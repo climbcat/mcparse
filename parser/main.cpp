@@ -114,6 +114,14 @@ bool TypeCheckInstrument(Instrument *instr, HashMap *comps) {
 }
 
 
+void CLACountCheckExit_0(int min_argc, int argc, const char *msg = "Too few args, use --help for usage info.") {
+    if (argc < min_argc) {
+        printf("%s\n", msg);
+        exit(0);
+    }
+}
+
+
 int main (int argc, char **argv) {
     TimeProgram;
 
@@ -122,17 +130,21 @@ int main (int argc, char **argv) {
     }
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("[comp_lib]:      component files path\n");
-        printf("[instr]:         folder or instrument file\n");
-        printf("--help:          display help (this text)\n");
-        printf("--dbg:           enable debug print\n");
-        printf("--test:          run test functions\n");
+        printf("Usage: parser <comp_lib> <instr> | [--help --dbg --test]\n");
+        printf("\n");
+        printf("comp_lib        component files root path\n");
+        printf("instr           instrument file or root path\n");
+        printf("--help          display help (this text)\n");
+        printf("--dbg           enable debug print\n");
+        printf("--test          run test functions\n");
         exit(0);
     }
     else if (CLAContainsArg("--test", argc, argv)) {
         printf("No registered tests ...\n");
     }
     else {
+        CLACountCheckExit_0(2, argc);
+
         char *comp_lib_path = argv[1];
         char *instr_path = argv[2];
 
