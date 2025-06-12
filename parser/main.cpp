@@ -91,23 +91,83 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print = false)
 }
 
 
-bool TypeCheckInstrument(Instrument *instr, HashMap *comps) {
+ComponentCall *_FindByName(Array<ComponentCall> comps, Str name) {
+    for (s32 i = 0; i < comps.len; ++i) {
+        if (StrEqual(name, comps.arr[i].name)) {
+            return comps.arr + i;
+        }
+    }
+    return NULL;
+}
+
+
+void StrCopy(Str src, Str dest) {
+    assert(src.str && dest.str);
+
+    for (s32 i = 0; i < MinS32( src.len, dest.len ); ++i) {
+        dest.str[i] = src.str[i];
+    }
+}
+
+
+bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
+    s32 max_copy_comps = 1000;
+    HashMap map_cpys = InitMap(a_tmp, max_copy_comps);
+
+
     bool has_error = false;
     for (s32 i = 0; i < instr->comps.len; ++i) {
-        ComponentCall c = instr->comps.arr[i];
+        ComponentCall *c = instr->comps.arr + i;
 
-        // TODO: here we have to deal wih COPY declarations; 
-        //      A copy component has no type defined; it is implicit
-        //      and defined by the name of another comp declaration
-        //      in the instrument 
+        // Handle "... = COPY (copy_type)":
+        //      Meaning, we eliminate any COPY notes and reference the .type and .args.
+        if (c->copy_type.len) {
+            if (StrEqual(c->copy_type, "PREVIOUS")) {
 
-        u64 comp_exists = MapGet(comps, c.type);
+                // TODO: on error, print and skip to next component
+                assert(i > 0 && "copy_type: COPY(PREVIOUS) can not be the first component call");
 
+                Str prev_type = instr->comps.arr[i-1].type;
+                c->type = prev_type;
+            }
+            else {
+                ComponentCall *org_comp = _FindByName(instr->comps, c->copy_type);
+                if (org_comp == NULL) {
+                    StrPrint("\n\n", c->copy_type, "\n\n");
+
+                    // TODO: on error, print and skip to next component
+                    assert(1 == 0 && "component by name not found");
+                }
+
+                // reference the type and args of the copied component
+                c->type = org_comp->type;
+                c->args = org_comp->args;
+            }
+        }
+
+        // Handle "COPY (copy_name) = ...":
+        //      Meaning, we eliminate any COPY notes and coyp the .name.
+        if (c->copy_name.len) {
+            // We don't need to check that a component by name exists unless we are dealing with PREVIOUS.
+            // We just need the index to put in the component name.
+            u64 copy_name_index = MapGet(&map_cpys, c->copy_name);
+            copy_name_index++;
+            MapPut(&map_cpys, c->copy_name, (void*) copy_name_index);
+
+            c->name = StrAlloc(c->copy_name.len + 4);
+            StrCopy(c->copy_name, c->name);
+
+            char subscript[4];
+            sprintf(subscript, "_%lu", copy_name_index);
+            strcat(c->name.str, subscript);
+        }
+
+        u64 comp_exists = MapGet(comps, c->type);
         if (comp_exists == 0) {
             has_error = true;
 
-            printf("\n    Missing component type: ");
-            StrPrint(c.type);
+            printf("\n    Missing component type (idx %d): ", i);
+            StrPrint(c->type);
         }
     }
     return has_error;
@@ -152,6 +212,7 @@ int main (int argc, char **argv) {
         StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
         StrLst *instr_paths = GetFiles(instr_path, "instr", true);
 
+        MArena a_tmp = ArenaCreate();
         MArena a_work = ArenaCreate();
         HashMap components = ParseComponents(&a_work, comp_paths);
         HashMap instruments = ParseInstruments(&a_work, instr_paths);
@@ -167,7 +228,7 @@ int main (int argc, char **argv) {
         iter = {};
         while (Instrument *instr = (Instrument*) MapNextVal(&instruments, &iter)) {
             printf("INSTRUMENT: "); StrPrint(instr->name);
-            bool has_error = TypeCheckInstrument(instr, &components);
+            bool has_error = TypeCheckInstrument(&a_tmp, instr, &components);
             if (has_error == false) {
                 printf(" - OK");
             }

@@ -9,6 +9,7 @@ struct ComponentCall {
 
     Str name;
     Str copy_name;
+    Str copy_type;
     Str type;
     Str extend;
     Str when;
@@ -155,7 +156,7 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
             if (token.type == TOK_MCSTAS_COPY) {
                 Required(t, &token, TOK_LBRACK);
                 OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
-                c.copy_name = token.GetValue();
+                c.copy_type = token.GetValue();
                 Required(t, &token, TOK_RBRACK);
             }
             else {
