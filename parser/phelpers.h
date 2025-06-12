@@ -491,4 +491,52 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
 }
 
 
+struct StructMember {
+    Str type;
+    bool pointer_type;
+    Str name;
+    Str defval;
+};
+
+
+Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
+    Array<StructMember> mems = {};
+    mems.arr = (StructMember*) ArenaAlloc(a_dest, 0);
+    u32 cnt = 0;
+
+    // ID [ASTERISK] ID [= ID] SEMICOLON
+
+    Token tok = {};
+    while (Optional(t, &tok, TOK_IDENTIFIER)) {
+        cnt++;
+        StructMember *mem = (StructMember*) ArenaAlloc(a_dest, sizeof(StructMember));
+
+        if (TokenEquals(&tok, "struct")) {
+            Token next;
+            Required(t, &next, TOK_IDENTIFIER);
+            tok.len = (next.text - tok.text) + next.len;
+        }
+
+        mem->type = tok.GetValue();
+        if (Optional(t, &tok, TOK_ASTERISK)) {
+            mem->pointer_type = true;
+        }
+        Required(t, &tok, TOK_IDENTIFIER);
+        mem->name = tok.GetValue();
+
+        if (Optional(t, &tok, TOK_ASSIGN)) {
+            OptionOfFive(t, &tok, TOK_INT, TOK_STRING, TOK_NULL, TOK_FLOAT, TOK_SCI);
+            mem->defval = tok.GetValue();
+        }
+
+        Required(t, &tok, TOK_SEMICOLON);
+    }
+
+    mems.len = cnt;
+    mems.max = cnt;
+
+    return mems;
+}
+
+
 #endif

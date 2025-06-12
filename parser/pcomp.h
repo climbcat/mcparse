@@ -5,6 +5,7 @@
 struct Component {
     Str type;
     Str type_copy;
+
     Array<Parameter> setting_params;
     Array<Parameter> out_params;
     Array<Parameter> state_params;
@@ -15,7 +16,7 @@ struct Component {
 
     Str share_block;
     Str uservars_block;
-    Str declare_block;
+    Array<StructMember> declare_members;
     Str initalize_block;
     Str trace_block;
     Str finally_block;
@@ -31,7 +32,6 @@ struct Component {
 
     Str share_extend;
     Str uservars_extend;
-    Str declare_extend;
     Str initalize_extend;
     Str trace_extend;
     Str finally_extend;
@@ -106,6 +106,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
     };
 
     bool block_parse = true;
+    Tokenizer t_at_declare = {};
     while (block_parse) {
         Tokenizer dont_advance = *t;
 
@@ -116,7 +117,12 @@ Component *ParseComponent(MArena *a_dest, char *text) {
 
             case TOK_MCSTAS_SHARE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_SHARE, &comp->share_block, &comp->share_type_copy, &comp->share_extend); } break;
             case TOK_MCSTAS_USERVARS: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &comp->uservars_block, &comp->uservars_type_copy, &comp->uservars_extend); } break;
-            case TOK_MCSTAS_DECLARE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &comp->declare_block, &comp->declare_type_copy, &comp->declare_extend); } break;
+            case TOK_MCSTAS_DECLARE: {
+                Required(t, &token, TOK_MCSTAS_DECLARE);
+                Required(t, &token, TOK_LPERCENTBRACE);
+                comp->declare_members = ParseMembers(a_dest, t);
+                Required(t, &token, TOK_RPERCENTBRACE);
+            } break;
             case TOK_MCSTAS_INITIALIZE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &comp->initalize_block, &comp->initalize_type_copy, &comp->initalize_extend); } break;
             case TOK_MCSTAS_TRACE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_TRACE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
             case TOK_MCSTAS_SAVE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
@@ -138,7 +144,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
 }
 
 
-void ComponentPrint(Component *comp, bool print_name = true, bool print_params = false, bool print_display_block = false, bool print_blocks = false) {
+void ComponentPrint(Component *comp, bool print_name = true, bool print_params = false, bool print_declare = false, bool print_display_block = false, bool print_blocks = false) {
 
     printf("\n");
     if (print_name) {
@@ -165,16 +171,27 @@ void ComponentPrint(Component *comp, bool print_name = true, bool print_params =
         }
     }
 
+    if (print_declare) {
+        if (comp->declare_members.len > 0) {
+            printf("DECLARE %%{\n");
+            for (s32 i = 0; i < comp->declare_members.len; ++i) {
+                StructMember *mem = comp->declare_members.arr + i;
+
+                if (mem->defval.len == 0) {
+                    printf("    %.*s %.*s;\n", mem->type.len, mem->type.str, mem->name.len, mem->name.str);
+                }
+                else {
+                    printf("    %.*s %.*s = %.*s;\n", mem->type.len, mem->type.str, mem->name.len, mem->name.str, mem->defval.len, mem->defval.str);
+                }
+            }
+            printf("%%}\n");
+        }
+    }
+
     if (print_blocks) {
         if (comp->share_block.len) {
             printf("\nSHARE:\n");
             StrPrint(comp->share_block);
-            printf("\n");
-        }
-
-        if (comp->declare_block.len) {
-            printf("\nDECLARE:\n");
-            StrPrint(comp->declare_block);
             printf("\n");
         }
 
@@ -198,45 +215,6 @@ void ComponentPrint(Component *comp, bool print_name = true, bool print_params =
             StrPrint(comp->display_block);
         }
     }
-}
-
-
-void ComponentCogen(Component *comp) {
-    /*
-    What's the cogen gonna be: Using the example component "AComp.comp"
-    - base functions: AComp.h 
-    - shared library: AComp_share.h - all of the share block, which can be a lot of code
-    - meta/reflection: AComp_meta.h - component type name, parameter type info/names, doc strings
-            which is all of the stuff that can be provided through cogen - now that we are at it.
-            With this info, we can build UI, get function pointers for the type-agnostic simulation core.
-
-    Let's focus on AComp.h for now. We would provide the following:
-    - header guard
-    - include any AComp_share.h file
-    - component struct: declare block (parsed for symbol mapping)
-    - component struct: Transform t; Transform *parent; comp_type_name, comp_name (instance name)
-    - symbols: define each declare block sumbols as #define sym comp->sym - for the entire file ! 
-
-    - AComp AComp_Init() {} returning a component struct; runs init code and returns
-    - void Trace(Acomp *comp) {}
-    - Finally
-    - Display
-
-    - un-define symbols
-    - end header guard
-
-    The AComp_share.h file should contain the following:
-    - header guard
-    - share code block copy-pasted verbatim into the file 
-    - end header guard
-
-    The AComp_meta.h file should contain some of the following things (less specific/brain-stormy)
-    - header guard
-    - include the AComp.h file
-    - void GetCompSignatures(HashMap dest_map) - returns function pointers to trace, finally and display
-    - Wrapper functions that take and return void* arguments? 
-    - ...
-    */
 }
 
 

@@ -608,6 +608,7 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
     bool has_dot = false;
     bool has_sci_e = false;
     bool has_err = false;
+    bool trailing_f = false;
 
     for (s32 i = 0; i < token->len; ++i) {
         char c = token->text[i];
@@ -621,6 +622,10 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
         }
         else if (c == '.') {
             has_dot = true;
+        }
+        else if (c == 'f') {
+            trailing_f = true;
+            break;
         }
         else if (has_sci_e && IsSciSymbol(c)) {
             // continue

@@ -9,6 +9,7 @@
 #include "phelpers.h"
 #include "pcomp.h"
 #include "pinstr.h"
+#include "cogencomp.h"
 
 
 bool RegisterComponentType(Component *comp, HashMap *map) {
@@ -187,6 +188,8 @@ int main (int argc, char **argv) {
 
     bool dbg_print_names = false;
     bool dbg_print_instr_details = false;
+    bool dbg_print_comp_details = false;
+    bool do_cogen = false;
 
     if (CLAContainsArg("--print_expr", argc, argv)) {
         dbg_print_c_expressions = true;
@@ -194,8 +197,14 @@ int main (int argc, char **argv) {
     if (CLAContainsArg("--print_names", argc, argv)) {
         dbg_print_names = true;
     }
-    if (CLAContainsArg("--print_details", argc, argv)) {
+    if (CLAContainsArg("--print_instr", argc, argv)) {
         dbg_print_instr_details = true;
+    }
+    if (CLAContainsArg("--print_comp", argc, argv)) {
+        dbg_print_comp_details = true;
+    }
+    if (CLAContainsArg("--cogen", argc, argv)) {
+        do_cogen = true;
     }
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
@@ -204,8 +213,10 @@ int main (int argc, char **argv) {
         printf("comp_lib            component files root path\n");
         printf("instr               instrument file or root path\n");
         printf("--help              display help (this text)\n");
+        printf("--cogen             generate component code\n");
         printf("--print_names       debug print comp & instr names\n");
-        printf("--print_details     debug print instr details\n");
+        printf("--print_instr       debug print instrument details\n");
+        printf("--print_comp        debug print component details\n");
         printf("--print_expr        debug print parsed C expression parameter values\n");
         printf("--test              run test functions\n");
         exit(0);
@@ -219,29 +230,36 @@ int main (int argc, char **argv) {
         MArena a_tmp = ArenaCreate();
         MArena a_work = ArenaCreate();
         StringInit();
+        MapIter iter = {};
 
         char *comp_lib_path = argv[1];
-        char *instr_path = argv[2];
 
         StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
-        StrLst *instr_paths = GetFiles(instr_path, "instr", true);
-
         HashMap components = ParseComponents(&a_work, comp_paths);
         printf("\nParsed %d Components\n", components.noccupants);
 
-        HashMap instruments = ParseInstruments(&a_work, instr_paths);
-        printf("\nParsed %d Instruments\n\n", instruments.noccupants);
-
-        MapIter iter = {};
-
-        // print component names
         iter = {};
-        if (dbg_print_names) {
-            while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
+        while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
+            // print component names
+            if (dbg_print_names) {
                 printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
             }
             printf("\n");
+
+            if (dbg_print_comp_details) {
+                ComponentPrint(comp, false, false, true, false, false);
+            }
+
+            // cogen components
+            if (do_cogen) {
+                ComponentCogen(comp);
+            }
         }
+
+        char *instr_path = argv[2];
+        StrLst *instr_paths = GetFiles(instr_path, "instr", true);
+        HashMap instruments = ParseInstruments(&a_work, instr_paths);
+        printf("\nParsed %d Instruments\n\n", instruments.noccupants);
 
         // print instrument names
         iter = {};
