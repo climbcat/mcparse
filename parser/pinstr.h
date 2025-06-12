@@ -270,12 +270,14 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
 }
 
 
-void InstrumentPrint(Instrument *instr, bool print_instr_details, bool print_comps, bool print_comp_details) {
+void InstrumentPrint(Instrument *instr, bool print_blocks, bool print_comps, bool print_comp_details) {
 
     printf("\n");
-    printf("INSTRUMENT: "); StrPrint(instr->name); printf("\n");
-    printf("params: ");
+    printf("instrparse: "); StrPrint(instr->name); printf("- %u parameters, %u compnents", instr->params.len, instr->comps.len);
     printf("\n\n");
+
+    printf("\n");
+    printf("DEFINE INSTRUMENT "); StrPrint(instr->name); printf("(\n");
     Array<Parameter> ips = instr->params;
     for (u32 i = 0; i < ips.len; ++i) {
         Parameter p = ips.arr[i];
@@ -293,33 +295,55 @@ void InstrumentPrint(Instrument *instr, bool print_instr_details, bool print_com
         }
         printf("\n");
     }
+    printf(")\n");
 
-    if (print_instr_details) {
+    if (print_blocks) {
+        if (instr->uservars_block.len) {
+            printf("\nUSERVARS:\n");
+            StrPrint(instr->uservars_block);
+            printf("\n");
+        }
         printf("\n");
         if (instr->declare_block.len) {
             printf("\nDECLARE:\n");
             StrPrint(instr->declare_block);
             printf("\n");
         }
+        printf("\n");
+        if (instr->initalize_block.len) {
+            printf("\nINITIALIZE:\n");
+            StrPrint(instr->initalize_block);
+            printf("\n");
+        }
+        printf("\n");
+        if (instr->finally_block.len) {
+            printf("\nFINALLY:\n");
+            StrPrint(instr->finally_block);
+            printf("\n");
+        }
     }
 
     if (print_comps) {
         printf("\n");
-        printf("    comps: %u\n", instr->comps.len);
 
         if (print_comp_details) {
             for (s32 j = 0; j < instr->comps.len; ++j) {
                 ComponentCall cc = instr->comps.arr[j];
 
-                StrPrint("", cc.name," (");
-                if (cc.type.len) {
-                    StrPrint("", cc.type, ")");
-                }
-                else {
-                    StrPrint("COPY (", cc.copy_name, "))");
+                if (cc.split.len) {
+                    StrPrint("SPLIT ", cc.split, " ");
                 }
 
-                printf("\n");
+
+                StrPrint("COMPONENT ", cc.name," = ");
+                if (cc.type.len) {
+                    StrPrint("", cc.type, "");
+                }
+                else {
+                    StrPrint("COPY (", cc.copy_name, ")");
+                }
+
+                printf("(\n");
                 for (u32 i = 0; i < cc.args.len; ++i) {
                     Parameter p = cc.args.arr[i];
 
@@ -337,6 +361,7 @@ void InstrumentPrint(Instrument *instr, bool print_instr_details, bool print_com
                     }
                     printf("\n");
                 }
+                printf(")\n");
 
                 if (cc.when.len) {
                     StrPrint("WHEN (", cc.when, ")\n");

@@ -124,7 +124,7 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
         if (c->copy_type.len) {
             if (StrEqual(c->copy_type, "PREVIOUS")) {
 
-                // TODO: on error, print and skip to next component
+                // TODO: on error, set error flag and skip
                 assert(i > 0 && "copy_type: COPY(PREVIOUS) can not be the first component call");
 
                 Str prev_type = instr->comps.arr[i-1].type;
@@ -135,7 +135,7 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
                 if (org_comp == NULL) {
                     StrPrint("\n\n", c->copy_type, "\n\n");
 
-                    // TODO: on error, print and skip to next component
+                    // TODO: on error, set error flag and skip
                     assert(1 == 0 && "component by name not found");
                 }
 
@@ -185,18 +185,31 @@ void CLACountCheckExit_0(int min_argc, int argc, const char *msg = "Too few args
 int main (int argc, char **argv) {
     TimeProgram;
 
-    if (CLAContainsArg("--dbg", argc, argv)) {
-        dbg_print = true;
+    bool dbg_print_names = false;
+    bool dbg_print_instr_details = false;
+
+    if (CLAContainsArg("--print_expr", argc, argv)) {
+        dbg_print_c_expressions = true;
     }
+    if (CLAContainsArg("--print_names", argc, argv)) {
+        dbg_print_names = true;
+    }
+    if (CLAContainsArg("--print_details", argc, argv)) {
+        dbg_print_instr_details = true;
+    }
+
+    printf("%d\n\n", dbg_print_instr_details);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("Usage: parser <comp_lib> <instr> | [--help --dbg --test]\n");
         printf("\n");
-        printf("comp_lib        component files root path\n");
-        printf("instr           instrument file or root path\n");
-        printf("--help          display help (this text)\n");
-        printf("--dbg           enable debug print\n");
-        printf("--test          run test functions\n");
+        printf("comp_lib            component files root path\n");
+        printf("instr               instrument file or root path\n");
+        printf("--help              display help (this text)\n");
+        printf("--print_names       debug print comp & instr names\n");
+        printf("--print_details     debug print instr details\n");
+        printf("--print_expr        debug print parsed C expression parameter values\n");
+        printf("--test              run test functions\n");
         exit(0);
     }
     else if (CLAContainsArg("--test", argc, argv)) {
@@ -205,34 +218,49 @@ int main (int argc, char **argv) {
     else {
         CLACountCheckExit_0(2, argc);
 
+        MArena a_tmp = ArenaCreate();
+        MArena a_work = ArenaCreate();
+        StringInit();
+
         char *comp_lib_path = argv[1];
         char *instr_path = argv[2];
 
-        StringInit();
         StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
         StrLst *instr_paths = GetFiles(instr_path, "instr", true);
 
-        MArena a_tmp = ArenaCreate();
-        MArena a_work = ArenaCreate();
         HashMap components = ParseComponents(&a_work, comp_paths);
-        HashMap instruments = ParseInstruments(&a_work, instr_paths);
-
         printf("\nParsed %d Components\n", components.noccupants);
+
+        HashMap instruments = ParseInstruments(&a_work, instr_paths);
+        printf("\nParsed %d Instruments\n\n", instruments.noccupants);
+
         MapIter iter = {};
 
-        //while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
-        //    printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
-        //}
-
-        printf("\nParsed %d Instruments\n\n", instruments.noccupants);
+        // print component names
         iter = {};
-        while (Instrument *instr = (Instrument*) MapNextVal(&instruments, &iter)) {
-            printf("INSTRUMENT: "); StrPrint(instr->name);
-            bool has_error = TypeCheckInstrument(&a_tmp, instr, &components);
-            if (has_error == false) {
-                printf(" - OK");
+        if (dbg_print_names) {
+            while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
+                printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
             }
             printf("\n");
+        }
+
+        // print instrument names
+        iter = {};
+        while (Instrument *instr = (Instrument*) MapNextVal(&instruments, &iter)) {
+            bool has_error = TypeCheckInstrument(&a_tmp, instr, &components);
+            if (has_error == true) {
+                printf(" - ERROR");
+            }
+            printf("\n");
+
+            if (dbg_print_names) {
+                printf("INSTRUMENT: "); StrPrint(instr->name);
+            }
+
+            if (dbg_print_instr_details) {
+                InstrumentPrint(instr, true, true, true);
+            }
         }
     }
 }

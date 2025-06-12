@@ -2,7 +2,8 @@
 #define __PHELPERS_H__
 
 
-static bool dbg_print;
+static bool dbg_print_c_expressions;
+
 
 struct Parameter {
     Str type;
@@ -186,7 +187,7 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
     *tok_out = token;
     *t = was;
 
-    if (dbg_print && token.type == TOK_MCSTAS_C_EXPRESSION) {
+    if (dbg_print_c_expressions && token.type == TOK_MCSTAS_C_EXPRESSION) {
         StrPrint("", token.GetValue(), "\n");
     }
     
