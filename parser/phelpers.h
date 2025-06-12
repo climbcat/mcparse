@@ -53,8 +53,9 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             if (tok.type == TOK_COMMA || tok.type == TOK_RBRACK) {
                 *tok_out = tok;
 
-                // TODO: line error
                 // TODO: call hanlde error function
+                printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(TOK_MCSTAS_C_EXPRESSION), TokenTypeToString(tok.type));
+                PrintLineError(t, &tok, "");
                 assert(1 == 0 && "DBG break");
 
                 return false;

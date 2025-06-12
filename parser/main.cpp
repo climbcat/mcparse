@@ -198,8 +198,6 @@ int main (int argc, char **argv) {
         dbg_print_instr_details = true;
     }
 
-    printf("%d\n\n", dbg_print_instr_details);
-
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("Usage: parser <comp_lib> <instr> | [--help --dbg --test]\n");
         printf("\n");
