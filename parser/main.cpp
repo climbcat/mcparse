@@ -214,7 +214,7 @@ int main (int argc, char **argv) {
         printf("No registered tests ...\n");
     }
     else {
-        CLACountCheckExit_0(2, argc);
+        CLACountCheckExit_0(3, argc);
 
         MArena a_tmp = ArenaCreate();
         MArena a_work = ArenaCreate();
