@@ -222,7 +222,19 @@ int main (int argc, char **argv) {
         exit(0);
     }
     else if (CLAContainsArg("--test", argc, argv)) {
-        printf("No registered tests ...\n");
+        printf("Testing component cogen ...\n");
+
+        MArena a_tmp = ArenaCreate();
+        MArena a_work = ArenaCreate();
+        StringInit();
+
+        char *comp_lib_path = argv[1];
+        StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
+        HashMap components = ParseComponents(&a_work, comp_paths);
+
+        MapIter iter = {};
+        Component *comp = (Component*) MapNextVal(&components, &iter);
+        ComponentCogen(comp);
     }
     else {
         CLACountCheckExit_0(3, argc);
@@ -247,11 +259,13 @@ int main (int argc, char **argv) {
             printf("\n");
 
             if (dbg_print_comp_details) {
+                printf("comp print: \n");
                 ComponentPrint(comp, false, false, true, false, false);
             }
 
             // cogen components
             if (do_cogen) {
+                printf("cogen: \n");
                 ComponentCogen(comp);
             }
         }
