@@ -4,8 +4,8 @@
 #include "mccode-r.h"
 #include "mccode-r.c"
 
-//#include "mcstas-r.h"
-//#include "mcstas-r.c"
+#include "mcstas-r.h"
+#include "mcstas-r.c"
 
 
 void RunProgram() {
