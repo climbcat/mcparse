@@ -11,7 +11,7 @@
 #include <math.h>
 
 
-struct Particle {
+struct Neutron {
     double x,y,z; /* position [m] */
     double vx,vy,vz; /* velocity [m/s] */
     double sx,sy,sz; /* spin [0-1] */
@@ -34,8 +34,8 @@ struct Particle {
     long _restore;   /* set to true if neutron event must be restored */
     long flag_nocoordschange;   /* set to true if particle is jumping */
 };
-Particle _particle_global_randnbuse_var;
-Particle* _particle = &_particle_global_randnbuse_var;
+Neutron _particle_global_randnbuse_var;
+Neutron* _particle = &_particle_global_randnbuse_var;
 
 
 // defines & globals
@@ -45,7 +45,6 @@ typedef double MCNUM;
 typedef struct {MCNUM x, y, z;} Coords;
 typedef MCNUM Rotation[3][3];
 
-#define _class_particle Particle
 #define randstate_t uint64_t
 #define MC_PATHSEP_S "/"
 #define MC_PATHSEP_C '/'
@@ -313,7 +312,7 @@ double _randtriangle(randstate_t* state);
 
 
 int init(void);
-int raytrace(_class_particle*);
+int raytrace(Neutron*);
 int save(FILE *);
 int finally(void);
 int display(void);
@@ -399,7 +398,7 @@ void rot_copy(Rotation dest, Rotation src);
 void rot_transpose(Rotation src, Rotation dst);
 Coords rot_apply(Rotation t, Coords a);
 
-void mccoordschange(Coords a, Rotation t, _class_particle *particle);
+void mccoordschange(Coords a, Rotation t, Neutron *particle);
 void mccoordschange_polarisation(Rotation t, double *sx, double *sy, double *sz);
 
 double mcestimate_error(double N, double p1, double p2);
@@ -408,7 +407,7 @@ void mcreadparams(void);
 /* this is now in mcstas-r.h and mcxtrace-r.h as the number of state parameters
 is no longer equal */
 
-_class_particle mcgenstate(void);
+Neutron mcgenstate(void);
 
 // trajectory/shape intersection routines
 int inside_rectangle(double, double, double, double);
@@ -437,15 +436,15 @@ int solve_2nd_order(double *t1, double *t2,
 // headers for randvec
 void _randvec_target_circle(double *xo, double *yo, double *zo,
   double *solid_angle, double xi, double yi, double zi, double radius,
-  _class_particle* _particle);
+  Neutron* _particle);
 void _randvec_target_rect_angular(double *xo, double *yo, double *zo,
   double *solid_angle, double xi, double yi, double zi, double height,
   double width, Rotation A,
-  _class_particle* _particle);
+  Neutron* _particle);
 void _randvec_target_rect_real(double *xo, double *yo, double *zo, double *solid_angle,
   double xi, double yi, double zi, double height, double width, Rotation A,
   double lx, double ly, double lz, int order,
-  _class_particle* _particle);
+  Neutron* _particle);
 
 
 // this is the main()
@@ -749,7 +748,7 @@ unsigned long long int mcget_ncount(void)
 
 /* mcget_run_num: get curent number of rays */
 /* Within the TRACE scope we are now using _particle->uid directly */
-unsigned long long int mcget_run_num() // shuld be (_class_particle* _particle) somehow
+unsigned long long int mcget_run_num() // shuld be (Neutron* _particle) somehow
 {
   /* This function only remains for the few cases outside TRACE where we need to know
      the number of simulated particles */
@@ -1453,10 +1452,10 @@ void norm_func(double *x, double *y, double *z) {
 /*
 *  Fallback serial version of the one above.
 */
-long sort_absorb_last_serial(_class_particle* particles, long len) {
+long sort_absorb_last_serial(Neutron* particles, long len) {
   long i = 0;
   long j = len - 1;
-  _class_particle pbuffer;
+  Neutron pbuffer;
 
   // bubble
   while (i < j) {
@@ -1481,7 +1480,7 @@ long sort_absorb_last_serial(_class_particle* particles, long len) {
 /*******************************************************************************
 * mccoordschange: applies rotation to (x y z) and (vx vy vz) and Spin (sx,sy,sz)
 *******************************************************************************/
-void mccoordschange(Coords a, Rotation t, _class_particle *particle)
+void mccoordschange(Coords a, Rotation t, Neutron *particle)
 {
   Coords b, c;
 
@@ -1712,7 +1711,7 @@ int solve_2nd_order(double *t0, double *t1, double A, double B, double C){
  ******************************************************************************/
 void _randvec_target_circle(double *xo, double *yo, double *zo, double *solid_angle,
         double xi, double yi, double zi, double radius,
-        _class_particle* _particle)
+        Neutron* _particle)
 {
   double l2, phi, theta, nx, ny, nz, xt, yt, zt, xu, yu, zu;
 
@@ -1778,7 +1777,7 @@ void _randvec_target_circle(double *xo, double *yo, double *zo, double *solid_an
  *******************************************************************************/
 void _randvec_target_rect_angular(double *xo, double *yo, double *zo, double *solid_angle,
         double xi, double yi, double zi, double width, double height, Rotation A,
-        _class_particle* _particle)
+        Neutron* _particle)
 {
   double theta, phi, nx, ny, nz, xt, yt, zt, xu, yu, zu;
   Coords tmp;
@@ -1855,7 +1854,7 @@ void _randvec_target_rect_real(double *xo, double *yo, double *zo, double *solid
         double xi, double yi, double zi,
         double width, double height, Rotation A,
         double lx, double ly, double lz, int order,
-        _class_particle* _particle)
+        Neutron* _particle)
 {
   double dx, dy, dist, dist_p, nx, ny, nz, mx, my, mz, n_norm, m_norm;
   double cos_theta;
@@ -2377,10 +2376,10 @@ double _randminmax(double min, double max, randstate_t* state) {
 /*******************************************************************************
 * mcsetstate: transfer parameters into global McStas variables
 *******************************************************************************/
-_class_particle mcsetstate(double x, double y, double z, double vx, double vy, double vz,
+Neutron mcsetstate(double x, double y, double z, double vx, double vy, double vz,
 			   double t, double sx, double sy, double sz, double p, int mcgravitation, void *mcMagnet, int mcallowbackprop)
 {
-  _class_particle mcneutron;
+  Neutron mcneutron;
 
   mcneutron.x  = x;
   mcneutron.y  = y;
@@ -2412,7 +2411,7 @@ _class_particle mcsetstate(double x, double y, double z, double vx, double vy, d
 /*******************************************************************************
 * mcgetstate: get neutron parameters from particle structure
 *******************************************************************************/
-_class_particle mcgetstate(_class_particle mcneutron, double *x, double *y, double *z,
+Neutron mcgetstate(Neutron mcneutron, double *x, double *y, double *z,
                double *vx, double *vy, double *vz, double *t,
                double *sx, double *sy, double *sz, double *p)
 {
