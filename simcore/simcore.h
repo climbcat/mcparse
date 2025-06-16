@@ -2,23 +2,11 @@
 #define __SIMCORE_H__
 
 
-#include <ctype.h>
 #include <float.h>
-#include <inttypes.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stddef.h>
-#include <limits.h>
-#include <errno.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
 
 #include <math.h>
 
