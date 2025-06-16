@@ -10,6 +10,12 @@
 
 #include <math.h>
 
+struct NeutronSmall {
+    double x,y,z; /* position [m] */
+    double vx,vy,vz; /* velocity [m/s] */
+    double sx,sy,sz; /* spin [0-1] */
+    float flags;
+};
 
 struct Neutron {
     double x,y,z; /* position [m] */

@@ -5,7 +5,7 @@
 void RunProgram() {
     TimeFunction;
 
-    printf("Executing program ...\n");
+    printf("Size of neutron struct: %lu vs. %lu\n", sizeof(Neutron), sizeof(NeutronSmall));
 }
 
 void Test() {
