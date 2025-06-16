@@ -1,16 +1,17 @@
-#include "../lib/jg_baselayer.h"
+//#include "../lib/jg_baselayer.h"
 
 #include "simcore.h"
 #include "mccode-r.h"
 #include "mcstas-r.h"
 
 
+/*
 void RunProgram() {
     TimeFunction;
 
     printf("Executing program ...\n");
 }
-
+*/
 
 void Test() {
     printf("Running tests ...\n");
@@ -18,6 +19,7 @@ void Test() {
 
 
 int main (int argc, char **argv) {
+    /*
     TimeProgram;
     BaselayerAssertVersion(0, 1, 1);
 
@@ -39,4 +41,5 @@ int main (int argc, char **argv) {
         InitBaselayer();
         RunProgram();
     }
+    */
 }

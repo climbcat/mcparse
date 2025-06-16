@@ -2,10 +2,25 @@
 #define __SIMCORE_H__
 
 
-#include <unistd.h>
-#include <sys/stat.h>
 #include <ctype.h>
+#include <float.h>
+#include <inttypes.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <limits.h>
+#include <errno.h>
+#include <time.h>
+#include <sys/time.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+
+
+#include <math.h>
 
 
 struct Particle {
@@ -44,7 +59,7 @@ typedef MCNUM Rotation[3][3];
 
 
 #define _class_particle Particle
-#define randstate_t u64
+#define randstate_t uint64_t
 #define MC_PATHSEP_S "/"
 #define MC_PATHSEP_C '/'
 #define MCCODE_STRING "tracetool_string"

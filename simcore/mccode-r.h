@@ -2,20 +2,6 @@
 #define __MCCODE_R_H__
 
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <limits.h>
-#include <errno.h>
-#include <time.h>
-#include <sys/time.h>
-
-#include <float.h>
-#include <inttypes.h>
-#include <stdint.h>
-#include <math.h>
-
 /* In case of gcc / clang, ensure to use
    the built-in isnan/isinf functions */
 #  ifdef isnan
@@ -502,11 +488,6 @@ MCDETECTOR mcdetector_out_list(char *t, char *xl, char *yl,
      mcdetector_out_1D(t,xl,yl,xvar,x1,x2,n,p0,p1,p2,f,NAME_CURRENT_COMP,POS_A_CURRENT_COMP,ROT_A_CURRENT_COMP,INDEX_CURRENT_COMP)
 #define DETECTOR_OUT_2D(t,xl,yl,x1,x2,y1,y2,m,n,p0,p1,p2,f) \
      mcdetector_out_2D(t,xl,yl,x1,x2,y1,y2,m,n,p0,p1,p2,f,NAME_CURRENT_COMP,POS_A_CURRENT_COMP,ROT_A_CURRENT_COMP,INDEX_CURRENT_COMP)
-
-#ifdef USE_NEXUS
-#include "napi.h"
-NXhandle nxhandle;
-#endif
 
 
 //
@@ -1887,11 +1868,6 @@ void _randvec_target_rect_real(double *xo, double *yo, double *zo, double *solid
     }
   }
 }
-
-
-#include <stdio.h>
-#include <stdint.h>   // for uint32_t
-#include <stddef.h>   // for size_t
 
 
 /* Period parameters */
