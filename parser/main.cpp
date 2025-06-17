@@ -4,7 +4,8 @@
 #include <cstddef>
 
 
-#include "jg_baselayer.h"
+#include "../lib/jg_baselayer.h"
+#include "../lib/jg_cbui.h"
 #include "parsecore.h"
 #include "phelpers.h"
 #include "pcomp.h"
