@@ -28,7 +28,9 @@
 * %include "ref-lib"
 *
 ****************************************************************************/
-%include "read_table-lib"
+
+//  jg-250617: disabled use of %-include
+//%include "read_table-lib"
 
 #ifndef REF_LIB_H
 #define REF_LIB_H "$Revision$"
