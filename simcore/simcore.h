@@ -8,8 +8,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <ctype.h>
-
 #include <math.h>
+
 
 struct NeutronSmall {
     double x,y,z; /* position [m] */
@@ -72,6 +72,11 @@ int mcrun_num;
 int mcseed;
 
 
+// sus -> we have a member on the Neutron struct as well, and what does it even do, is it a clobal, or a void * ?
+int mcMagnet;
+
+
+static int mcallowbackprop;
 static int mcgravitation;
 static int mcdotrace;
 long MONND_BUFSIZ = 10000000;
@@ -84,11 +89,42 @@ void* particle_getvar_void(Neutron *p, char *name, int *suc) {
 }
 
 
+
+#ifdef DEBUG
+#define DEBUG_INSTR() if(!mcdotrace); else { printf("INSTRUMENT:\n"); printf("Instrument '%s' (%s)\n", instrument_name, instrument_source); }
+#define DEBUG_COMPONENT(name,c,t) if(!mcdotrace); else {\
+     printf("COMPONENT: \"%s\"\n"					  \
+     "POS: %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g\n", \
+     name, c.x, c.y, c.z, t[0][0], t[0][1], t[0][2], \
+     t[1][0], t[1][1], t[1][2], t[2][0], t[2][1], t[2][2]); \
+     printf("Component %30s AT (%g,%g,%g)\n", name, c.x, c.y, c.z); }
+#define DEBUG_INSTR_END() if(!mcdotrace); else printf("INSTRUMENT END:\n");
+#define DEBUG_ENTER() if(!mcdotrace); else printf("ENTER:\n");
+#define DEBUG_COMP(c) if(!mcdotrace); else printf("COMP: \"%s\"\n", c);
+#define DEBUG_LEAVE() if(!mcdotrace); else printf("LEAVE:\n");
+#define DEBUG_ABSORB() if(!mcdotrace); else printf("ABSORB:\n");
+#else
+#define DEBUG_INSTR()
+#define DEBUG_COMPONENT(name,c,t)
+#define DEBUG_INSTR_END()
+#define DEBUG_ENTER()
+#define DEBUG_COMP(c)
+#define DEBUG_LEAVE()
+#define DEBUG_ABSORB()
+#endif
+
+
+#define SCATTERED (particle->_scattered)
+#define RESTORE (particle->_restore)
+#define RESTORE_NEUTRON(_index, ...) particle->_restore = _index;
+#define ABSORB0 do { DEBUG_STATE(); DEBUG_ABSORB(); MAGNET_OFF; ABSORBED++; return; } while(0)
+#define ABSORBED (particle->_absorbed)
+#define ABSORB ABSORB0
+
+
 //
 // mccode-r 
 //
-
-
 
 
 /* In case of gcc / clang, ensure to use
@@ -253,14 +289,14 @@ int _getcomp_index(char* compname);
 /* Current component name, index, position and orientation */
 /* These macros work because, using class-based functions, "comp" is usually
 *  the local variable of the active/current component. */
-#define INDEX_CURRENT_COMP (_comp->_index)
-#define NAME_CURRENT_COMP (_comp->_name)
-#define TYPE_CURRENT_COMP (_comp->_type)
-#define POS_A_CURRENT_COMP (_comp->_position_absolute)
-#define POS_R_CURRENT_COMP (_comp->_position_relative)
-#define ROT_A_CURRENT_COMP (_comp->_rotation_absolute)
-#define ROT_R_CURRENT_COMP (_comp->_rotation_relative)
-#define NAME_INSTRUMENT (instrument->_name)
+#define INDEX_CURRENT_COMP (comp->index)
+#define NAME_CURRENT_COMP (comp->name)
+#define TYPE_CURRENT_COMP (comp->type)
+#define POS_A_CURRENT_COMP (comp->position_absolute)
+#define POS_R_CURRENT_COMP (comp->position_relative)
+#define ROT_A_CURRENT_COMP (comp->rotation_absolute)
+#define ROT_R_CURRENT_COMP (comp->rotation_relative)
+#define NAME_INSTRUMENT (instrument->name)
 
 
 /* send MCDISPLAY message to stdout to show gemoetry */
