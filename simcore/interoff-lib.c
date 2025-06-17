@@ -555,8 +555,8 @@ int off_clip_3D_mod_grav(intersection* t, Coords pos, Coords vel, Coords acc,
 #pragma acc routine
 int off_compare (void const *a, void const *b)
 {
-   intersection const *pa = a;
-   intersection const *pb = b;
+   intersection const *pa = (intersection const *) a;
+   intersection const *pb = (intersection const *) b;
 
    return off_sign(pa->time - pb->time);
 } /* off_compare */
@@ -653,19 +653,25 @@ long off_init(  char *offfile, double xwidth, double yheight, double zdepth,
   // get the indexes
   if (!data) return(0);
 
-  MPI_MASTER(
-  printf("Loading geometry file (OFF/PLY): %s\n", offfile);
-  );
+
+    // jg-250617: disabling MPI
+    //MPI_MASTER(
+        printf("Loading geometry file (OFF/PLY): %s\n", offfile);
+    //);
 
   f=off_getBlocksIndex(offfile,&vtxSize,&polySize);
   if (!f) return(0);
 
   // read vertex table = [x y z | x y z | ...] =================================
   // now we read the vertices as 'vtxSize*3' numbers and store it in vtxArray
-  MPI_MASTER(
-  printf("  Number of vertices: %ld\n", vtxSize);
-  );
-  vtxArray   = malloc(vtxSize*sizeof(Coords));
+
+
+    // jg-250617: disabling MPI
+    //MPI_MASTER(
+        printf("  Number of vertices: %ld\n", vtxSize);
+    //);
+
+  vtxArray   = (Coords*) malloc(vtxSize*sizeof(Coords));
   if (!vtxArray) return(0);
   i=0;
   while (i<vtxSize && ~feof(f))
@@ -745,12 +751,15 @@ long off_init(  char *offfile, double xwidth, double yheight, double zdepth,
   }
 
   // read face table = [nbvertex v1 v2 vn | nbvertex v1 v2 vn ...] =============
-  MPI_MASTER(
-  printf("  Number of polygons: %ld\n", polySize);
-  );
-  normalArray= malloc(polySize*sizeof(Coords));
-  faceArray  = malloc(polySize*10*sizeof(unsigned long)); // we assume polygons have less than 9 vertices
-  DArray     = malloc(polySize*sizeof(double));
+
+    // jg-250617: disabling MPI
+    //MPI_MASTER(
+        printf("  Number of polygons: %ld\n", polySize);
+    //);
+
+  normalArray= (Coords*) malloc(polySize*sizeof(Coords));
+  faceArray  = (unsigned long*) malloc(polySize*10*sizeof(unsigned long)); // we assume polygons have less than 9 vertices
+  DArray     = (double*) malloc(polySize*sizeof(double));
   if (!normalArray || !faceArray || !DArray) return(0);
 
   // fill faces
@@ -791,7 +800,7 @@ long off_init(  char *offfile, double xwidth, double yheight, double zdepth,
   while (i<faceSize)
   {
     int    nbVertex=faceArray[i];//nb of vertices of this polygon
-    double *vertices=malloc(3*nbVertex*sizeof(double));
+    double *vertices = (double*) malloc(3*nbVertex*sizeof(double));
     int j;
 
     for (j=0; j<nbVertex; ++j)
@@ -818,21 +827,22 @@ long off_init(  char *offfile, double xwidth, double yheight, double zdepth,
     free(vertices);
   }
 
-  MPI_MASTER(
-  if (ratiox!=ratioy || ratiox!=ratioz || ratioy!=ratioz)
-    printf("Warning: Aspect ratio of the geometry %s was modified.\n"
-           "         If you want to keep the original proportions, specifiy only one of the dimensions.\n",
-           offfile);
-  if ( xwidth==0 && yheight==0 && zdepth==0 ) {
-    printf("Warning: Neither xwidth, yheight or zdepth are defined.\n"
-	   "           The file-defined (non-scaled) geometry the OFF geometry %s will be applied!\n",
-           offfile);
-  }
-  printf("  Bounding box dimensions for geometry %s:\n", offfile);
-  printf("    Length=%f (%.3f%%)\n", rangex, ratiox*100);
-  printf("    Width= %f (%.3f%%)\n", rangey, ratioy*100);
-  printf("    Depth= %f (%.3f%%)\n", rangez, ratioz*100);
-  );
+    // jg-250617: disabling MPI
+    //MPI_MASTER(
+        if (ratiox!=ratioy || ratiox!=ratioz || ratioy!=ratioz)
+        printf("Warning: Aspect ratio of the geometry %s was modified.\n"
+                "         If you want to keep the original proportions, specifiy only one of the dimensions.\n",
+                offfile);
+        if ( xwidth==0 && yheight==0 && zdepth==0 ) {
+        printf("Warning: Neither xwidth, yheight or zdepth are defined.\n"
+            "           The file-defined (non-scaled) geometry the OFF geometry %s will be applied!\n",
+                offfile);
+        }
+        printf("  Bounding box dimensions for geometry %s:\n", offfile);
+        printf("    Length=%f (%.3f%%)\n", rangex, ratiox*100);
+        printf("    Width= %f (%.3f%%)\n", rangey, ratioy*100);
+        printf("    Depth= %f (%.3f%%)\n", rangez, ratioz*100);
+    //);
 
   data->vtxArray   = vtxArray;
   data->normalArray= normalArray;
@@ -1204,7 +1214,7 @@ void off_display(off_struct data)
         i += num_indices + 1;
     }
 
-    char *json_string = malloc(estimated_size);
+    char *json_string = (char*) malloc(estimated_size);
     if (json_string == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         return;
@@ -1268,24 +1278,32 @@ void off_display(off_struct data)
         cmy /= nbVertex;
         cmz /= nbVertex;
 
+
         char pixelinfo[1024];
-	char pixelinfotmp[1024];
+    	char pixelinfotmp[1024];
         sprintf(pixelinfo, "%li,%li,%li,%i,%g,%g,%g,%g,%g,%g", data.mantidoffset+pixel, data.mantidoffset, data.mantidoffset+data.polySize-1, nbVertex, cmx, cmy, cmz, x1-cmx, y1-cmy, z1-cmz);
+
         for (j=2; j<=nbVertex; j++) {
           double x2,y2,z2;
           x2 = data.vtxArray[data.faceArray[i+j]].x;
           y2 = data.vtxArray[data.faceArray[i+j]].y;
           z2 = data.vtxArray[data.faceArray[i+j]].z;
+
+          // jg-250617: disabled mantid_pixel print, sprintf calls caused warnings
+          /*
           sprintf(pixelinfotmp, "%s,%g,%g,%g", pixelinfo, x2-cmx, y2-cmy, z2-cmz);
-	  sprintf(pixelinfo,"%s",pixelinfotmp);
+	      sprintf(pixelinfo, "%s", pixelinfotmp);
+          */
+
           if (ratio > 1 || drawthis) {
-	    mcdis_line(x1,y1,z1,x2,y2,z2);
+	        mcdis_line(x1,y1,z1,x2,y2,z2);
           }
           x1 = x2; y1 = y2; z1 = z2;
         }
         if (ratio > 1 || drawthis) {
-	    mcdis_line(x1,y1,z1,x0,y0,z0);
-          }
+    	    mcdis_line(x1,y1,z1,x0,y0,z0);
+        }
+
         if (data.mantidflag) {
           printf("MANTID_PIXEL: %s\n", pixelinfo);
           pixel++;

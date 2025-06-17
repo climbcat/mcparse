@@ -70,6 +70,8 @@ int mcncount;
 int mcrun_num;
 int mcseed;
 
+static int mcgravitation;
+static int mcdotrace;
 
 
 //
