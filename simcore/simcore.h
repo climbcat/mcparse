@@ -71,7 +71,12 @@ int mcrun_num;
 int mcseed;
 
 
+
+//
 // mccode-r 
+//
+
+
 
 
 /* In case of gcc / clang, ensure to use
@@ -522,15 +527,34 @@ char    *mcformat                  = NULL;      /* NULL (default) or a specific 
 MCDETECTOR mcdetector_out_0D(char *t, double p0, double p1, double p2, char *c, Coords pos, Rotation rot, int index);
 MCDETECTOR mcdetector_out_1D(char *t, char *xl, char *yl,
             char *xvar, double x1, double x2, long n,
-            double *p0, double *p1, double *p2, char *f, char *c, Coords pos, Rotation rot, int index);
+            double *p0, double *p1, double *p2, char *f, char *c, Coords pos, Rotation rot, int index)
+{
+    // jg-250617 TODO: implement / re-introduce
+
+    MCDETECTOR result;
+    return result;
+}
 MCDETECTOR mcdetector_out_2D(char *t, char *xl, char *yl,
             double x1, double x2, double y1, double y2, long m,
             long n, double *p0, double *p1, double *p2, char *f,
-            char *c, Coords pos, Rotation rot, int index);
+            char *c, Coords pos, Rotation rot, int index)
+{
+    // jg-250617 TODO: implement / re-introduce
+
+    MCDETECTOR result;
+    return result;
+}
 MCDETECTOR mcdetector_out_list(char *t, char *xl, char *yl,
             long m, long n,
             double *p1, char *f,
-            char *c, Coords posa, Rotation rot,char* options, int index);
+            char *c, Coords posa, Rotation rot,char* options, int index)
+{
+    // jg-250617 TODO: implement / re-introduce
+
+    MCDETECTOR result;
+    return result;
+}
+
 
 /* wrappers to output functions, that automatically set NAME and POSITION */
 #define DETECTOR_OUT(p0,p1,p2) mcdetector_out_0D(NAME_CURRENT_COMP,p0,p1,p2,NAME_CURRENT_COMP,POS_A_CURRENT_COMP,ROT_A_CURRENT_COMP,INDEX_CURRENT_COMP)

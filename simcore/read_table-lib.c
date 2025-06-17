@@ -125,7 +125,7 @@ void * Table_File_List_Handler(t_Read_table_file_actions action, void *item, voi
 *********************************************/
 t_Table *Table_File_List_find(char *name, int block, int offset){
     int vars[2]={block,offset};
-    t_Read_table_file_item *item = Table_File_List_Handler(FIND,name, vars);
+    t_Read_table_file_item *item = (t_Read_table_file_item*) Table_File_List_Handler(FIND,name, vars);
     if (item == NULL){
         return NULL;
     }else{
@@ -166,7 +166,7 @@ void *Table_File_List_store(t_Table *tab){
 
   FILE *Open_File(char *File, const char *Mode, char *Path)
   {
-    char path[1024];
+    char path[2 * 1024];
     FILE *hfile = NULL;
     
     if (!File || File[0]=='\0')                     return(NULL);
@@ -189,7 +189,9 @@ void *Table_File_List_store(t_Table *tab){
           if (path_length) {
             strncpy(dir, instrument_source, path_length);
             dir[path_length] = '\0';
-            snprintf(path, 1024, "%s%c%s", dir, MC_PATHSEP_C, File);
+
+            // jg-250617: changed from snprintf to sprintf 
+            sprintf(path, "%s%c%s", dir, MC_PATHSEP_C, File);
             hfile = fopen(path, Mode);
           }
         }
@@ -204,29 +206,38 @@ void *Table_File_List_store(t_Table *tab){
           if (path_length) {
             strncpy(dir, instrument_exe, path_length);
             dir[path_length] = '\0';
-            snprintf(path, 1024, "%s%c%s", dir, MC_PATHSEP_C, File);
+
+            // jg-250617: changed from snprintf to sprintf 
+            sprintf(path, "%s%c%s", dir, MC_PATHSEP_C, File);
             hfile = fopen(path, Mode);
           }
         }
       }
-      if (!hfile) /* search in HOME or . */
+
+
+      // jg-250617: Disabled, as this code would only work with the official mcstas folder structure
+      /*
+      if (!hfile) // search in HOME or . 
       {
         strcpy(dir, getenv("HOME") ? getenv("HOME") : ".");
         snprintf(path, 1024, "%s%c%s", dir, MC_PATHSEP_C, File);
         hfile = fopen(path, Mode);
       }
-      if (!hfile) /* search in MCSTAS/data */
+      if (!hfile) // search in MCSTAS/data
       {
         strcpy(dir, getenv(FLAVOR_UPPER) ? getenv(FLAVOR_UPPER) : MCSTAS);
         snprintf(path, 1024, "%s%c%s%c%s", dir, MC_PATHSEP_C, "data", MC_PATHSEP_C, File);
         hfile = fopen(path, Mode);
       }
-      if (!hfile) /* search in MVCSTAS/contrib */
+      if (!hfile) // search in MVCSTAS/contrib
       {
         strcpy(dir, getenv(FLAVOR_UPPER) ? getenv(FLAVOR_UPPER) : MCSTAS);
         snprintf(path, 1024, "%s%c%s%c%s", dir, MC_PATHSEP_C, "contrib", MC_PATHSEP_C, File);
         hfile = fopen(path, Mode);
       }
+      */
+
+
       if(!hfile)
       {
         // fprintf(stderr, "Warning: Could not open input file '%s' (Open_File)\n", File);
@@ -300,10 +311,13 @@ void *Table_File_List_store(t_Table *tab){
     if ( tab_p!=NULL ){
         /*table was found in the Table_File_List*/
         *Table=*tab_p;
-        MPI_MASTER(
+        
+        
+        // jg-250617: disabling MPI
+        //MPI_MASTER(
             if(Table->quiet<1)
               printf("Reusing input file '%s' (Table_Read_Offset)\n", name);
-            );
+        //    );
         return Table->rows*Table->columns;
     }
 
@@ -311,10 +325,12 @@ void *Table_File_List_store(t_Table *tab){
     hfile = Open_File(File, "r", path);
     if (!hfile) return(-1);
     else {
-      MPI_MASTER(
+
+        // jg-250617: disabling MPI
+      //MPI_MASTER(
           if(Table->quiet<1)
             printf("Opening input file '%s' (Table_Read_Offset)\n", path);
-          );
+      //    );
     }
     
     /* read file state */
@@ -373,10 +389,13 @@ void *Table_File_List_store(t_Table *tab){
     hfile = Open_File(File, "r", path);
     if (!hfile) return(-1);
     else {
-      MPI_MASTER(
+
+        // jg-250617: disabling MPI
+      //MPI_MASTER(
           if(Table->quiet<1)
             printf("Opening input file '%s' (Table_Read, Binary)\n", path);
-      );
+      //);
+
     }
     
     /* read file state */
@@ -493,7 +512,7 @@ void *Table_File_List_store(t_Table *tab){
 
     int flag_In_array = 0;
     do { /* while (!flag_End_row_loop) */
-      char  *line=malloc(1024*CHAR_BUF_LENGTH*sizeof(char));
+      char  *line = (char*) malloc(1024*CHAR_BUF_LENGTH*sizeof(char));
       long  back_pos=0;   /* ftell start of line */
 
       back_pos = ftell(hfile);
@@ -1000,7 +1019,7 @@ double Table_Value2d(t_Table Table, double X, double Y)
     if (Table.header && strlen(Table.header)) {
       char *header;
       int  i;
-      header = malloc(80);
+      header = (char*) malloc(80);
       if (!header) return(ret);
       for (i=0; i<80; header[i++]=0);
       strncpy(header, Table.header, 75);
@@ -1113,14 +1132,14 @@ MCDETECTOR Table_Write(t_Table Table, char *file, char *xl, char *yl,
   
   if (Table.rows == 1 || Table.columns == 1) {
     detector = mcdetector_out_1D(Table.filename,
-                      xl ? xl : "", yl ? yl : "",
-                      "x", x1, x2,
+                      xl ? xl : (char*) "", yl ? yl : (char*) "",
+                      (char*) "x", x1, x2,
                       Table.rows * Table.columns,
                       NULL, Table.data, NULL,
 		      file, file, coords, rot,9999);
   } else {
     detector = mcdetector_out_2D(Table.filename,
-                      xl ? xl : "", yl ? yl : "",
+                      xl ? xl : (char*) "", yl ? yl : (char*) "",
                       x1, x2, y1, y2,
                       Table.rows, Table.columns,
                       NULL, Table.data, NULL,
