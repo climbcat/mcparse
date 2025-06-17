@@ -36,7 +36,10 @@ void PrintStdIncludes() {
     printf("#include <cstring>\n");
     printf("#include <cstdio>\n");
     printf("#include <cstddef>\n");
-    printf("struct Transform { int i; };\n\n");
+    printf("#include \"jg_baselayer.h\"\n");
+    printf("#include \"jg_cbui.h\"\n");
+    printf("#include \"simcore.h\"\n");
+    printf("#include \"simlib.h\"\n");
 }
 void PrintDefines(Component *comp) {
     for (s32 i = 0; i < comp->setting_params.len; ++i) {
@@ -75,20 +78,31 @@ void ComponentCogen(Component *comp) {
     PrintStdIncludes();
     printf("\n");
 
+    //
     // share block
 
     printf("// share block\n\n");
     StrPrint(comp->share_block);
     printf("\n\n");
 
-    // struct definition
+    //
+    // struct
+
     printf("struct %.*s {\n", comp->type.len, comp->type.str);
-    printf("    Transform t;\n");
-    printf("    Transform *parent;\n");
+    printf("    Matrix4f t;\n");
+    printf("    Matrix4f *parent;\n");
+    printf("    int index;\n");
+    printf("    char *name;\n");
+    printf("    char *type;\n");
+    printf("    Coords position_absolute;\n");
+    printf("    Coords position_relative;\n");
+    printf("    Rotation rotation_absolute;\n");
+    printf("    Rotation rotation_relative;\n");
+
     printf("\n");
     printf("    // parameters\n");
 
-    // parameters
+    // struct parameters
     for (s32 i = 0; i < comp->setting_params.len; ++i) {
         Parameter p = comp->setting_params.arr[i];
 
@@ -125,9 +139,14 @@ void ComponentCogen(Component *comp) {
     printf("};\n\n");
 
 
-    printf("%.*s Init_%.*s() {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    //
+    //  Init
+
+    printf("%.*s Init_%.*s(s32 index, char *name) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     printf("    %.*s _comp = {};\n", comp->type.len, comp->type.str);
     printf("    %.*s *comp = &_comp;\n", comp->type.len, comp->type.str);
+    printf("    comp->type = (char*) \"%.*s\";\n", comp->type.len, comp->type.str);
+    printf("    comp->name = name;\n");
     printf("\n");
     PrintDefines(comp);
     printf("    // ---------------------------\n\n");
@@ -141,7 +160,44 @@ void ComponentCogen(Component *comp) {
     printf("}\n");
 
 
-    // TODO: print out the init code
+
+    //
+    //  Trace
+
+    printf("void Trace_%.*s(%.*s *comp, Neutron *particle) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    printf("#define x particle->x\n");
+    printf("#define y particle->y\n");
+    printf("#define z particle->z\n");
+    printf("#define vx particle->vx\n");
+    printf("#define vy particle->vy\n");
+    printf("#define vz particle->vz\n");
+    printf("#define sx particle->sx\n");
+    printf("#define sy particle->sy\n");
+    printf("#define sz particle->sz\n");
+    printf("#define t particle->t\n");
+    printf("#define p particle->p\n");
+
+    printf("\n");
+    PrintDefines(comp);
+    printf("    // ---------------------------\n\n");
+
+    StrPrint(comp->trace_block);
+
+    printf("\n    // ---------------------------\n");
+    PrintUndefs(comp);
+    printf("#undef x\n");
+    printf("#undef y\n");
+    printf("#undef z\n");
+    printf("#undef vx\n");
+    printf("#undef vy\n");
+    printf("#undef vz\n");
+    printf("#undef sx\n");
+    printf("#undef sy\n");
+    printf("#undef sz\n");
+    printf("#undef t\n");
+    printf("#undef p\n");
+    printf("}\n");
+
 
 
 

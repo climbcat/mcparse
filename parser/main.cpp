@@ -209,7 +209,7 @@ int main (int argc, char **argv) {
     }
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("Usage: parser <comp_lib> <instr> | [--help --dbg --test]\n");
+        printf("Usage: parser <comp_lib> <instr> | [options]\n");
         printf("\n");
         printf("comp_lib            component files root path\n");
         printf("instr               instrument file or root path\n");
