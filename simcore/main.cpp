@@ -1,5 +1,6 @@
 #include "../lib/jg_baselayer.h"
 #include "simcore.h"
+#include "simlib.h"
 
 #include "read_table-lib.h"
 #include "read_table-lib.c"
