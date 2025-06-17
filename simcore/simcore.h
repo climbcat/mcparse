@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <ctype.h>
 
 #include <math.h>
 
@@ -70,8 +71,17 @@ int mcncount;
 int mcrun_num;
 int mcseed;
 
+
 static int mcgravitation;
 static int mcdotrace;
+long MONND_BUFSIZ = 10000000;
+
+double particle_getvar(Neutron *p, char *name, int *suc) {
+    return 0;
+}
+void* particle_getvar_void(Neutron *p, char *name, int *suc) {
+    return NULL;
+}
 
 
 //
@@ -526,7 +536,13 @@ char    *mcformat                  = NULL;      /* NULL (default) or a specific 
 
 
 /* output functions */
-MCDETECTOR mcdetector_out_0D(char *t, double p0, double p1, double p2, char *c, Coords pos, Rotation rot, int index);
+MCDETECTOR mcdetector_out_0D(char *t, double p0, double p1, double p2, char *c, Coords pos, Rotation rot, int index) {
+    // jg-250617 TODO: implement / re-introduce
+
+    MCDETECTOR result;
+    return result;
+}
+
 MCDETECTOR mcdetector_out_1D(char *t, char *xl, char *yl,
             char *xvar, double x1, double x2, long n,
             double *p0, double *p1, double *p2, char *f, char *c, Coords pos, Rotation rot, int index)
@@ -536,6 +552,7 @@ MCDETECTOR mcdetector_out_1D(char *t, char *xl, char *yl,
     MCDETECTOR result;
     return result;
 }
+
 MCDETECTOR mcdetector_out_2D(char *t, char *xl, char *yl,
             double x1, double x2, double y1, double y2, long m,
             long n, double *p0, double *p1, double *p2, char *f,
@@ -546,6 +563,19 @@ MCDETECTOR mcdetector_out_2D(char *t, char *xl, char *yl,
     MCDETECTOR result;
     return result;
 }
+
+MCDETECTOR mcdetector_out_2D_list(char *t, char *xl, char *yl,
+                  double x1, double x2, double y1, double y2,
+                  long m, long n,
+                  double *p0, double *p1, double *p2, char *f,
+		  char *c, Coords posa, Rotation rota, char* options, int index)
+{
+    // jg-250617 TODO: implement / re-introduce
+
+    MCDETECTOR result;
+    return result;
+}
+
 MCDETECTOR mcdetector_out_list(char *t, char *xl, char *yl,
             long m, long n,
             double *p1, char *f,

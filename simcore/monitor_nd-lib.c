@@ -1058,7 +1058,7 @@ void Monitor_nD_Init(MonitornD_Defines_type *DEFS,
 /* return values: 0=neutron was absorbed, -1=neutron was outside bounds, 1=neutron was measured*/
 /* ========================================================================= */
 
-int Monitor_nD_Trace(MonitornD_Defines_type *DEFS, MonitornD_Variables_type *Vars, _class_particle* _particle)
+int Monitor_nD_Trace(MonitornD_Defines_type *DEFS, MonitornD_Variables_type *Vars, Neutron* _particle)
 {
 
   double  XY=0, pp=0;
@@ -1689,7 +1689,7 @@ MCDETECTOR Monitor_nD_Save(MonitornD_Defines_type *DEFS, MonitornD_Variables_typ
         strcpy(label, Vars->Monitor_Label);
         
         detector = mcdetector_out_list(
-              label, "List of neutron events", Coord_X_Label,
+              label, (char*) "List of neutron events", Coord_X_Label,
               -Vars->Buffer_Size, Vars->Coord_Number+1,
               Vars->Mon2D_Buffer,
               fname, Vars->compcurname, Vars->compcurpos, Vars->compcurrot, Vars->option,Vars->compcurindex);
@@ -1997,10 +1997,10 @@ void Monitor_nD_McDisplay(MonitornD_Defines_type *DEFS,
     if ((!restricted && (abs(Vars->Flag_Shape) == DEFS->SHAPE_SPHERE))
     || abs(Vars->Flag_Shape) == DEFS->SHAPE_PREVIOUS)
     {
-      mcdis_magnify("");
-      mcdis_circle("xy",0,0,0,radius);
-      mcdis_circle("xz",0,0,0,radius);
-      mcdis_circle("yz",0,0,0,radius);
+      mcdis_magnify((char*) "");
+      mcdis_circle((char*) "xy",0,0,0,radius);
+      mcdis_circle((char*) "xz",0,0,0,radius);
+      mcdis_circle((char*) "yz",0,0,0,radius);
     }
     /* banana/cylinder/sphere portion */
     else
@@ -2024,7 +2024,7 @@ void Monitor_nD_McDisplay(MonitornD_Defines_type *DEFS,
       if (width < 10  && NH > 1) { width = 10;  NH=(hdiv_max-hdiv_min)/width; width=(hdiv_max-hdiv_min)/NH; }
       if (height < 10 && NV > 1) { height = 10; NV=(vdiv_max-vdiv_min)/height; height= (vdiv_max-vdiv_min)/NV; }
       
-      mcdis_magnify("xyz");
+      mcdis_magnify((char*) "xyz");
       for(ih = 0; ih < NH; ih++)
         for(iv = 0; iv < NV; iv++)
         {
@@ -2079,14 +2079,14 @@ void Monitor_nD_McDisplay(MonitornD_Defines_type *DEFS,
     else
     if (abs(Vars->Flag_Shape) == DEFS->SHAPE_DISK)
     {
-      mcdis_magnify("");
-      mcdis_circle("xy",0,0,0,radius);
+      mcdis_magnify((char*) "");
+      mcdis_circle((char*) "xy",0,0,0,radius);
     }
     /* rectangle (square) */
     else
     if (abs(Vars->Flag_Shape) == DEFS->SHAPE_SQUARE)
     {
-      mcdis_magnify("xy");
+      mcdis_magnify((char*) "xy");
       mcdis_multiline(5, (double)xmin, (double)ymin, 0.0,
              (double)xmax, (double)ymin, 0.0,
              (double)xmax, (double)ymax, 0.0,
@@ -2106,9 +2106,9 @@ void Monitor_nD_McDisplay(MonitornD_Defines_type *DEFS,
     else
     if (!restricted && ((abs(Vars->Flag_Shape) == DEFS->SHAPE_CYLIND) || (abs(Vars->Flag_Shape) == DEFS->SHAPE_BANANA)))
     {
-      mcdis_magnify("xyz");
-      mcdis_circle("xz", 0,  h/2.0, 0, radius);
-      mcdis_circle("xz", 0, -h/2.0, 0, radius);
+      mcdis_magnify((char*) "xyz");
+      mcdis_circle((char*) "xz", 0,  h/2.0, 0, radius);
+      mcdis_circle((char*) "xz", 0, -h/2.0, 0, radius);
       mcdis_line(-radius, -h/2.0, 0, -radius, +h/2.0, 0);
       mcdis_line(+radius, -h/2.0, 0, +radius, +h/2.0, 0);
       mcdis_line(0, -h/2.0, -radius, 0, +h/2.0, -radius);
@@ -2118,7 +2118,7 @@ void Monitor_nD_McDisplay(MonitornD_Defines_type *DEFS,
     /* box */
     if (abs(Vars->Flag_Shape) == DEFS->SHAPE_BOX)
     {
-      mcdis_magnify("xyz");
+      mcdis_magnify((char*) "xyz");
       mcdis_multiline(5, xmin, ymin, zmin,
                    xmax, ymin, zmin,
                    xmax, ymax, zmin,
