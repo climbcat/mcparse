@@ -123,7 +123,7 @@ MCDISPLAY
                 (double)xmax, ymin-yh, 0.0);
     }
     else {
-        circle("xy",0,0,0,radius);
+        circle((char*)"xy",0,0,0,radius);
     }
 %}
 

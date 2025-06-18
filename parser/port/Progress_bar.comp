@@ -131,7 +131,10 @@ SAVE
             "Component index [1]",
             "Intensity",
             "prof", 1, mcNUMCOMP, mcNUMCOMP-1,
-            &(instrument->counter_N[1]),&(instrument->counter_P[1]),&(instrument->counter_P2[1]),
+            
+            // jg-250618: disabled
+            //&(instrument->counter_N[1]),&(instrument->counter_P[1]),&(instrument->counter_P2[1]),
+            NULL, NULL, NULL,
             filename);
     }
 %}

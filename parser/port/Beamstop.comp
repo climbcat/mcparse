@@ -74,7 +74,7 @@ TRACE
 MCDISPLAY
 %{
     if (radius != 0)
-        circle("xy", 0, 0, 0, radius);
+        circle( (char*) "xy", 0, 0, 0, radius);
     else
         multiline(5,
             (double)xmin, (double)ymin, 0.0,

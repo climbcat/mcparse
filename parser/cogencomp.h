@@ -179,16 +179,18 @@ void ComponentCogen(Component *comp) {
     printf("    comp->type = (char*) \"%.*s\";\n", comp->type.len, comp->type.str);
     printf("    comp->name = name;\n");
     printf("\n");
-    PrintDefines(comp);
-    printf("    // ---------------------------\n\n");
+    if (comp->initalize_block.len) {
+        PrintDefines(comp);
+        printf("    // ---------------------------\n\n");
 
-    StrPrint(comp->initalize_block);
+        StrPrint(comp->initalize_block);
 
-    printf("\n    // ---------------------------\n");
-    PrintUndefs(comp);
-    printf("\n");
+        printf("\n    // ---------------------------\n");
+        PrintUndefs(comp);
+        printf("\n");
+    }
     printf("    return _comp;\n");
-    printf("}\n");
+    printf("}\n\n");
 
 
 
@@ -196,55 +198,112 @@ void ComponentCogen(Component *comp) {
     //  Trace
 
     printf("void Trace_%.*s(%.*s *comp, Neutron *particle, Instrument *instrument) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
-    printf("#define x particle->x\n");
-    printf("#define y particle->y\n");
-    printf("#define z particle->z\n");
-    printf("#define vx particle->vx\n");
-    printf("#define vy particle->vy\n");
-    printf("#define vz particle->vz\n");
-    printf("#define sx particle->sx\n");
-    printf("#define sy particle->sy\n");
-    printf("#define sz particle->sz\n");
-    printf("#define t particle->t\n");
-    printf("#define p particle->p\n");
+    if (comp->trace_block.len) {
+        printf("#define x particle->x\n");
+        printf("#define y particle->y\n");
+        printf("#define z particle->z\n");
+        printf("#define vx particle->vx\n");
+        printf("#define vy particle->vy\n");
+        printf("#define vz particle->vz\n");
+        printf("#define sx particle->sx\n");
+        printf("#define sy particle->sy\n");
+        printf("#define sz particle->sz\n");
+        printf("#define t particle->t\n");
+        printf("#define p particle->p\n");
 
-    printf("\n");
-    PrintDefines(comp);
-    printf("    // ---------------------------\n\n");
+        printf("\n");
+        PrintDefines(comp);
+        printf("    // ---------------------------\n\n");
 
-    StrPrint(comp->trace_block);
+        StrPrint(comp->trace_block);
 
-    printf("\n    // ---------------------------\n");
-    PrintUndefs(comp);
-    printf("#undef x\n");
-    printf("#undef y\n");
-    printf("#undef z\n");
-    printf("#undef vx\n");
-    printf("#undef vy\n");
-    printf("#undef vz\n");
-    printf("#undef sx\n");
-    printf("#undef sy\n");
-    printf("#undef sz\n");
-    printf("#undef t\n");
-    printf("#undef p\n");
-    printf("}\n");
+        printf("\n    // ---------------------------\n");
+        PrintUndefs(comp);
+        printf("#undef x\n");
+        printf("#undef y\n");
+        printf("#undef z\n");
+        printf("#undef vx\n");
+        printf("#undef vy\n");
+        printf("#undef vz\n");
+        printf("#undef sx\n");
+        printf("#undef sy\n");
+        printf("#undef sz\n");
+        printf("#undef t\n");
+        printf("#undef p\n");
+    }
+    printf("}\n\n");
 
     //
     //  Save
 
-    // TODO: impl.
+    printf("void Save_%.*s(%.*s *comp) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    printf("\n");
+    if (comp->save_block.len) {
+        PrintDefines(comp);
+        printf("    // ---------------------------\n\n");
 
+        StrPrint(comp->save_block);
+
+        printf("\n    // ---------------------------\n");
+        PrintUndefs(comp);
+    }
+    printf("}\n\n");
 
     //
     //  Finally
 
-    // TODO: impl.
+    printf("void Finally_%.*s(%.*s *comp) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    printf("\n");
+    if (comp->finally_block.len) {
+        PrintDefines(comp);
+        printf("    // ---------------------------\n\n");
 
+        StrPrint(comp->finally_block);
+
+        printf("\n    // ---------------------------\n");
+        PrintUndefs(comp);
+    }
+    printf("}\n\n");
 
     //
     //  Display
 
-    // TODO: impl.
+    printf("void Display_%.*s(%.*s *comp) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    if (comp->display_block.len) {
+        printf("#define magnify mcdis_magnify\n");
+        printf("#define line mcdis_line\n");
+        printf("#define dashed_line mcdis_dashed_line\n");
+        printf("#define multiline mcdis_multiline\n");
+        printf("#define rectangle mcdis_rectangle\n");
+        printf("#define box mcdis_box\n");
+        printf("#define circle mcdis_circle\n");
+        printf("#define Circle mcdis_Circle\n");
+        printf("#define cylinder mcdis_cylinder\n");
+        printf("#define cone mcdis_cone\n");
+        printf("#define sphere mcdis_sphere\n");
+        printf("\n");
+
+        PrintDefines(comp);
+        printf("    // ---------------------------\n\n");
+
+        StrPrint(comp->display_block);
+
+        printf("\n    // ---------------------------\n");
+        PrintUndefs(comp);
+        printf("\n");
+        printf("#undef magnify\n");
+        printf("#undef line\n");
+        printf("#undef dashed_line\n");
+        printf("#undef multiline\n");
+        printf("#undef rectangle\n");
+        printf("#undef box\n");
+        printf("#undef circle\n");
+        printf("#undef Circle\n");
+        printf("#undef cylinder\n");
+        printf("#undef cone\n");
+        printf("#undef sphere\n");
+    }
+    printf("}\n\n");
 
 
     // close header guard

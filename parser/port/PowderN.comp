@@ -1250,16 +1250,16 @@ MCDISPLAY
     {
 
         if (line_info.shape == 0) { /* cyl */
-            circle("xz", 0,  yheight/2.0, 0, radius);
-            circle("xz", 0, -yheight/2.0, 0, radius);
+            circle((char*) "xz", 0,  yheight/2.0, 0, radius);
+            circle((char*)"xz", 0, -yheight/2.0, 0, radius);
             line(-radius, -yheight/2.0, 0, -radius, +yheight/2.0, 0);
             line(+radius, -yheight/2.0, 0, +radius, +yheight/2.0, 0);
             line(0, -yheight/2.0, -radius, 0, +yheight/2.0, -radius);
             line(0, -yheight/2.0, +radius, 0, +yheight/2.0, +radius);
             if (thickness) {
                 double radius_i=radius-thickness;
-                circle("xz", 0,  yheight/2.0, 0, radius_i);
-                circle("xz", 0, -yheight/2.0, 0, radius_i);
+                circle((char*)"xz", 0,  yheight/2.0, 0, radius_i);
+                circle((char*)"xz", 0, -yheight/2.0, 0, radius_i);
                 line(-radius_i, -yheight/2.0, 0, -radius_i, +yheight/2.0, 0);
                 line(+radius_i, -yheight/2.0, 0, +radius_i, +yheight/2.0, 0);
                 line(0, -yheight/2.0, -radius_i, 0, +yheight/2.0, -radius_i);
@@ -1312,13 +1312,13 @@ MCDISPLAY
         }
         if (line_info.shape == 2) { /* sphere */
             if (line_info.radius_i) {
-                circle("xy",0,0,0,line_info.radius_i);
-                circle("xz",0,0,0,line_info.radius_i);
-                circle("yz",0,0,0,line_info.radius_i);
+                circle((char*)"xy",0,0,0,line_info.radius_i);
+                circle((char*)"xz",0,0,0,line_info.radius_i);
+                circle((char*)"yz",0,0,0,line_info.radius_i);
             }
-            circle("xy",0,0,0,radius);
-            circle("xz",0,0,0,radius);
-            circle("yz",0,0,0,radius);
+            circle((char*)"xy",0,0,0,radius);
+            circle((char*)"xz",0,0,0,radius);
+            circle((char*)"yz",0,0,0,radius);
         }
         else if (line_info.shape == 3) {	/* OFF file */
             off_display(offdata);
