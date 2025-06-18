@@ -1,7 +1,0 @@
-jg-250617: 
-
-We need to extract more stuff from the code generated files: 
-
-For now, ABSORB is only a code generated thing. There is also
-a reference in nlib/general.h which we should look into.
-

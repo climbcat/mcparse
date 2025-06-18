@@ -40,7 +40,6 @@
 * %E
 *******************************************************************************/
 
-
 DEFINE COMPONENT Slit
 
 SETTING PARAMETERS (xmin=UNSET, xmax=UNSET, ymin=UNSET, ymax=UNSET, radius=UNSET, xwidth=UNSET, yheight=UNSET)
@@ -49,13 +48,11 @@ SETTING PARAMETERS (xmin=UNSET, xmax=UNSET, ymin=UNSET, ymax=UNSET, radius=UNSET
 SHARE
 %{
 void slit_print_if(int condition, char* level, char* message, char* component){
-    if (condition)
-        fprintf(stderr, "Slit: %s: %s: %s\n", component, level, message);
-}
+    if (condition) fprintf(stderr, "Slit: %s: %s: %s\n", component, level, message);
+} 
 void slit_error_if(int condition, char* message, char* component){
     slit_print_if(condition, (char*) "Error", message, component);
-    if (condition)
-        exit(-1);
+    if (condition) exit(-1);
 }
 void slit_warning_if(int condition, char* message, char* component){
     slit_print_if(condition, (char*) "Warning", message, component);
@@ -68,34 +65,33 @@ DECLARE %{
 
 INITIALIZE
 %{
-if (is_unset(radius)) {
-    isradial=0;
-    if (all_set(3, xwidth, xmin, xmax)){
-        slit_error_if(xwidth != xmax - xmin, (char*) "specifying xwidth, xmin and xmax requires consistent parameters", NAME_CURRENT_COMP);
-    } else {
-        slit_error_if(is_unset(xwidth) && any_unset(2, xmin, xmax), (char*) "specify either xwidth or xmin & xmax", NAME_CURRENT_COMP);
+    if (is_unset(radius)) {
+        isradial = 0;
+        if (all_set(3, xwidth, xmin, xmax)){
+            slit_error_if(xwidth != xmax - xmin, (char*) "specifying xwidth, xmin and xmax requires consistent parameters", NAME_CURRENT_COMP);
+        } else {
+            slit_error_if(is_unset(xwidth) && any_unset(2, xmin, xmax), (char*) "specify either xwidth or xmin & xmax", NAME_CURRENT_COMP);
+        }
+        if (all_set(3, yheight, ymin, ymax)){
+            slit_error_if(yheight != ymax - ymin, (char*) "specifying yheight, ymin and ymax requires consistent parameters", NAME_CURRENT_COMP);
+        } else {
+            slit_error_if(is_unset(yheight) && any_unset(2, ymin, ymax), (char*) "specify either yheight or ymin & ymax", NAME_CURRENT_COMP);
+        }
+        if (is_unset(xmin)) { // xmax also unset but xwidth *is* set
+            xmax = xwidth/2;
+            xmin = -xmax;
+        }
+        if (is_unset(ymin)) { // ymax also unset but yheight *is* set
+            ymax = yheight/2;
+            ymin = -ymax;
+        }
+        slit_warning_if(xmin == xmax || ymin == ymax, (char*) "Running with CLOSED rectangular slit - is this intentional?", NAME_CURRENT_COMP);
     }
-    if (all_set(3, yheight, ymin, ymax)){
-        slit_error_if(yheight != ymax - ymin, (char*) "specifying yheight, ymin and ymax requires consistent parameters", NAME_CURRENT_COMP);
-    } else {
-        slit_error_if(is_unset(yheight) && any_unset(2, ymin, ymax), (char*) "specify either yheight or ymin & ymax", NAME_CURRENT_COMP);
+    else {
+        isradial=1;
+        slit_error_if(any_set(6, xwidth, xmin, xmax, yheight, ymin, ymax), (char*) "specify radius OR width and height parameters", NAME_CURRENT_COMP);
+        slit_warning_if(radius == 0., (char*) "Running with CLOSED radial slit - is this intentional?", NAME_CURRENT_COMP);
     }
-    if (is_unset(xmin)) { // xmax also unset but xwidth *is* set
-        xmax = xwidth/2;
-        xmin = -xmax;
-    }
-    if (is_unset(ymin)) { // ymax also unset but yheight *is* set
-        ymax = yheight/2;
-        ymin = -ymax;
-    }
-    slit_warning_if(xmin == xmax || ymin == ymax, (char*) "Running with CLOSED rectangular slit - is this intentional?", NAME_CURRENT_COMP);
-}
-else {
-    isradial=1;
-    slit_error_if(any_set(6, xwidth, xmin, xmax, yheight, ymin, ymax), 
-                    (char*) "specify radius OR width and height parameters", NAME_CURRENT_COMP);
-    slit_warning_if(radius == 0., (char*) "Running with CLOSED radial slit - is this intentional?", NAME_CURRENT_COMP);
-}
 %}
 
 TRACE
@@ -125,7 +121,8 @@ MCDISPLAY
         multiline(3, xmax+xw, (double)ymin, 0.0,
                 (double)xmax, (double)ymin, 0.0,
                 (double)xmax, ymin-yh, 0.0);
-    } else {
+    }
+    else {
         circle("xy",0,0,0,radius);
     }
 %}
