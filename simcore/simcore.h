@@ -8,8 +8,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <ctype.h>
-#include <math.h>
 
+#include <math.h>
 
 struct NeutronSmall {
     double x,y,z; /* position [m] */
@@ -70,9 +70,6 @@ FILE *siminfo_file        = NULL;
 int mcncount;
 int mcrun_num;
 int mcseed;
-
-
-// sus -> we have a member on the Neutron struct as well, and what does it even do, is it a clobal, or a void * ?
 int mcMagnet;
 
 
@@ -89,6 +86,15 @@ void* particle_getvar_void(Neutron *p, char *name, int *suc) {
 }
 
 
+// NOTE: required by certain macros s.a. POS_A_COMP_INDEX and more. We want to get rid of these ASAP.
+struct Instrument {
+    char *name; // NAME_INSTRUMENT macro
+    Coords *_position_absolute;
+    Coords *_position_relative;
+};
+
+
+// macros extracted from the mcstas cogen:
 
 #ifdef DEBUG
 #define DEBUG_INSTR() if(!mcdotrace); else { printf("INSTRUMENT:\n"); printf("Instrument '%s' (%s)\n", instrument_name, instrument_source); }
@@ -575,7 +581,13 @@ char    *mcformat                  = NULL;      /* NULL (default) or a specific 
 MCDETECTOR mcdetector_out_0D(char *t, double p0, double p1, double p2, char *c, Coords pos, Rotation rot, int index) {
     // jg-250617 TODO: implement / re-introduce
 
-    MCDETECTOR result;
+    MCDETECTOR result = {};
+    return result;
+}
+MCDETECTOR mcdetector_out_0D(const char *t, double p0, double p1, double p2, char *c, Coords pos, Rotation rot, int index) {
+    // jg-250618: const version
+
+    MCDETECTOR result = {};
     return result;
 }
 
@@ -585,7 +597,16 @@ MCDETECTOR mcdetector_out_1D(char *t, char *xl, char *yl,
 {
     // jg-250617 TODO: implement / re-introduce
 
-    MCDETECTOR result;
+    MCDETECTOR result = {};
+    return result;
+}
+MCDETECTOR mcdetector_out_1D(const char *t, const char *xl, const char *yl,
+            const char *xvar, double x1, double x2, long n,
+            double *p0, double *p1, double *p2, char *f, char *c, Coords pos, Rotation rot, int index)
+{
+    // jg-250618: const version
+
+    MCDETECTOR result = {};
     return result;
 }
 
@@ -596,7 +617,17 @@ MCDETECTOR mcdetector_out_2D(char *t, char *xl, char *yl,
 {
     // jg-250617 TODO: implement / re-introduce
 
-    MCDETECTOR result;
+    MCDETECTOR result = {};
+    return result;
+}
+MCDETECTOR mcdetector_out_2D(const char *t, const char *xl, const char *yl,
+            double x1, double x2, double y1, double y2, long m,
+            long n, double *p0, double *p1, double *p2, char *f,
+            char *c, Coords pos, Rotation rot, int index)
+{
+    // jg-250618: const version
+
+    MCDETECTOR result = {};
     return result;
 }
 
@@ -611,6 +642,17 @@ MCDETECTOR mcdetector_out_2D_list(char *t, char *xl, char *yl,
     MCDETECTOR result;
     return result;
 }
+MCDETECTOR mcdetector_out_2D_list(const char *t, const char *xl, const char *yl,
+                  double x1, double x2, double y1, double y2,
+                  long m, long n,
+                  double *p0, double *p1, double *p2, char *f,
+		  char *c, Coords posa, Rotation rota, char* options, int index)
+{
+    // jg-250618: const version
+
+    MCDETECTOR result;
+    return result;
+}
 
 MCDETECTOR mcdetector_out_list(char *t, char *xl, char *yl,
             long m, long n,
@@ -618,6 +660,16 @@ MCDETECTOR mcdetector_out_list(char *t, char *xl, char *yl,
             char *c, Coords posa, Rotation rot,char* options, int index)
 {
     // jg-250617 TODO: implement / re-introduce
+
+    MCDETECTOR result;
+    return result;
+}
+MCDETECTOR mcdetector_out_list(const char *t, const char *xl, const char *yl,
+            long m, long n,
+            double *p1, char *f,
+            char *c, Coords posa, Rotation rot,char* options, int index)
+{
+    // jg-250618: const version
 
     MCDETECTOR result;
     return result;
