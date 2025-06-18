@@ -19,6 +19,7 @@ struct Component {
     Array<StructMember> declare_members;
     Str initalize_block;
     Str trace_block;
+    Str save_block;
     Str finally_block;
     Str display_block;
 
@@ -27,6 +28,7 @@ struct Component {
     Str declare_type_copy;
     Str initalize_type_copy;
     Str trace_type_copy;
+    Str save_type_copy;
     Str finally_type_copy;
     Str display_type_copy;
 
@@ -34,6 +36,7 @@ struct Component {
     Str uservars_extend;
     Str initalize_extend;
     Str trace_extend;
+    Str save_extend;
     Str finally_extend;
     Str display_extend;
 
@@ -125,7 +128,7 @@ Component *ParseComponent(MArena *a_dest, char *text) {
             } break;
             case TOK_MCSTAS_INITIALIZE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &comp->initalize_block, &comp->initalize_type_copy, &comp->initalize_extend); } break;
             case TOK_MCSTAS_TRACE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_TRACE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
-            case TOK_MCSTAS_SAVE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->trace_block, &comp->trace_type_copy, &comp->trace_extend); } break;
+            case TOK_MCSTAS_SAVE: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_SAVE, &comp->save_block, &comp->save_type_copy, &comp->save_extend); } break;
             case TOK_MCSTAS_FINALLY: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &comp->finally_block, &comp->finally_type_copy, &comp->finally_extend); } break;
             case TOK_MCSTAS_MCDISPLAY: { block_parse = ParseCodeBlock(t, TOK_MCSTAS_MCDISPLAY, &comp->display_block, &comp->display_type_copy, &comp->display_extend); } break;
 

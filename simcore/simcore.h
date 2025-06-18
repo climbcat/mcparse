@@ -67,10 +67,13 @@ int  numipar             = 0;
 FILE *siminfo_file        = NULL;
 
 
-int mcncount;
-int mcrun_num;
-int mcseed;
-int mcMagnet;
+static int mcncount;
+static int mcrun_num;
+static int mcseed;
+static int mcMagnet;
+
+// NOTE: used to get the number of components in the instrument (used in Progress_bar.comp)
+static int mcNUMCOMP;
 
 
 static int mcallowbackprop;
@@ -91,6 +94,9 @@ struct Instrument {
     char *name; // NAME_INSTRUMENT macro
     Coords *_position_absolute;
     Coords *_position_relative;
+    int counter_N;
+    int counter_P;
+    int counter_P2;
 };
 
 

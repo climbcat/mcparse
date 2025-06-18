@@ -493,9 +493,11 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
 
 struct StructMember {
     Str type;
-    bool pointer_type;
     Str name;
     Str defval;
+    s32 array_type_sz;
+    s32 is_array_type;
+    bool is_pointer_type;
 };
 
 
@@ -519,10 +521,20 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
 
         mem->type = tok.GetValue();
         if (Optional(t, &tok, TOK_ASTERISK)) {
-            mem->pointer_type = true;
+            mem->is_pointer_type = true;
         }
         Required(t, &tok, TOK_IDENTIFIER);
         mem->name = tok.GetValue();
+
+        if (Optional(t, &tok, TOK_LSBRACK)) {
+            assert(mem->is_pointer_type == false);
+            Required(t, &tok, TOK_INT);
+            Str s_array_size = tok.GetValue();
+            mem->array_type_sz = ParseInt(s_array_size.str, s_array_size.len);
+            mem->is_array_type = true;
+            assert(mem->array_type_sz >= 0);
+            Required(t, &tok, TOK_RSBRACK);
+        }
 
         if (Optional(t, &tok, TOK_ASSIGN)) {
             OptionOfFive(t, &tok, TOK_INT, TOK_STRING, TOK_NULL, TOK_FLOAT, TOK_SCI);

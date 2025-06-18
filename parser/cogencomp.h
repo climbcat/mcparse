@@ -103,19 +103,46 @@ void ComponentCogen(Component *comp) {
     printf("    // parameters\n");
 
     // struct parameters
+    Str string_s { (char*) "string", 6 };
+    Str vector_s { (char*) "vector", 6 };
     for (s32 i = 0; i < comp->setting_params.len; ++i) {
         Parameter p = comp->setting_params.arr[i];
 
-        if (p.type.len) {
+        if (StrEqual(p.type, string_s)) {
+            printf("    char *");
+        }
+        else if (StrEqual(p.type, vector_s)) {
+            printf("    double ");
+        }
+        else if (p.type.len) {
             printf("    %.*s ", p.type.len, p.type.str);
         }
         else {
-            printf("    float ");
+            printf("    double ");
         }
-        printf("%.*s", p.name.len, p.name.str);
+
+        if (StrEqual(p.type, vector_s)) {
+            // just scan how many commas it has
+            assert(p.default_val.len > 0);
+            s32 cnt = 1;
+            for (s32 k = 0; k < p.default_val.len; ++k) {
+                if (p.default_val.str[k] == ',') {
+                    ++cnt;
+                }
+            }
+            printf("%.*s[%d]", p.name.len, p.name.str, cnt);
+        }
+        else {
+            printf("%.*s", p.name.len, p.name.str);
+        }
 
         if (p.default_val.len) {
-            printf(" = %.*s", p.default_val.len, p.default_val.str);
+            if (StrEqual(p.type, string_s)) {
+                printf(" = (char*) %.*s", p.default_val.len, p.default_val.str);
+            }
+            else {
+                printf(" = %.*s", p.default_val.len, p.default_val.str);
+            }
         }
         printf(";\n");
     }
@@ -126,10 +153,14 @@ void ComponentCogen(Component *comp) {
         StructMember m = comp->declare_members.arr[i];
 
         printf("    %.*s ", m.type.len, m.type.str);
-        if (m.pointer_type) {
+        if (m.is_pointer_type) {
             printf("*");
         }
         printf("%.*s", m.name.len, m.name.str);
+
+        if (m.is_array_type) {
+            printf("[%d]", m.array_type_sz);
+        }
 
         if (m.defval.len) {
             printf(" = %.*s", m.defval.len, m.defval.str);
@@ -142,7 +173,7 @@ void ComponentCogen(Component *comp) {
     //
     //  Init
 
-    printf("%.*s Init_%.*s(s32 index, char *name) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    printf("%.*s Init_%.*s(s32 index, char *name, Instrument *instrument) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     printf("    %.*s _comp = {};\n", comp->type.len, comp->type.str);
     printf("    %.*s *comp = &_comp;\n", comp->type.len, comp->type.str);
     printf("    comp->type = (char*) \"%.*s\";\n", comp->type.len, comp->type.str);
@@ -164,7 +195,7 @@ void ComponentCogen(Component *comp) {
     //
     //  Trace
 
-    printf("void Trace_%.*s(%.*s *comp, Neutron *particle) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    printf("void Trace_%.*s(%.*s *comp, Neutron *particle, Instrument *instrument) {\n", comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     printf("#define x particle->x\n");
     printf("#define y particle->y\n");
     printf("#define z particle->z\n");
@@ -198,7 +229,22 @@ void ComponentCogen(Component *comp) {
     printf("#undef p\n");
     printf("}\n");
 
+    //
+    //  Save
 
+    // TODO: impl.
+
+
+    //
+    //  Finally
+
+    // TODO: impl.
+
+
+    //
+    //  Display
+
+    // TODO: impl.
 
 
     // close header guard
