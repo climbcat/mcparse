@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2025 Jakob Garde
+Copyright (c) 2024 Jakob Garde
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,12 @@ SOFTWARE.
 
 
 #define BASELAYER_VERSION_MAJOR 0
-#define BASELAYER_VERSION_MINOR 1
-#define BASELAYER_VERSION_PATCH 1
+#define BASELAYER_VERSION_MINOR 2
+#define BASELAYER_VERSION_PATCH 0
 
 
-//
-//  base.h
-//
+#ifndef __BASE_H__
+#define __BASE_H__
 
 
 #pragma warning(push)
@@ -42,6 +41,7 @@ SOFTWARE.
 #pragma warning(disable : 4477)
 #pragma warning(disable : 4996)
 #pragma warning(disable : 4530)
+
 
 #include <cstdio>
 #include <cstdint>
@@ -140,6 +140,9 @@ inline u32 _strcmp(const char *dest, const char *src) {
     return 0;
 }
 inline u32 _strlen(char *str) {
+    if (!str) {
+        return 0;
+    }
     u32 i = 0;
     while (str[i] != '\0') {
         ++i;
@@ -231,6 +234,7 @@ u32 ParseInt(char *text) {
 
     return val;
 }
+
 u32 ParseInt(char *text, u32 len) {
     u32 val = 0;
     u32 multiplier = 1;
@@ -254,7 +258,6 @@ u32 ParseInt(char *text, u32 len) {
 
     return val;
 }
-
 
 f64 ParseDouble(char *str, u8 len) {
     f64 val = 0;
@@ -361,10 +364,11 @@ char *CLAGetFirstArg(int argc, char **argv) {
     return argv[1];
 }
 
+#endif
 
-//
-//  profile.h
-//
+
+#ifndef __PROFILE_H__
+#define __PROFILE_H__
 
 #define PROFILE 1
 #ifndef PROFILE
@@ -496,13 +500,14 @@ static Profiler g_prof;
 #define TimeProgram ;
 #define TimeFunction ;
 #define TimeBlock(tag) ;
+
+#endif
+
 #endif
 
 
-//
-//  memory.h
-//
-
+#ifndef __MEMORY_H__
+#define __MEMORY_H__
 
 #include <cstddef>
 #include <cstdlib>
@@ -515,12 +520,10 @@ static Profiler g_prof;
 // up alignment or compactness.
 // TODO: arena de-allocation that shrinks commited memory (useful when e.g. closing large files)
 // TODO: scratch arenas
-// TODO: be able to wrap a finite-sized arena around an array arg (could be a static array e.g.)
-// TODO: with arena_open/close, have a way to ensure enough commited space via some reserve param or such
 
 
 //
-// platform dependent impl.:
+// platform dependent:
 
 
 u64 MemoryProtect(void *from, u64 amount);
@@ -543,7 +546,6 @@ struct MArena {
 #define ARENA_RESERVE_SIZE GIGABYTE
 #define ARENA_COMMIT_CHUNK SIXTEEN_KB
 
-
 MArena ArenaCreate(u64 fixed_size = 0) {
     MArena a = {};
     a.used = 0;
@@ -563,10 +565,12 @@ MArena ArenaCreate(u64 fixed_size = 0) {
 
     return a;
 }
+
 void ArenaDestroy(MArena *a) {
     MemoryUnmap(a, a->committed);
     *a = {};
 }
+
 inline
 void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     if (a->fixed_size) {
@@ -575,8 +579,11 @@ void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     }
 
     else if (a->committed < a->used + len) {
-        u64 amount = (len / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
-        MemoryProtect(a->mem + a->committed, amount);
+        assert(a->committed >= a->used);
+        u64 diff = a->committed - a->used;
+        //u64 amount = (len / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
+        u64 amount = ( (len - diff) / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
+        MemoryProtect(a->mem + a->committed, amount );
         a->committed += amount;
     }
 
@@ -588,23 +595,38 @@ void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
 
     return result;
 }
+
 inline
 void ArenaRelease(MArena *a, u64 len) {
     assert(len <= a->used);
 
     a->used -= len;
 }
+
 inline
 void *ArenaPush(MArena *a, void *data, u32 len) {
     void *dest = ArenaAlloc(a, len);
     _memcpy(dest, data, len);
     return dest;
 }
+
 void ArenaPrint(MArena *a) {
     printf("Arena mapped/committed/used: %lu %lu %lu\n", a->mapped, a->committed, a->used);
 }
+
 void ArenaClear(MArena *a) {
     a->used = 0;
+}
+
+void ArenaEnsureSpace(MArena *a, s32 space_needed) {
+    u64 used = a->used;
+    u64 diff = a->committed - a->used;
+
+    if (diff < space_needed) {
+        // expand committed space without marking it as used
+        ArenaAlloc(a, space_needed);
+        a->used = used;
+    }
 }
 
 
@@ -774,6 +796,7 @@ struct MPoolT {
         PoolFree(&this->_p, el);
     }
 };
+
 template<class T>
 MPoolT<T> PoolCreate(u32 nblocks) {
     MPool pool_inner = PoolCreate(sizeof(T), nblocks);
@@ -887,6 +910,7 @@ struct List {
         lst[idx] = swap;
     }
 };
+
 template<class T>
 List<T> InitList(MArena *a, u32 count, bool zerod = true) {
     List<T> _lst = {};
@@ -894,6 +918,7 @@ List<T> InitList(MArena *a, u32 count, bool zerod = true) {
     _lst.lst = (T*) ArenaAlloc(a, sizeof(T) * count, zerod);
     return _lst;
 }
+
 template<class T>
 void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
     assert(a->used >= diff_T * sizeof(T));
@@ -901,6 +926,7 @@ void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
 
     a->mem -= diff_T * sizeof(T);
 }
+
 template<class T>
 List<T> ListCopy(MArena *a_dest, List<T> src) {
     List<T> dest = InitList<T>(a_dest, src.len);
@@ -1035,6 +1061,7 @@ struct Stack {
         }
     }
 };
+
 template<class T>
 Stack<T> InitStack(MArena *a, u32 cap) {
     Stack<T> stc;
@@ -1043,6 +1070,7 @@ Stack<T> InitStack(MArena *a, u32 cap) {
     stc.cap = cap;
     return stc;
 }
+
 template<class T>
 Stack<T> InitStackStatic(T *mem, u32 cap) {
     Stack<T> stc;
@@ -1203,11 +1231,9 @@ void SortBubbleU32(List<u32> arr) {
     }
 }
 
-
 void SortQuickU32() {
     // TODO: impl.
 }
-
 
 List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
     List<u32> result = InitList<u32>(a_dest, 0);
@@ -1260,13 +1286,19 @@ List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
 }
 
 
-//
-//  string.h
-//
+#endif
+
+
+#ifndef __STRING_H__
+#define __STRING_H__
+
+#include <cstdio>
+#include <cassert>
+#include <stdarg.h>
 
 
 //
-// Str and StrLst
+//  Str; length-based strings
 //
 
 
@@ -1274,6 +1306,87 @@ struct Str {
     char *str = NULL;
     u32 len = 0;
 };
+
+
+char *StrZeroTerm(MArena *a, Str s) {
+    char * result = (char*) ArenaAlloc(a, s.len + 1);
+    _memcpy(result, s.str, s.len);
+    result[s.len] = 0;
+    return result;
+}
+
+Str StrLiteral(MArena *a, const char *lit) {
+    Str s;
+    s.len = 0;
+    while (*(lit + s.len) != '\0') {
+        ++s.len;
+    }
+    s.str = (char*) ArenaAlloc(a, s.len);
+    _memcpy(s.str, lit, s.len);
+
+    return s;
+}
+
+inline void StrPrint(Str s) {
+    printf("%.*s", s.len, s.str);
+}
+
+inline void StrPrint(const char *aff, Str s, const char *suf) {
+    printf("%s%.*s%s", aff, s.len, s.str, suf);
+}
+
+inline void StrPrint(Str *s) {
+    printf("%.*s", s->len, s->str);
+}
+
+bool StrEqual(Str a, Str b) {
+    u32 i = 0;
+    u32 len = MinU32(a.len, b.len);
+    while (i < len) {
+        if (a.str[i] != b.str[i]) {
+            return false;
+        }
+        ++i;
+    }
+
+    return a.len == b.len;
+}
+
+bool StrContainsChar(Str s, char c) {
+    for (u32 i = 0; i < s.len; ++i) {
+        if (c == s.str[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+Str StrCat(MArena *arena, Str a, Str b) {
+    Str cat;
+    cat.len = a.len + b.len;
+    cat.str = (char*) ArenaAlloc(arena, cat.len);
+    _memcpy(cat.str, a.str, a.len);
+    _memcpy(cat.str + a.len, b.str, b.len);
+
+    return cat;
+}
+
+Str StrTrim(MArena *a, Str s, char t) {
+    if (s.len) {
+        if (s.str[0] == t) {
+            s.str++;
+            s.len -=1;
+        }
+        if (s.str[s.len-1] == t) {
+            s.len -=1;
+        }
+    }
+    return s;
+}
+
+
+//
+//  StrLst -> linked string list
 
 
 struct StrLst {
@@ -1292,80 +1405,12 @@ struct StrLst {
 };
 
 
-char *StrZeroTerm(MArena *a, Str s) {
-    char * result = (char*) ArenaAlloc(a, s.len + 1);
-    _memcpy(result, s.str, s.len);
-    result[s.len] = 0;
-    return result;
-}
-Str StrLiteral(MArena *a, const char *lit) {
-    Str s;
-    s.len = 0;
-    while (*(lit + s.len) != '\0') {
-        ++s.len;
-    }
-    s.str = (char*) ArenaAlloc(a, s.len);
-    _memcpy(s.str, lit, s.len);
-
-    return s;
-}
-static char str_prnt_buff[512];
-void StrPrint(const char *format, Str s) {
-    // TODO: get variadic
-    assert(1 == 0 && "not implemented");
-
-    //sprintf(str_prnt_buff, "%.*s", s.len, s.str);
-    //printf(format, str_prnt_buff);
-}
-inline void StrPrint(Str s) {
-    printf("%.*s", s.len, s.str);
-}
-inline void StrPrint(const char *aff, Str s, const char *suf) {
-    printf("%s%.*s%s", aff, s.len, s.str, suf);
-}
-inline void StrPrint(StrLst s) {
-    printf("%.*s", s.len, s.str);
-}
-inline void StrPrint(Str *s) {
-    printf("%.*s", s->len, s->str);
-}
-inline void StrPrint(StrLst *s) {
-    printf("%.*s", s->len, s->str);
-}
-bool StrEqual(Str a, Str b) {
-    u32 i = 0;
-    u32 len = MinU32(a.len, b.len);
-    while (i < len) {
-        if (a.str[i] != b.str[i]) {
-            return false;
-        }
-        ++i;
-    }
-
-    return a.len == b.len;
-}
-bool StrContainsChar(Str s, char c) {
-    for (u32 i = 0; i < s.len; ++i) {
-        if (c == s.str[i]) {
-            return true;
-        }
-    }
-    return false;
-}
-Str StrCat(MArena *arena, Str a, Str b) {
-    Str cat;
-    cat.len = a.len + b.len;
-    cat.str = (char*) ArenaAlloc(arena, cat.len);
-    _memcpy(cat.str, a.str, a.len);
-    _memcpy(cat.str + a.len, b.str, b.len);
-
-    return cat;
-}
 void StrLstSetToFirst(StrLst **lst) {
     if ((*lst)->first) {
         *lst = (*lst)->first;
     }
 }
+
 u32 StrListLen(StrLst *lst, u32 limit = -1) {
     if (lst == NULL) {
         return 0;
@@ -1379,19 +1424,22 @@ u32 StrListLen(StrLst *lst, u32 limit = -1) {
     }
     return cnt;
 }
+
 void StrLstPrint(StrLst *lst, const char *sep = "\n") {
     while (lst != NULL) {
-        StrPrint(lst); // TODO: fix
+        StrPrint(lst->GetStr()); // TODO: fix
         printf("%s", sep);
         lst = lst->next;
     }
 }
+
 StrLst *_StrLstAllocNext(MArena *a_dest) {
     static StrLst def;
     StrLst *lst = (StrLst*) ArenaPush(a_dest, &def, sizeof(StrLst));
     lst->str = (char*) ArenaAlloc(a_dest, 0);
     return lst;
 }
+
 StrLst *StrSplit(MArena *a_dest, Str base, char split) {
     StrLst *next = _StrLstAllocNext(a_dest);
     StrLst *first = next;
@@ -1425,6 +1473,7 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
     }
     return first;
 }
+
 StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
     char space = ' ';
     char quote = '"';
@@ -1504,6 +1553,7 @@ StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
     }
     return first;
 }
+
 Str StrJoin(MArena *a, StrLst *strs) {
     // TODO: we should just ArenaAlloc() every time there is a new string
 
@@ -1524,6 +1574,7 @@ Str StrJoin(MArena *a, StrLst *strs) {
 
     return join;
 }
+
 Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
     // TODO: we should just ArenaAlloc() every time there is a new string
 
@@ -1553,22 +1604,10 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
 
     return join;
 }
-Str StrTrim(MArena *a, Str s, char t) {
-    if (s.len) {
-        if (s.str[0] == t) {
-            s.str++;
-            s.len -=1;
-        }
-        if (s.str[s.len-1] == t) {
-            s.len -=1;
-        }
-    }
-    return s;
-}
 
 
 //
-// string list builder functions [another take]
+// StrLst: string list builder functions
 
 
 StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
@@ -1592,6 +1631,7 @@ StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
     }
     return lst;
 }
+
 StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
     
     // USAGE: e.g.
@@ -1601,21 +1641,22 @@ StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
 
     return StrLstPush(a, str, lst);
 }
+
 char *StrLstNext(MArena *a, StrLst **lst) {
     char *str = (*lst)->str;
     *lst = (*lst)->next;
     return str;
 }
 
-
 void StrLstPrint(StrLst lst) {
     StrLst *iter = &lst;
     do {
-        StrPrint(iter);
+        StrPrint(iter->GetStr());
         printf("\n");
     }
     while ((iter = iter->next) != NULL);
 }
+
 StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
     if (pop == NULL) {
         return NULL;
@@ -1653,6 +1694,68 @@ StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
     }
 
     return pop->first;
+}
+
+
+//
+// StrBuff: A log or similar output buffer that just extends
+
+
+struct StrBuff {
+    char *str;
+    u32 len;
+    MArena a;
+
+    Str GetStr() {
+        return Str { str, len };
+    }
+};
+
+StrBuff StrBuffInit() {
+    StrBuff buff = {};
+    buff.a = ArenaCreate();
+    buff.str = (char*) ArenaAlloc(&buff.a, 0);
+    return buff;
+}
+
+s32 StrBuffPrint1K(StrBuff *buff, const char *format, s32 cnt, ...) {
+    ArenaEnsureSpace(&buff->a, KILOBYTE);
+
+    va_list args;
+    va_start(args, cnt);
+
+    s32 len = vsnprintf(buff->str + buff->len, KILOBYTE, format, args);
+    buff->len += len;
+    buff->a.used += len;
+
+    va_end(args);
+    return len;
+}
+
+s32 StrBuffAppend(StrBuff *buff, Str put) {
+    ArenaEnsureSpace(&buff->a, put.len);
+
+    memcpy(buff->str + buff->len, put.str, put.len);
+    buff->len += put.len;
+    buff->a.used += put.len;
+
+    return put.len;
+}
+
+s32 StrBuffAppendConst(StrBuff *buff, const char* text) {
+    s32 len = strlen(text);
+    StrBuffAppend(buff, Str { (char*) text, (u32) len } );
+    return len;
+}
+
+s32 StrBuffNewLine(StrBuff *buff) {
+    return StrBuffPrint1K(buff, "\n", 1);
+}
+
+void StrBuffClear(StrBuff *buff) {
+    ArenaClear(&buff->a);
+    buff->str = (char*) ArenaAlloc(&buff->a, 0);
+    buff->len = 0;
 }
 
 
@@ -1768,6 +1871,10 @@ StrLst *StrLstPush(char *str, StrLst *after = NULL) {
     return StrLstPush(g_a_strings, str, after);
 }
 inline
+StrLst *StrLstPush(const char *str, StrLst *after = NULL) {
+    return StrLstPush(g_a_strings, (char*) str, after);
+}
+inline
 StrLst *StrLstPush(Str str, StrLst *after = NULL) {
     return StrLstPush(g_a_strings, StrZeroTerm(str), after);
 }
@@ -1780,9 +1887,11 @@ StrLst *StrLstPush(StrLst *lst, char *str) {
 }
 
 
-//
-//  hash.h
-//
+#endif
+
+
+#ifndef __HASH_H__
+#define __HASH_H__
 
 
 //
@@ -1807,6 +1916,7 @@ u64 Hash64(u64 x) {
 #else
     #define Hash Hash64
 #endif
+
 
 u64 HashStringValue(Str skey) {
     u32 key4 = 0;
@@ -1840,6 +1950,186 @@ u64 HashStringValue(const char *key) {
     }
     u64 hashval = Hash(key4);
     return hashval;
+}
+
+
+// TODO: also be a GPA?
+// TODO: if max-len key (200 chars?), storage can be an array with
+//      slot_size = sz(hdr) + 200 + sz(T), and with some tricks we can
+//      also do un-ordered delete for removal, compressing it always
+
+
+struct DictKeyVal {
+    DictKeyVal *chain;  // collision chaining
+    DictKeyVal *nxt;    // walk to next
+    DictKeyVal *prv;    // walk to prev
+    Str key;            // the full key
+    void *val;          // the value
+    u32 sz_val;
+};
+
+
+struct Dict {
+    // fixed-size values dict with string keys
+    u32 nslots;
+    u32 sz_val;
+    MArena *a_storage;
+    List<u64> slots;
+    DictKeyVal *head;
+    DictKeyVal *tail;
+    u32 ncollisions;
+    bool debug_print;
+};
+
+Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
+    Dict dct = {};
+    dct.nslots = nslots;
+    dct.sz_val = sz_val;
+
+    MArena a = ArenaCreate();
+    dct.a_storage = (MArena *) ArenaPush(&a, &a, sizeof(MArena));
+    dct.slots = InitList<u64>(dct.a_storage, nslots);
+    dct.slots.len = nslots;
+
+    return dct;
+}
+
+
+// TODO: how do we remove chained values?
+
+
+u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
+    DictKeyVal *hdr = NULL;
+    DictKeyVal *collider = NULL;
+
+    // collision or value reset
+    bool is_collision = false;
+    bool is_resetval = false;
+    if (slot_ptr != 0) {
+        assert(dct->head != NULL);
+        assert(dct->tail != NULL);
+
+        is_collision = true;
+        collider = (DictKeyVal*) slot_ptr;
+        while (true) {
+            if (StrEqual(key, collider->key)) {
+                hdr = collider;
+                is_resetval = true;
+                is_collision = false;
+            }
+            if (collider->chain == NULL) {
+                break;
+            }
+            else {
+                collider = collider->chain;
+            }
+        }
+        dct->ncollisions += is_collision;
+    }
+    if (hdr == NULL) {
+        assert(is_resetval == false);
+
+        hdr = (DictKeyVal*) ArenaAlloc(dct->a_storage, sizeof(DictKeyVal));
+    }
+
+    // fix the linked list
+    if (is_resetval) {
+        // don't change anything
+    }
+    else if (dct->head == NULL) {
+        assert(dct->tail == NULL);
+        assert(is_resetval == false);
+        assert(is_collision == false);
+
+        dct->head = hdr;
+        dct->tail = hdr;
+    }
+    else {
+        assert(dct->tail != NULL);
+        assert(dct->tail->nxt == NULL || is_resetval);
+
+        dct->tail->nxt = hdr;
+        hdr->prv = dct->tail;
+        dct->tail = hdr;
+    }
+
+    // save key and value
+    if (is_resetval) {
+        assert(sz_val == collider->sz_val && "demand the same size for reset-vals");
+        _memcpy(collider->val, val, sz_val);
+    }
+    else {
+        hdr->sz_val = sz_val;
+        hdr->key.len = key.len;
+        hdr->key.str = (char*) ArenaPush(dct->a_storage, key.str, key.len);
+        hdr->val = ArenaPush(dct->a_storage, val, sz_val);
+    }
+
+    // collision chain
+    if (is_collision) {
+        collider->chain = hdr;
+    }
+
+    // return
+    if (slot_ptr == 0) {
+        return (u64) hdr;
+    }
+    else {
+        return slot_ptr;
+    }
+}
+void DictStorageWalk(Dict *dct) {
+    DictKeyVal *kv = dct->head;
+    while (kv != NULL) {
+        printf("%s : %u\n", StrZeroTerm(kv->key), *((u32*) kv->val));
+
+        kv = kv->nxt;
+    }
+}
+
+void DictPut(Dict *dct, Str key, void *val, u32 sz = 0) {
+    assert(sz != 0 || dct->sz_val != 0);
+    if (sz == 0) {
+        sz = dct->sz_val;
+    }
+
+    u32 slot = HashStringValue(key, dct->slots.len);
+    if (dct->debug_print) {
+        printf("slot: %u\n", slot);
+    }
+
+    u64 ptr = dct->slots.lst[slot];
+    ptr = DictStoragePush(dct, key, val, sz, ptr);
+    dct->slots.lst[slot] = ptr;
+}
+inline
+void DictPut(Dict *dct, char *key, void *val, u32 sz = 0) {
+    return DictPut(dct, Str { key, _strlen(key) }, val, sz);
+}
+inline
+void DictPut(Dict *dct, const char *key, void *val, u32 sz = 0) {
+    return DictPut(dct, Str { (char*) key, _strlen( (char*) key) }, val, sz);
+}
+
+void *DictGet(Dict *dct, Str key) {
+    u32 slot = HashStringValue(key, dct->slots.len);
+    DictKeyVal *kv = (DictKeyVal *) dct->slots.lst[slot];
+
+    while (kv) {
+        if (StrEqual(key, kv->key)) {
+            return kv->val;
+        }
+        kv = kv->chain;
+    }
+    return NULL;
+}
+inline
+void *DictGet(Dict *dct, char *key) {
+    return DictGet(dct, Str { key, _strlen(key) } );
+}
+inline
+void *DictGet(Dict *dct, const char *key) {
+    return DictGet(dct, Str { (char*) key, _strlen((char*) key) } );
 }
 
 
@@ -2030,6 +2320,7 @@ bool MapRemove(HashMap *map, u64 key, void *val) {
 }
 
 
+
 //
 // random
 
@@ -2165,12 +2456,18 @@ void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar 
 }
 
 
-//
-//  utils.h
-//
+#endif
 
 
+#ifndef __UTILS_H__
+#define __UTILS_H__
+
+#include <cstdlib>
+#include <cassert>
 #include <time.h>
+
+
+#include "string.h"
 
 
 //
@@ -2189,6 +2486,7 @@ u8 *LoadFileMMAP(const char *filepath, u64 *size_bytes) {
     return LoadFileMMAP((char*) filepath, size_bytes);
 }
 StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath);
+StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true);
 StrLst *GetFilesInFolderPaths(MArena *a, const char *rootpath) {
     return GetFilesInFolderPaths(a, (char*) rootpath);
 }
@@ -2447,6 +2745,7 @@ MContext *InitBaselayer() {
     return GetContext();
 }
 
+
 void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
     if (
         BASELAYER_VERSION_MAJOR != major ||
@@ -2457,15 +2756,17 @@ void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
     }
 }
 
+
 void BaselayerPrintVersion() {
     printf("%d.%d.%d\n", BASELAYER_VERSION_MAJOR, BASELAYER_VERSION_MINOR, BASELAYER_VERSION_PATCH);
 }
 
 
+#endif
 
-//
-//  platform.h
-//
+
+#ifndef __PLATFORM_H__
+#define __PLATFORM_H__
 
 
 // platform-specific implementations of functions
@@ -2534,9 +2835,10 @@ const char *getBuild() { // courtesy of S.O.
     #define RPI 0
     #endif
 
+
     //
     //  plaf_lnx.cpp
-    //
+
 
         #include <sys/mman.h>
         #include <sys/stat.h>
@@ -2544,15 +2846,13 @@ const char *getBuild() { // courtesy of S.O.
         #include <sys/mman.h>
         #include <dirent.h>
         #include <unistd.h>
-
+        #include <cstdlib>
 
         // TODO: experiment with <x86intrin.h> alongside <sys/time.h> for the straight up __rdtsc() call
         // TODO: impl. LoadFile
 
-
         //
-        // memory.c
-
+        //  memory.h
 
         u64 MemoryProtect(void *from, u64 amount) {
             mprotect(from, amount, PROT_READ | PROT_WRITE);
@@ -2569,11 +2869,8 @@ const char *getBuild() { // courtesy of S.O.
             return ret;
         }
 
-
-
         //
         // profile.c
-
 
         u64 ReadSystemTimerMySec() {
             u64 systime;
@@ -2602,10 +2899,8 @@ const char *getBuild() { // courtesy of S.O.
             return ticks;
         }
 
-
         //
         // utils.c
-
 
         void XSleep(u32 ms) {
             usleep(1000 * ms);
@@ -2632,8 +2927,6 @@ const char *getBuild() { // courtesy of S.O.
             fclose(f);
             return data;
         }
-
-
         StrLst *GetFilesInFolderPaths(MArena *unused, char *rootpath) {
             StrLst *first = NULL;
 
@@ -2652,6 +2945,7 @@ const char *getBuild() { // courtesy of S.O.
 
                 StrLst *lst = NULL;
                 while ((dir = readdir(d)) != NULL) {
+                    // omit "." and ".."
                     if (!_strcmp(dir->d_name, ".") || !_strcmp(dir->d_name, "..")) {
                         continue;
                     }
@@ -2667,7 +2961,6 @@ const char *getBuild() { // courtesy of S.O.
             }
             return first;
         }
-
         StrLst *GetFilePaths_Rec(char *rootpath, StrLst *head = NULL, StrLst *tail = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
             struct dirent *dir_entry;
 
@@ -2745,8 +3038,7 @@ const char *getBuild() { // courtesy of S.O.
 
 
     //
-    //  plaf_lnx.cpp
-    //
+    //  plaf_win.cpp
 
 
         #define WIN32_LEAN_AND_MEAN
@@ -2756,13 +3048,8 @@ const char *getBuild() { // courtesy of S.O.
         #include <fileapi.h>
         #include <intrin.h>
 
-
-        // TODO: win impl. GetFilesInFolderPaths, LoadFile, LoadFileMMAP
-
-
         //
         // memory.h
-
 
         u64 MemoryProtect(void *from, u64 amount) {
             VirtualAlloc(from, amount, MEM_COMMIT, PAGE_READWRITE);
@@ -2783,10 +3070,8 @@ const char *getBuild() { // courtesy of S.O.
             }
         }
 
-
         //
         // profile.h
-
 
         u64 ReadSystemTimerMySec() {
             // systime (via S.O. 10905892)
@@ -2828,10 +3113,8 @@ const char *getBuild() { // courtesy of S.O.
             return rd;
         }
 
-
         //
         // utils.h
-
 
         void XSleep(u32 ms) {
             Sleep(ms);
@@ -2910,6 +3193,9 @@ const char *getBuild() { // courtesy of S.O.
 
             return first;
         }
+        StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
+            // TODO: impl.
+        }
         bool SaveFile(char *filepath, u8 *data, u32 len) {
             std::ofstream outstream(filepath, std::ios::out | std::ios::binary);
             outstream.write((const char*) data, len);
@@ -2918,7 +3204,6 @@ const char *getBuild() { // courtesy of S.O.
 
             return result;
         }
-
 
 #endif
 
@@ -2951,5 +3236,7 @@ const char *getBuild() { // courtesy of S.O.
 #endif
 
 
-
 #endif
+
+
+#endif // __JG_BASELAYER_H__
