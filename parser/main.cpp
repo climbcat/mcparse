@@ -76,6 +76,7 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print = false)
 
         if (dbg_print) printf("parsing  #%.3d: %s \n", parsed_cnt, filename);
         Component *comp = ParseComponent(a_parse, text);
+        comp->file_path = Str { filename, _strlen(filename) };
         parsed_cnt++;
 
         if (RegisterComponentType(comp, &map_comps)) {
@@ -235,7 +236,8 @@ int main (int argc, char **argv) {
 
         MapIter iter = {};
         Component *comp = (Component*) MapNextVal(&components, &iter);
-        ComponentCogen(comp);
+        StrBuff buff = StrBuffInit();
+        ComponentCogen(&buff, comp);
     }
     else {
         CLACountCheckExit_0(3, argc);
@@ -251,6 +253,7 @@ int main (int argc, char **argv) {
         HashMap components = ParseComponents(&a_work, comp_paths);
         printf("\nParsed %d Components\n", components.noccupants);
 
+        StrBuff buff = StrBuffInit();
         iter = {};
         while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
             // print component names
@@ -266,9 +269,30 @@ int main (int argc, char **argv) {
 
             // cogen components
             if (do_cogen) {
-                printf("cogen: \n");
-                ComponentCogen(comp);
+                StrBuffClear(&buff);
+                printf("Cogen: ");
+                StrPrint(comp->file_path);
+                printf("\n");
+
+                ComponentCogen(&buff, comp);
+
+                FInfo info = FInfoGet(StrZeroTerm(comp->file_path));
+                Str f_safe = StrPathBuild(info.dirname, info.basename, StrL("h"));
+                printf("Saving: ");
+                StrPrint(f_safe);
+                printf("\n");
+
+                SaveFile(StrZeroTerm(f_safe), buff.str, buff.len);
             }
+        }
+
+        if (do_cogen) {
+            printf("Meta: ");
+            StrBuffClear(&buff);
+            ComponentMetaCogen(&buff, &components);
+
+            void *data = 0;
+            SaveFile("meta_comps.h", buff.str, buff.len);
         }
 
         char *instr_path = argv[2];

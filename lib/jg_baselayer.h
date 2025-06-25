@@ -1372,14 +1372,12 @@ Str StrCat(MArena *arena, Str a, Str b) {
 }
 
 Str StrTrim(MArena *a, Str s, char t) {
-    if (s.len) {
-        if (s.str[0] == t) {
+    if (s.len && s.str[0] == t) {
             s.str++;
-            s.len -=1;
-        }
-        if (s.str[s.len-1] == t) {
-            s.len -=1;
-        }
+            s.len -= 1;
+    }
+    if (s.len && (s.str[s.len-1] == t)) {
+        s.len -= 1;
     }
     return s;
 }
@@ -2637,7 +2635,10 @@ Str StrPathBuild(Str dirname, Str basename, Str ext) {
     dirname = StrTrim(dirname, '/');
     basename = StrTrim(basename, '/');
 
-    Str path = StrCat(dirname, "/");
+    Str path = dirname;
+    if (dirname.len) {
+       path = StrCat(dirname, "/");
+    }
     path = StrCat(path, basename);
     path = StrCat(path, ".");
     path = StrCat(path, ext);

@@ -30,10 +30,7 @@ void PrintUndefs(StrBuff *b, Component *comp) {
 }
 
 
-StrBuff ComponentCogen(Component *comp) {
-    StrBuff buff = StrBuffInit();
-    StrBuff *b = &buff;
-
+void ComponentCogen(StrBuff *b, Component *comp) {
     // header guard
     StrBuffPrint1K(b, "#ifndef __%.*s__\n", 2, comp->type.len, comp->type.str);
     StrBuffPrint1K(b, "#define __%.*s__\n", 2, comp->type.len, comp->type.str);
@@ -280,12 +277,19 @@ StrBuff ComponentCogen(Component *comp) {
 
     // close header guard
     StrBuffPrint1K(b, "#endif\n", 0);
-
-    // print it all
-    StrPrint(b->GetStr());
-
-    return buff;
 }
+
+
+void ComponentMetaCogen(StrBuff *b, HashMap *components) {
+
+    MapIter iter = {};
+    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
+        StrBuffPrint1K(b, "#include \"%.*s.h\"\n", 2, comp->type.len, comp->type.str);
+
+    }
+    
+}
+
 
 
 #endif

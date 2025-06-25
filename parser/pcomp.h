@@ -3,6 +3,7 @@
 
 
 struct Component {
+    Str file_path;
     Str type;
     Str type_copy;
 
