@@ -89,11 +89,10 @@ void* particle_getvar_void(Neutron *p, char *name, int *suc) {
 }
 
 
-// NOTE: required by certain macros s.a. POS_A_COMP_INDEX and more. We want to get rid of these ASAP.
 struct Instrument {
-    char *name; // NAME_INSTRUMENT macro
-    Coords *_position_absolute;
-    Coords *_position_relative;
+    // NOTE: required by certain macros s.a. POS_A_COMP_INDEX and more. We want to get rid of these ASAP.
+    char *name; // used with: NAME_INSTRUMENT
+    Coords *_position_absolute; // used with: POS_A_COMP_INDEX
     int counter_N;
     int counter_P;
     int counter_P2;
@@ -276,7 +275,9 @@ int any_set(int n, ...);
 /* wrapper to get absolute and relative position of comp */
 /* mccomp_posa and mccomp_posr are defined in McStas generated C code */
 #define POS_A_COMP_INDEX(index) (instrument->_position_absolute[index])
-#define POS_R_COMP_INDEX(index) (instrument->_position_relative[index])
+
+// NOTE: only used so rarely (a single "vitess" component), this has been disabled
+//#define POS_R_COMP_INDEX(index) (instrument->_position_relative[index])
 
 /* setting parameters based COMP_GETPAR (returned as pointer)         */
 /* compname must be given as a string, type and par are symbols.      */
