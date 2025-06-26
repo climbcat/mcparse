@@ -145,6 +145,7 @@ void ComponentCogen(StrBuff *b, Component *comp) {
     StrBuffPrint1K(b, "    %.*s *comp = &_comp;\n", 2, comp->type.len, comp->type.str);
     StrBuffPrint1K(b, "    comp->type = (char*) \"%.*s\";\n", 2, comp->type.len, comp->type.str);
     StrBuffPrint1K(b, "    comp->name = name;\n", 0);
+    StrBuffPrint1K(b, "    comp->index = index;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
     if (comp->initalize_block.len) {
         PrintDefines(b, comp);
