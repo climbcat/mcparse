@@ -377,7 +377,10 @@ double _randtriangle(randstate_t* state);
 
 int init(void);
 int raytrace(Neutron*);
-int save(FILE *);
+int save(FILE *) {
+    // TODO: what does this function do? grep'ing into our mccode trimmed repo didn't provide any hits for a definition
+    return 1;
+}
 int finally(void);
 int display(void);
 

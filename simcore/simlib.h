@@ -3570,7 +3570,7 @@ void Monitor_nD_Init(MonitornD_Defines_type *DEFS,
     Vars->Coord_Max[0] = FLT_MAX;
 
     /* default file name is comp_name+dateID */
-    sprintf(Vars->Mon_File, "%s_%li", Vars->compcurname, t);
+    snprintf(Vars->Mon_File, 256, "%s_%li", Vars->compcurname, t);
 
     carg = 1;
     while((Flag_End == 0) && (carg < 128))
