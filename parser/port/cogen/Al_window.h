@@ -49,23 +49,18 @@ struct Al_window {
     // declares
 };
 
-
-// TODO: cogen Create_....
 Al_window Create_Al_window(s32 index, char *name) {
     Al_window _comp = {};
     Al_window *comp = &_comp;
     comp->type = (char*) "Al_window";
     comp->name = name;
-
-    // TODO: do configure default values 
-
+    comp->index = index;
 
     return _comp;
 }
 
-// TODO: alter Init_...
 void Init_Al_window(Al_window *comp, Instrument *instrument) {
-    // empty for Al_window
+
 }
 
 void Trace_Al_window(Al_window *comp, Neutron *particle, Instrument *instrument) {
@@ -176,6 +171,5 @@ void Display_Al_window(Al_window *comp) {
     #undef cone
     #undef sphere
 }
-
 
 #endif

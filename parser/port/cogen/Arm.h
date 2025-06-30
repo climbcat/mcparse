@@ -16,8 +16,6 @@
 
 
 struct Arm {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -31,17 +29,16 @@ struct Arm {
     // declares
 };
 
-
-// TODO: cogen Create_....
 Arm Create_Arm(s32 index, char *name) {
     Arm _comp = {};
     Arm *comp = &_comp;
     comp->type = (char*) "Arm";
     comp->name = name;
+    comp->index = index;
+
     return _comp;
 }
 
-// TODO: alter Init_...
 void Init_Arm(Arm *comp, Instrument *instrument) {
 
 }

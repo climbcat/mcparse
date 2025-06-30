@@ -16,8 +16,6 @@
 
 
 struct PSD_monitor {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -45,11 +43,17 @@ struct PSD_monitor {
     DArray2d PSD_p2;
 };
 
-PSD_monitor Init_PSD_monitor(s32 index, char *name, Instrument *instrument) {
+PSD_monitor Create_PSD_monitor(s32 index, char *name) {
     PSD_monitor _comp = {};
     PSD_monitor *comp = &_comp;
     comp->type = (char*) "PSD_monitor";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_PSD_monitor(PSD_monitor *comp, Instrument *instrument) {
 
     #define nx comp->nx
     #define ny comp->ny
@@ -104,7 +108,6 @@ PSD_monitor Init_PSD_monitor(s32 index, char *name, Instrument *instrument) {
     #undef PSD_p
     #undef PSD_p2
 
-    return _comp;
 }
 
 void Trace_PSD_monitor(PSD_monitor *comp, Neutron *particle, Instrument *instrument) {

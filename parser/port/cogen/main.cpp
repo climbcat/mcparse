@@ -1,9 +1,6 @@
 #include "jg_baselayer.h"
 #include "jg_cbui.h"
 
-#include "meta_comps.h"
-
-
 Str ToStr(char *s) {
     Str result = {};
     result.str = s;
@@ -11,6 +8,20 @@ Str ToStr(char *s) {
     return result;
 }
 
+#include "meta_comps.h"
+
+
+HashMap CreateComponentExamples(MArena *a_dest) {
+    s32 count = 100;
+    HashMap map = InitMap(a_dest, count * 2);
+    for (s32 i = 1; i < CT_CNT; ++i) {
+        CompType ct = (CompType) i;
+        CompMeta *cm = CreateComponent(a_dest, ct, i-1);
+        MapPut(&map, ct, cm);
+    }
+
+    return map;
+}
 
 
 void RunProgram() {

@@ -16,8 +16,6 @@
 
 
 struct PSDlin_monitor {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -45,11 +43,17 @@ struct PSDlin_monitor {
     DArray1d PSDlin_p2;
 };
 
-PSDlin_monitor Init_PSDlin_monitor(s32 index, char *name, Instrument *instrument) {
+PSDlin_monitor Create_PSDlin_monitor(s32 index, char *name) {
     PSDlin_monitor _comp = {};
     PSDlin_monitor *comp = &_comp;
     comp->type = (char*) "PSDlin_monitor";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_PSDlin_monitor(PSDlin_monitor *comp, Instrument *instrument) {
 
     #define nbins comp->nbins
     #define filename comp->filename
@@ -104,7 +108,6 @@ PSDlin_monitor Init_PSDlin_monitor(s32 index, char *name, Instrument *instrument
     #undef PSDlin_p
     #undef PSDlin_p2
 
-    return _comp;
 }
 
 void Trace_PSDlin_monitor(PSDlin_monitor *comp, Neutron *particle, Instrument *instrument) {

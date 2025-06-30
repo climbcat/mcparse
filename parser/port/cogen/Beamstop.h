@@ -16,8 +16,6 @@
 
 
 struct Beamstop {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -38,11 +36,17 @@ struct Beamstop {
     // declares
 };
 
-Beamstop Init_Beamstop(s32 index, char *name, Instrument *instrument) {
+Beamstop Create_Beamstop(s32 index, char *name) {
     Beamstop _comp = {};
     Beamstop *comp = &_comp;
     comp->type = (char*) "Beamstop";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_Beamstop(Beamstop *comp, Instrument *instrument) {
 
     #define xmin comp->xmin
     #define xmax comp->xmax
@@ -76,7 +80,6 @@ Beamstop Init_Beamstop(s32 index, char *name, Instrument *instrument) {
     #undef radius
 
 
-    return _comp;
 }
 
 void Trace_Beamstop(Beamstop *comp, Neutron *particle, Instrument *instrument) {

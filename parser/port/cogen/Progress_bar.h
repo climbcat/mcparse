@@ -16,8 +16,6 @@
 
 
 struct Progress_bar {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -40,11 +38,17 @@ struct Progress_bar {
     char infostring[64];
 };
 
-Progress_bar Init_Progress_bar(s32 index, char *name, Instrument *instrument) {
+Progress_bar Create_Progress_bar(s32 index, char *name) {
     Progress_bar _comp = {};
     Progress_bar *comp = &_comp;
     comp->type = (char*) "Progress_bar";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_Progress_bar(Progress_bar *comp, Instrument *instrument) {
 
     #define profile comp->profile
     #define percent comp->percent
@@ -83,7 +87,6 @@ Progress_bar Init_Progress_bar(s32 index, char *name, Instrument *instrument) {
     #undef CurrentTime
     #undef infostring
 
-    return _comp;
 }
 
 void Trace_Progress_bar(Progress_bar *comp, Neutron *particle, Instrument *instrument) {

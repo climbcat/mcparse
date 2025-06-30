@@ -16,8 +16,6 @@
 
 
 struct Monitor_nD {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -59,11 +57,17 @@ struct Monitor_nD {
     off_struct offdata;
 };
 
-Monitor_nD Init_Monitor_nD(s32 index, char *name, Instrument *instrument) {
+Monitor_nD Create_Monitor_nD(s32 index, char *name) {
     Monitor_nD _comp = {};
     Monitor_nD *comp = &_comp;
     comp->type = (char*) "Monitor_nD";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_Monitor_nD(Monitor_nD *comp, Instrument *instrument) {
 
     #define user1 comp->user1
     #define user2 comp->user2
@@ -270,7 +274,6 @@ Monitor_nD Init_Monitor_nD(s32 index, char *name, Instrument *instrument) {
     #undef detector
     #undef offdata
 
-    return _comp;
 }
 
 void Trace_Monitor_nD(Monitor_nD *comp, Neutron *particle, Instrument *instrument) {

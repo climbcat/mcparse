@@ -16,8 +16,6 @@
 
 
 struct Bender {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -55,11 +53,17 @@ struct Bender {
     double mWin;
 };
 
-Bender Init_Bender(s32 index, char *name, Instrument *instrument) {
+Bender Create_Bender(s32 index, char *name) {
     Bender _comp = {};
     Bender *comp = &_comp;
     comp->type = (char*) "Bender";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_Bender(Bender *comp, Instrument *instrument) {
 
     #define w comp->w
     #define h comp->h
@@ -141,7 +145,6 @@ Bender Init_Bender(s32 index, char *name, Instrument *instrument) {
     #undef bk
     #undef mWin
 
-    return _comp;
 }
 
 void Trace_Bender(Bender *comp, Neutron *particle, Instrument *instrument) {

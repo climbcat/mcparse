@@ -16,8 +16,6 @@
 
 
 struct Guide {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -44,11 +42,17 @@ struct Guide {
     int table_present;
 };
 
-Guide Init_Guide(s32 index, char *name, Instrument *instrument) {
+Guide Create_Guide(s32 index, char *name) {
     Guide _comp = {};
     Guide *comp = &_comp;
     comp->type = (char*) "Guide";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_Guide(Guide *comp, Instrument *instrument) {
 
     #define reflect comp->reflect
     #define w1 comp->w1
@@ -107,7 +111,6 @@ Guide Init_Guide(s32 index, char *name, Instrument *instrument) {
     #undef pTable
     #undef table_present
 
-    return _comp;
 }
 
 void Trace_Guide(Guide *comp, Neutron *particle, Instrument *instrument) {

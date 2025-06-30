@@ -33,7 +33,6 @@ bool RegisterInstrument(Instrument *instr, HashMap *map) {
     return name_is_unique;
 }
 
-
 HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
     MArena a_files = ArenaCreate();
 
@@ -103,13 +102,19 @@ ComponentCall *_FindByName(Array<ComponentCall> comps, Str name) {
     return NULL;
 }
 
-
 void StrCopy(Str src, Str dest) {
     assert(src.str && dest.str);
 
     for (s32 i = 0; i < MinS32( src.len, dest.len ); ++i) {
         dest.str[i] = src.str[i];
     }
+}
+
+Str ToStr(char *s) {
+    Str result = {};
+    result.str = s;
+    result.len = _strlen(s);
+    return result;
 }
 
 

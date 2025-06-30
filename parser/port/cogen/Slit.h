@@ -27,8 +27,6 @@ void slit_warning_if(int condition, char* message, char* component){
 
 
 struct Slit {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -50,11 +48,17 @@ struct Slit {
     char isradial;
 };
 
-Slit Init_Slit(s32 index, char *name, Instrument *instrument) {
+Slit Create_Slit(s32 index, char *name) {
     Slit _comp = {};
     Slit *comp = &_comp;
     comp->type = (char*) "Slit";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_Slit(Slit *comp, Instrument *instrument) {
 
     #define xmin comp->xmin
     #define xmax comp->xmax
@@ -108,7 +112,6 @@ Slit Init_Slit(s32 index, char *name, Instrument *instrument) {
 
     #undef isradial
 
-    return _comp;
 }
 
 void Trace_Slit(Slit *comp, Neutron *particle, Instrument *instrument) {

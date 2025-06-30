@@ -426,8 +426,6 @@ int calc_xsect(double v, double *qv, double *my_sv2, int count, double *sum,
 
 
 struct PowderN {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -475,11 +473,17 @@ struct PowderN {
     double tgt_z;
 };
 
-PowderN Init_PowderN(s32 index, char *name, Instrument *instrument) {
+PowderN Create_PowderN(s32 index, char *name) {
     PowderN _comp = {};
     PowderN *comp = &_comp;
     comp->type = (char*) "PowderN";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_PowderN(PowderN *comp, Instrument *instrument) {
 
     #define reflections comp->reflections
     #define geometry comp->geometry
@@ -761,7 +765,6 @@ PowderN Init_PowderN(s32 index, char *name, Instrument *instrument) {
     #undef tgt_y
     #undef tgt_z
 
-    return _comp;
 }
 
 void Trace_PowderN(PowderN *comp, Neutron *particle, Instrument *instrument) {

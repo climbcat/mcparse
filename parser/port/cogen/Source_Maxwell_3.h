@@ -24,8 +24,6 @@
 
 
 struct Source_Maxwell_3 {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -60,11 +58,17 @@ struct Source_Maxwell_3 {
     double h_source;
 };
 
-Source_Maxwell_3 Init_Source_Maxwell_3(s32 index, char *name, Instrument *instrument) {
+Source_Maxwell_3 Create_Source_Maxwell_3(s32 index, char *name) {
     Source_Maxwell_3 _comp = {};
     Source_Maxwell_3 *comp = &_comp;
     comp->type = (char*) "Source_Maxwell_3";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_Source_Maxwell_3(Source_Maxwell_3 *comp, Instrument *instrument) {
 
     #define size comp->size
     #define yheight comp->yheight
@@ -149,7 +153,6 @@ Source_Maxwell_3 Init_Source_Maxwell_3(s32 index, char *name, Instrument *instru
     #undef w_source
     #undef h_source
 
-    return _comp;
 }
 
 void Trace_Source_Maxwell_3(Source_Maxwell_3 *comp, Neutron *particle, Instrument *instrument) {

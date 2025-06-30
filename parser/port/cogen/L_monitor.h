@@ -16,8 +16,6 @@
 
 
 struct L_monitor {
-    Matrix4f t;
-    Matrix4f *parent;
     int index;
     char *name;
     char *type;
@@ -46,11 +44,17 @@ struct L_monitor {
     DArray1d L_p2;
 };
 
-L_monitor Init_L_monitor(s32 index, char *name, Instrument *instrument) {
+L_monitor Create_L_monitor(s32 index, char *name) {
     L_monitor _comp = {};
     L_monitor *comp = &_comp;
     comp->type = (char*) "L_monitor";
     comp->name = name;
+    comp->index = index;
+
+    return _comp;
+}
+
+void Init_L_monitor(L_monitor *comp, Instrument *instrument) {
 
     #define nL comp->nL
     #define filename comp->filename
@@ -107,7 +111,6 @@ L_monitor Init_L_monitor(s32 index, char *name, Instrument *instrument) {
     #undef L_p
     #undef L_p2
 
-    return _comp;
 }
 
 void Trace_L_monitor(L_monitor *comp, Neutron *particle, Instrument *instrument) {
