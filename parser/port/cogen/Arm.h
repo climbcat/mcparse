@@ -31,13 +31,19 @@ struct Arm {
     // declares
 };
 
-Arm Init_Arm(s32 index, char *name, Instrument *instrument) {
+
+// TODO: cogen Create_....
+Arm Create_Arm(s32 index, char *name, Instrument *instrument) {
     Arm _comp = {};
     Arm *comp = &_comp;
     comp->type = (char*) "Arm";
     comp->name = name;
-
     return _comp;
+}
+
+// TODO: alter Init_...
+void Init_Arm(Arm *comp, Instrument *instrument) {
+
 }
 
 void Trace_Arm(Arm *comp, Neutron *particle, Instrument *instrument) {

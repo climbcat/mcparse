@@ -4,6 +4,7 @@
 #include "meta_comps.h"
 
 
+
 void RunProgram() {
     TimeFunction;
 
@@ -11,6 +12,8 @@ void RunProgram() {
 
     s32 idx = 0;
 
+    /*
+    // FAILS: because we haven't intialized all component parameters correctly
     Al_window Al_window_comp = Init_Al_window(idx++, (char*) "al_window_01", &instr);
     Arm Arm_comp = Init_Arm(idx++, (char*) "arm_01", &instr);
     Source_Maxwell_3 Source_Maxwell_3_comp = Init_Source_Maxwell_3(idx++, (char*) "Source_Maxwell_3_01", &instr);
@@ -24,7 +27,24 @@ void RunProgram() {
     Monitor_nD Monitor_nD_comp = Init_Monitor_nD(idx++, (char*) "Monitor_nD_01", &instr);
     Guide Guide_comp = Init_Guide(idx++, (char*) "Guide_01", &instr);
     PSDlin_monitor PSDlin_monitor_comp = Init_PSDlin_monitor(idx++, (char*) "PSDlin_monitor_01", &instr);
+    */
 
+
+    MArena *a = GetContext()->a_life;
+    HashMap comps = CreateComponentExamples(a);
+
+    printf("Installed components:\n");
+    MapIter iter = {};
+    while (CompMeta *comp = (CompMeta*) MapNextVal(&comps, &iter)) {
+        printf("%d", comp->type);        
+        
+        if (comp->type_name.len) {
+            StrPrint(" -> ", comp->name, "");
+            StrPrint(" (", comp->type_name, ")");
+        }
+        printf("\n");
+    }
+    
 }
 
 

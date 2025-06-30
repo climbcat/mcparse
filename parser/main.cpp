@@ -254,8 +254,6 @@ int main (int argc, char **argv) {
         printf("\nParsed %d Components\n", components.noccupants);
 
         StrBuff buff = StrBuffInit();
-        iter = {};
-        while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
             // print component names
             if (dbg_print_names) {
                 printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
