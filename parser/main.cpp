@@ -7,10 +7,11 @@
 #include "../lib/jg_baselayer.h"
 #include "../lib/jg_cbui.h"
 #include "parsecore.h"
-#include "phelpers.h"
-#include "pcomp.h"
-#include "pinstr.h"
-#include "cogencomp.h"
+#include "parsehelpers.h"
+#include "parse_comp.h"
+#include "parse_instr.h"
+#include "cogen_comp.h"
+#include "cogen_instr.h"
 
 
 bool RegisterComponentType(Component *comp, HashMap *map) {
@@ -178,7 +179,7 @@ void CLACountCheckExit_0(int min_argc, int argc, const char *msg = "Too few args
 int main (int argc, char **argv) {
     TimeProgram;
 
-    bool dbg_print_names = false;
+    bool dbg_print_names = true;
     bool dbg_print_instr_details = false;
     bool dbg_print_comp_details = false;
     bool do_cogen = false;
@@ -191,9 +192,6 @@ int main (int argc, char **argv) {
     }
     if (CLAContainsArg("--print_instr", argc, argv)) {
         dbg_print_instr_details = true;
-    }
-    if (CLAContainsArg("--print_comp", argc, argv)) {
-        dbg_print_comp_details = true;
     }
     if (CLAContainsArg("--cogen", argc, argv)) {
         do_cogen = true;
@@ -208,26 +206,12 @@ int main (int argc, char **argv) {
         printf("--cogen             generate component code\n");
         printf("--print_names       debug print comp & instr names\n");
         printf("--print_instr       debug print instrument details\n");
-        printf("--print_comp        debug print component details\n");
         printf("--print_expr        debug print parsed C expression parameter values\n");
         printf("--test              run test functions\n");
         exit(0);
     }
     else if (CLAContainsArg("--test", argc, argv)) {
-        printf("Testing component cogen ...\n");
-
-        MArena a_tmp = ArenaCreate();
-        MArena a_work = ArenaCreate();
-        StringInit();
-
-        char *comp_lib_path = argv[1];
-        StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
-        HashMap components = ParseComponents(&a_work, comp_paths);
-
-        MapIter iter = {};
-        Component *comp = (Component*) MapNextVal(&components, &iter);
-        StrBuff buff = StrBuffInit();
-        ComponentCogen(&buff, comp);
+        // any tests code here
     }
     else {
         CLACountCheckExit_0(3, argc);
@@ -240,7 +224,7 @@ int main (int argc, char **argv) {
         char *comp_lib_path = argv[1];
 
         StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
-        HashMap components = ParseComponents(&a_work, comp_paths);
+        HashMap components = ParseComponents(&a_work, comp_paths, dbg_print_names);
         printf("\nParsed %d Components\n", components.noccupants);
 
         StrBuff buff = StrBuffInit();
@@ -251,11 +235,6 @@ int main (int argc, char **argv) {
                 printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
             }
             printf("\n");
-
-            if (dbg_print_comp_details) {
-                printf("comp print: \n");
-                ComponentPrint(comp, false, false, true, false, false);
-            }
 
             // cogen components
             if (do_cogen) {

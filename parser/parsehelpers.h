@@ -528,9 +528,13 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
 
         if (Optional(t, &tok, TOK_LSBRACK)) {
             assert(mem->is_pointer_type == false);
-            Required(t, &tok, TOK_INT);
+
+            //Required(t, &tok, TOK_INT);
+            OptionOfTwo(t, &tok, TOK_INT, TOK_IDENTIFIER);
             Str s_array_size = tok.GetValue();
-            mem->array_type_sz = ParseInt(s_array_size.str, s_array_size.len);
+            if (tok.type == TOK_INT) {
+                mem->array_type_sz = ParseInt(s_array_size.str, s_array_size.len);
+            }
             mem->is_array_type = true;
             assert(mem->array_type_sz >= 0);
             Required(t, &tok, TOK_RSBRACK);
