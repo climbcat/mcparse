@@ -102,21 +102,6 @@ ComponentCall *_FindByName(Array<ComponentCall> comps, Str name) {
     return NULL;
 }
 
-void StrCopy(Str src, Str dest) {
-    assert(src.str && dest.str);
-
-    for (s32 i = 0; i < MinS32( src.len, dest.len ); ++i) {
-        dest.str[i] = src.str[i];
-    }
-}
-
-Str ToStr(char *s) {
-    Str result = {};
-    result.str = s;
-    result.len = _strlen(s);
-    return result;
-}
-
 
 bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
     s32 max_copy_comps = 1000;

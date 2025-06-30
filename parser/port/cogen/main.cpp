@@ -1,13 +1,3 @@
-#include "jg_baselayer.h"
-#include "jg_cbui.h"
-
-Str ToStr(char *s) {
-    Str result = {};
-    result.str = s;
-    result.len = _strlen(s);
-    return result;
-}
-
 #include "meta_comps.h"
 
 
@@ -74,7 +64,7 @@ void Test() {
 
 int main (int argc, char **argv) {
     TimeProgram;
-    BaselayerAssertVersion(0, 2, 0);
+    BaselayerAssertVersion(0, 2, 1);
     CbuiAssertVersion(0, 1, 0);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {

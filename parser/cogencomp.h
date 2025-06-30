@@ -36,18 +36,6 @@ void ComponentCogen(StrBuff *b, Component *comp) {
     StrBuffPrint1K(b, "#define __%.*s__\n", 2, comp->type.len, comp->type.str);
     StrBuffPrint1K(b, "\n", 0);
 
-    // system header
-    StrBuffPrint1K(b, "// standard includes\n", 0);
-    StrBuffPrint1K(b, "#include <cstdlib>\n", 0);
-    StrBuffPrint1K(b, "#include <cstring>\n", 0);
-    StrBuffPrint1K(b, "#include <cstdio>\n", 0);
-    StrBuffPrint1K(b, "#include <cstddef>\n", 0);
-    StrBuffPrint1K(b, "#include \"jg_baselayer.h\"\n", 0);
-    StrBuffPrint1K(b, "#include \"jg_cbui.h\"\n", 0);
-    StrBuffPrint1K(b, "#include \"simcore.h\"\n", 0);
-    StrBuffPrint1K(b, "#include \"simlib.h\"\n", 0);
-    StrBuffPrint1K(b, "\n", 0);
-
     //
     // share block
 
@@ -290,6 +278,17 @@ void ComponentMetaCogen(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "#define __META_COMPS__\n\n\n", 0);
 
     // includes
+    // system header
+    StrBuffPrint1K(b, "#include <cstdlib>\n", 0);
+    StrBuffPrint1K(b, "#include <cstring>\n", 0);
+    StrBuffPrint1K(b, "#include <cstdio>\n", 0);
+    StrBuffPrint1K(b, "#include <cstddef>\n", 0);
+    StrBuffPrint1K(b, "#include \"jg_baselayer.h\"\n", 0);
+    StrBuffPrint1K(b, "#include \"jg_cbui.h\"\n", 0);
+    StrBuffPrint1K(b, "#include \"simcore.h\"\n", 0);
+    StrBuffPrint1K(b, "#include \"simlib.h\"\n", 0);
+    StrBuffPrint1K(b, "\n\n", 0);
+
     MapIter iter = {};
     while (Component *comp = (Component*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "#include \"%.*s.h\"\n", 2, comp->type.len, comp->type.str);

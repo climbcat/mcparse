@@ -2,6 +2,16 @@
 #define __META_COMPS__
 
 
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
+#include <cstddef>
+#include "jg_baselayer.h"
+#include "jg_cbui.h"
+#include "simcore.h"
+#include "simlib.h"
+
+
 #include "Al_window.h"
 #include "Arm.h"
 #include "Source_Maxwell_3.h"
