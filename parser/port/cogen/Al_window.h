@@ -51,7 +51,7 @@ struct Al_window {
 
 
 // TODO: cogen Create_....
-Al_window Create_Al_window(s32 index, char *name, Instrument *instrument) {
+Al_window Create_Al_window(s32 index, char *name) {
     Al_window _comp = {};
     Al_window *comp = &_comp;
     comp->type = (char*) "Al_window";

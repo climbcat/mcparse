@@ -33,7 +33,7 @@ struct Arm {
 
 
 // TODO: cogen Create_....
-Arm Create_Arm(s32 index, char *name, Instrument *instrument) {
+Arm Create_Arm(s32 index, char *name) {
     Arm _comp = {};
     Arm *comp = &_comp;
     comp->type = (char*) "Arm";

@@ -53,14 +53,6 @@ struct CompMeta {
 };
 
 
-Str ToStr(char *s) {
-    Str result = {};
-    result.str = s;
-    result.len = _strlen(s);
-    return result;
-}
-
-
 CompMeta *CreateComponentInstance(MArena *a_dest, CompType type, s32 index) {
     CompMeta *comp = (CompMeta*) ArenaAlloc(a_dest, sizeof(CompMeta));
     comp->t = Matrix4f_Identity();
@@ -69,7 +61,7 @@ CompMeta *CreateComponentInstance(MArena *a_dest, CompType type, s32 index) {
     switch (type) {
         case CT_Al_window: {
 
-            Al_window comp_spec = Create_Al_window(index, (char*) "Al_window_default", NULL);
+            Al_window comp_spec = Create_Al_window(index, (char*) "Al_window_default");
             comp->comp = ArenaPush(a_dest, &comp_spec, sizeof(Al_window));
             comp->type_name = ToStr(comp_spec.type);
             comp->name = ToStr(comp_spec.name);
@@ -78,7 +70,7 @@ CompMeta *CreateComponentInstance(MArena *a_dest, CompType type, s32 index) {
 
         case CT_Arm: {
 
-            Arm comp_spec = Create_Arm(index, (char*) "Arm_default", NULL);
+            Arm comp_spec = Create_Arm(index, (char*) "Arm_default");
             comp->comp = ArenaPush(a_dest, &comp_spec, sizeof(Al_window));
             comp->type_name = ToStr(comp_spec.type);
             comp->name = ToStr(comp_spec.name);
