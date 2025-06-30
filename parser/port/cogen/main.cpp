@@ -4,6 +4,14 @@
 #include "meta_comps.h"
 
 
+Str ToStr(char *s) {
+    Str result = {};
+    result.str = s;
+    result.len = _strlen(s);
+    return result;
+}
+
+
 
 void RunProgram() {
     TimeFunction;
