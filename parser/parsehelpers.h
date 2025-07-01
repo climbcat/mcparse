@@ -11,6 +11,16 @@ struct Parameter {
     Str default_val;
 };
 
+struct StructMember {
+    Str type;
+    Str name;
+    Str defval;
+    s32 array_type_sz;
+    s32 is_array_type;
+    bool is_pointer_type;
+};
+
+
 bool RequiredRVal(Tokenizer *t, Token *tok_out) {
     if (t->parse_error) return false;
 
@@ -491,16 +501,6 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
 }
 
 
-struct StructMember {
-    Str type;
-    Str name;
-    Str defval;
-    s32 array_type_sz;
-    s32 is_array_type;
-    bool is_pointer_type;
-};
-
-
 Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
     // TODO: this function could do with a rewrite
 
@@ -550,7 +550,7 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
         }
 
         if (Optional(t, &tok, TOK_ASSIGN)) {
-            OptionOfFive(t, &tok, TOK_INT, TOK_STRING, TOK_NULL, TOK_FLOAT, TOK_SCI);
+            RequiredRValOrExpression(t, &tok);
             mem->defval = tok.GetValue();
         }
 

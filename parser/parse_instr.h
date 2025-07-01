@@ -41,6 +41,7 @@ struct Instrument {
     Str name;
     Str dependency_str;
     Array<Parameter> params;
+    Array<StructMember> declare_members;
     Array<ComponentCall> comps;
     Array<Str> includes;
 
@@ -82,6 +83,13 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
         }
     }
 
+    // declare members
+
+    Required(t, &token, TOK_MCSTAS_DECLARE);
+    Required(t, &token, TOK_LPERCENTBRACE);
+    instr->declare_members = ParseMembers(a_dest, t);
+    Required(t, &token, TOK_RPERCENTBRACE);
+
 
     // TODO: code block be ordering-agnostic
     /*
@@ -93,10 +101,9 @@ Instrument *ParseInstrument(MArena *a_dest, char *text) {
     };
     */
 
-
     // code blocks
     Str _;
-    ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
+    //ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
     ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &instr->uservars_block, &_, &_);
     ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &instr->initalize_block, &_, &_);
 
