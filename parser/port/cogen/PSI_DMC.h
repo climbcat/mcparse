@@ -157,14 +157,14 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     PSD_monitor PSDbefore_guides = Create_PSD_monitor(2, (char*) "PSDbefore_guides");
     PSDbefore_guides.nx = 128;
     PSDbefore_guides.ny = 128;
-    PSDbefore_guides.filename = "PSDbefore_guides";
+    PSDbefore_guides.filename = (char*) "PSDbefore_guides";
     PSDbefore_guides.xwidth = 0.02;
     PSDbefore_guides.yheight = 0.12;
     Init_PSD_monitor(&PSDbefore_guides, instr);
 
     L_monitor l_mon_source = Create_L_monitor(3, (char*) "l_mon_source");
     l_mon_source.nL = 101;
-    l_mon_source.filename = "lmonsource.dat";
+    l_mon_source.filename = (char*) "lmonsource.dat";
     l_mon_source.xwidth = 0.02;
     l_mon_source.yheight = 0.12;
     l_mon_source.Lmin = 0;
@@ -187,7 +187,7 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     PSD_monitor PSDbefore_curve = Create_PSD_monitor(5, (char*) "PSDbefore_curve");
     PSDbefore_curve.nx = 128;
     PSDbefore_curve.ny = 128;
-    PSDbefore_curve.filename = "PSDbefore_curve";
+    PSDbefore_curve.filename = (char*) "PSDbefore_curve";
     PSDbefore_curve.xwidth = 0.02;
     PSDbefore_curve.yheight = 0.12;
     Init_PSD_monitor(&PSDbefore_curve, instr);
@@ -217,7 +217,7 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     PSD_monitor PSDafter_curve = Create_PSD_monitor(7, (char*) "PSDafter_curve");
     PSDafter_curve.nx = 128;
     PSDafter_curve.ny = 128;
-    PSDafter_curve.filename = "PSDafter_curve";
+    PSDafter_curve.filename = (char*) "PSDafter_curve";
     PSDafter_curve.xwidth = 0.02;
     PSDafter_curve.yheight = 0.12;
     Init_PSD_monitor(&PSDafter_curve, instr);
@@ -267,7 +267,7 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
 
     PSDlin_monitor ydist_fluxpos = Create_PSDlin_monitor(12, (char*) "ydist_fluxpos");
     ydist_fluxpos.nbins = 11;
-    ydist_fluxpos.filename = "ydist_fluxpos.dat";
+    ydist_fluxpos.filename = (char*) "ydist_fluxpos.dat";
     ydist_fluxpos.xwidth = 0.120;
     ydist_fluxpos.yheight = 0.02;
     Init_PSDlin_monitor(&ydist_fluxpos, instr);
@@ -275,14 +275,14 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     PSD_monitor PSD_fluxpos = Create_PSD_monitor(13, (char*) "PSD_fluxpos");
     PSD_fluxpos.nx = 100;
     PSD_fluxpos.ny = 100;
-    PSD_fluxpos.filename = "xdist_fluxposy.dat";
+    PSD_fluxpos.filename = (char*) "xdist_fluxposy.dat";
     PSD_fluxpos.xwidth = 0.02;
     PSD_fluxpos.yheight = 0.12;
     Init_PSD_monitor(&PSD_fluxpos, instr);
 
     PSDlin_monitor xdist_flux_pos = Create_PSDlin_monitor(14, (char*) "xdist_flux_pos");
     xdist_flux_pos.nbins = 11;
-    xdist_flux_pos.filename = "xdist_fluxpos.dat";
+    xdist_flux_pos.filename = (char*) "xdist_fluxpos.dat";
     xdist_flux_pos.xwidth = 0.020;
     xdist_flux_pos.yheight = 0.12;
     Init_PSDlin_monitor(&xdist_flux_pos, instr);
@@ -290,7 +290,7 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     PSD_monitor PSD_fluxposB = Create_PSD_monitor(15, (char*) "PSD_fluxposB");
     PSD_fluxposB.nx = 100;
     PSD_fluxposB.ny = 100;
-    PSD_fluxposB.filename = "PSD_fluxposB.dat";
+    PSD_fluxposB.filename = (char*) "PSD_fluxposB.dat";
     PSD_fluxposB.xwidth = 0.02;
     PSD_fluxposB.yheight = 0.12;
     Init_PSD_monitor(&PSD_fluxposB, instr);
@@ -314,7 +314,7 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     lambda_in.Lmin = 0;
     lambda_in.Lmax = 2*spec->lambda;
     lambda_in.nL = 128;
-    lambda_in.filename = "L_in.dat";
+    lambda_in.filename = (char*) "L_in.dat";
     Init_L_monitor(&lambda_in, instr);
 
     Arm sma = Create_Arm(19, (char*) "sma");
@@ -372,7 +372,7 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     PSD_sample.ymax = 0.07;
     PSD_sample.nx = 80;
     PSD_sample.ny = 80;
-    PSD_sample.filename = "PSD_sample.dat";
+    PSD_sample.filename = (char*) "PSD_sample.dat";
     Init_PSD_monitor(&PSD_sample, instr);
 
     L_monitor lambda_sample = Create_L_monitor(27, (char*) "lambda_sample");
@@ -383,7 +383,7 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     lambda_sample.Lmin = spec->lambda-0.2;
     lambda_sample.Lmax = spec->lambda+0.2;
     lambda_sample.nL = 128;
-    lambda_sample.filename = "L_sample.dat";
+    lambda_sample.filename = (char*) "L_sample.dat";
     Init_L_monitor(&lambda_sample, instr);
 
     Arm sa_arm = Create_Arm(28, (char*) "sa_arm");
@@ -408,11 +408,11 @@ void Config_PSI_DMC(PSI_DMC *spec, Instrument *instr) {
     Monitor_nD Detector = Create_Monitor_nD(31, (char*) "Detector");
     Detector.xwidth = 3.0;
     Detector.yheight = 0.09;
-    Detector.filename = "detector.dat";
+    Detector.filename = (char*) "detector.dat";
     Detector.min = 19.9+spec->SHIFT;
     Detector.max = 99.9+spec->SHIFT;
     Detector.bins = 400;
-    Detector.options = "banana, theta";
+    Detector.options = (char*) "banana, theta";
     Init_Monitor_nD(&Detector, instr);
 }
 

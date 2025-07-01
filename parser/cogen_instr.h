@@ -134,7 +134,13 @@ void InstrumentCogen(StrBuff *b, Instrument *instr) {
         for (s32 j = 0; j < c.args.len; ++j) {
             Parameter p = c.args.arr[j];
 
-            StrBuffPrint1K(b, "    %.*s.%.*s = %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
+            if (p.default_val.len && p.default_val.str[0] == '"') {
+                // we need to cast to char* !
+                StrBuffPrint1K(b, "    %.*s.%.*s = (char*) %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
+            }
+            else {
+                StrBuffPrint1K(b, "    %.*s.%.*s = %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
+            }
         }
         StrBuffPrint1K(b, "    Init_%.*s(&%.*s, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
     }
