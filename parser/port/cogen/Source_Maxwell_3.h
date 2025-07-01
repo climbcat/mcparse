@@ -1,16 +1,6 @@
 #ifndef __Source_Maxwell_3__
 #define __Source_Maxwell_3__
 
-// standard includes
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#include <cstddef>
-#include "jg_baselayer.h"
-#include "jg_cbui.h"
-#include "simcore.h"
-#include "simlib.h"
-
 // share block
 
 
