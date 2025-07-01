@@ -182,7 +182,8 @@ int main (int argc, char **argv) {
     bool dbg_print_names = true;
     bool dbg_print_instr_details = false;
     bool dbg_print_comp_details = false;
-    bool do_cogen = false;
+    bool do_cogen_components = false;
+    bool do_cogen_instruments = false;
 
     if (CLAContainsArg("--print_expr", argc, argv)) {
         dbg_print_c_expressions = true;
@@ -193,8 +194,11 @@ int main (int argc, char **argv) {
     if (CLAContainsArg("--print_instr", argc, argv)) {
         dbg_print_instr_details = true;
     }
-    if (CLAContainsArg("--cogen", argc, argv)) {
-        do_cogen = true;
+    if (CLAContainsArg("--cogen_comps", argc, argv)) {
+        do_cogen_components = true;
+    }
+    if (CLAContainsArg("--cogen_instrs", argc, argv)) {
+        do_cogen_instruments = true;
     }
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
@@ -203,7 +207,8 @@ int main (int argc, char **argv) {
         printf("comp_lib            component files root path\n");
         printf("instr               instrument file or root path\n");
         printf("--help              display help (this text)\n");
-        printf("--cogen             generate component code\n");
+        printf("--cogen_comps       generate component code\n");
+        printf("--cogen_instrs      generate instrument configuration code\n");
         printf("--print_names       debug print comp & instr names\n");
         printf("--print_instr       debug print instrument details\n");
         printf("--print_expr        debug print parsed C expression parameter values\n");
@@ -237,7 +242,7 @@ int main (int argc, char **argv) {
             printf("\n");
 
             // cogen components
-            if (do_cogen) {
+            if (do_cogen_components) {
                 StrBuffClear(&buff);
                 printf("Cogen: ");
                 StrPrint(comp->file_path);
@@ -255,7 +260,7 @@ int main (int argc, char **argv) {
             }
         }
 
-        if (do_cogen) {
+        if (do_cogen_components) {
             printf("Meta: ");
             StrBuffClear(&buff);
             ComponentMetaCogen(&buff, &components);
@@ -269,7 +274,7 @@ int main (int argc, char **argv) {
         HashMap instruments = ParseInstruments(&a_work, instr_paths);
         printf("\nParsed %d Instruments\n\n", instruments.noccupants);
 
-        // print instrument names
+        // print instruments
         iter = {};
         while (Instrument *instr = (Instrument*) MapNextVal(&instruments, &iter)) {
             bool has_error = TypeCheckInstrument(&a_tmp, instr, &components);
@@ -285,6 +290,13 @@ int main (int argc, char **argv) {
             if (dbg_print_instr_details) {
                 InstrumentPrint(instr, true, true, true);
             }
+
+            if (do_cogen_instruments) {
+                StrBuffClear(&buff);
+                InstrumentCogen(&buff, instr);
+            }
+            SaveFile("instr_gen.h", buff.str, buff.len);
         }
+
     }
 }

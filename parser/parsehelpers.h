@@ -502,6 +502,8 @@ struct StructMember {
 
 
 Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
+    // TODO: this function could do with a rewrite
+
     Array<StructMember> mems = {};
     mems.arr = (StructMember*) ArenaAlloc(a_dest, 0);
     u32 cnt = 0;
@@ -537,6 +539,14 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
             mem->is_array_type = true;
             assert(mem->array_type_sz >= 0);
             Required(t, &tok, TOK_RSBRACK);
+        }
+
+        if (Optional(t, &tok, TOK_IDENTIFIER)) {
+            // This would be a 3-word type + name s.a. "long long nparticles"
+            // Extend the type into what was previously the name, and reset the name to the latest token
+            s32 diff = (mem->name.str - mem->type.str); 
+            mem->type.len += diff + mem->name.len - mem->type.len;
+            mem->name = tok.GetValue();
         }
 
         if (Optional(t, &tok, TOK_ASSIGN)) {
