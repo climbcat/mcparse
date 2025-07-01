@@ -529,7 +529,6 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
         if (Optional(t, &tok, TOK_LSBRACK)) {
             assert(mem->is_pointer_type == false);
 
-            //Required(t, &tok, TOK_INT);
             OptionOfTwo(t, &tok, TOK_INT, TOK_IDENTIFIER);
             Str s_array_size = tok.GetValue();
             if (tok.type == TOK_INT) {
