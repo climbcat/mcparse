@@ -586,10 +586,17 @@ s32 ParseGetWordLen(char *at) {
 
     s32 result = 0;
     char c = *at;
+    char c_prev = 0;
     while (true) {
         if (c && c != ' ' && (IsAlphaOrUnderscore(c) || IsNumeric(c) || IsSciSymbol(c))) {
+            if (c_prev)
+                if ( ((c == '-') || (c == '+')) && (c_prev != 'e') && (c_prev != 'E') ) {
+                break;
+            }
+
+            c_prev = c;
             result++;
-            at ++;
+            at++;
             c = *at;
         }
         else {
@@ -601,6 +608,9 @@ s32 ParseGetWordLen(char *at) {
 
 void ParseNumeric(Tokenizer *tokenizer, Token *token)
 {
+    // TODO: would be seriously needing a re-write
+    //      We could probably use regex
+
     s32 len_was = token->len;
     token->len = ParseGetWordLen(token->text);
     tokenizer->at += token->len - len_was;
@@ -649,7 +659,6 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
         token->type = TOK_INT;
     }
 }
-
 
 Token GetToken(Tokenizer *tokenizer)
 {

@@ -24,6 +24,7 @@ void PrintUndefs(StrBuff *b, Instrument *instr) {
         StrBuffPrint1K(b, "    #undef %.*s\n", 2, m.name.len, m.name.str);
     }
 }
+void AmendInstParDefaultValue(Array<Parameter> pars);
 
 
 void InstrumentCogen(StrBuff *b, Instrument *instr) {
@@ -125,27 +126,73 @@ void InstrumentCogen(StrBuff *b, Instrument *instr) {
 
     // trace
     StrBuffPrint1K(b, "void Config_%.*s(%.*s *spec, Instrument *instr) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
-    PrintDefines(b, instr);
-    StrBuffPrint1K(b, "    ////////////////////////////////////////////////////////////////\n\n", 0);
-
     for (s32 i = 0; i < instr->comps.len; ++i) {
         ComponentCall c = instr->comps.arr[i];
         
         StrBuffPrint1K(b, "\n    %.*s %.*s = Create_%.*s(%d, (char*) \"%.*s\");\n", 9, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, i, c.name.len, c.name.str);
+        AmendInstParDefaultValue(c.args);
         for (s32 j = 0; j < c.args.len; ++j) {
             Parameter p = c.args.arr[j];
+
             StrBuffPrint1K(b, "    %.*s.%.*s = %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
         }
         StrBuffPrint1K(b, "    Init_%.*s(&%.*s, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
     }
-
-    StrBuffPrint1K(b, "\n\n    ////////////////////////////////////////////////////////////////\n", 0);
-    PrintUndefs(b, instr);
     StrBuffPrint1K(b, "}\n\n", 0);
 
     // close header guard
     StrBuffPrint1K(b, "#endif // %.*s\n", 2, instr->name.len, instr->name.str);
 }
 
+
+Str StrInsertReplace(Str src, Str amend, Str at) {
+    Str before = src;
+    before.len = (at.str - src.str);
+
+    Str after = {};
+    after.len = src.len - before.len - at.len;
+    after.str = (src.str + src.len) - after.len;
+
+    s32 len = src.len - at.len + amend.len;
+    Str result = StrAlloc(len);
+    result = StrCat(before, amend);
+    result = StrCat(result, after);
+
+    return result;
+}
+
+
+void AmendInstParDefaultValue(Array<Parameter> pars) {
+
+    char buff[200];
+    Str amend = { &buff[0], 0 };
+
+    for (s32 j = 0; j < pars.len; ++j) {
+        Parameter *p = pars.arr + j;
+
+        // first time:
+        Tokenizer t = {};
+        t.Init(p->default_val.str);
+        char *t_at0 = t.at;
+
+        while (true) {
+            Token tok = GetToken(&t);
+            if (tok.type == TOK_IDENTIFIER) {
+                Str parname = tok.GetValue();
+                Str amend = StrCat(StrL("spec->"), parname);
+                p->default_val = StrInsertReplace(p->default_val, amend, parname);
+
+                s32 t_advance = t.at - t_at0;
+                t.at = p->default_val.str;
+                t_at0 = t.at;
+                t.at += t_advance + 6;
+            }
+            if (t.at >= (p->default_val.str + p->default_val.len)) {
+                break;
+            }
+        }
+    }
+
+}
 
 #endif
