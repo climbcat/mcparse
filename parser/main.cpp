@@ -60,7 +60,7 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
     return map_instrs;
 }
 
-HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print = false) {
+HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
     MArena a_files = ArenaCreate();
 
     HashMap map_comps = InitMap(a_parse, StrListLen(fpaths) * 3);
@@ -86,7 +86,7 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print = false)
 
     if (dbg_print) {
         printf("\n");
-        printf("Parsed %d, registered %d components; total data size %lu bytes\n", parsed_cnt, registered_cnt, a_parse->used + a_files.used);
+        printf("Parsed %d components (registered %d, total data size %lu bytes)\n", parsed_cnt, registered_cnt, a_parse->used + a_files.used);
         printf("\n");
     }
 
@@ -160,8 +160,9 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
         if (comp_exists == 0) {
             has_error = true;
 
-            printf("\n    Missing component type (idx %d): ", i);
+            printf("    Missing component type (idx %d): ", i);
             StrPrint(c->type);
+            printf("\n");
         }
     }
     return has_error;
@@ -179,39 +180,13 @@ void CLACountCheckExit_0(int min_argc, int argc, const char *msg = "Too few args
 int main (int argc, char **argv) {
     TimeProgram;
 
-    bool dbg_print_names = true;
-    bool dbg_print_instr_details = false;
-    bool dbg_print_comp_details = false;
-    bool do_cogen_components = false;
-    bool do_cogen_instruments = false;
-
-    if (CLAContainsArg("--print_expr", argc, argv)) {
-        dbg_print_c_expressions = true;
-    }
-    if (CLAContainsArg("--print_names", argc, argv)) {
-        dbg_print_names = true;
-    }
-    if (CLAContainsArg("--print_instr", argc, argv)) {
-        dbg_print_instr_details = true;
-    }
-    if (CLAContainsArg("--cogen_comps", argc, argv)) {
-        do_cogen_components = true;
-    }
-    if (CLAContainsArg("--cogen_instrs", argc, argv)) {
-        do_cogen_instruments = true;
-    }
-
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("Usage: parser <comp_lib> <instr> | [options]\n");
         printf("\n");
         printf("comp_lib            component files root path\n");
         printf("instr               instrument file or root path\n");
         printf("--help              display help (this text)\n");
-        printf("--cogen_comps       generate component code\n");
-        printf("--cogen_instrs      generate instrument configuration code\n");
-        printf("--print_names       debug print comp & instr names\n");
-        printf("--print_instr       debug print instrument details\n");
-        printf("--print_expr        debug print parsed C expression parameter values\n");
+        printf("--cogen             generate code\n");
         printf("--test              run test functions\n");
         exit(0);
     }
@@ -219,83 +194,86 @@ int main (int argc, char **argv) {
         // any tests code here
     }
     else {
-        CLACountCheckExit_0(3, argc);
+        bool do_cogen = false;
+        if (CLAContainsArg("--cogen", argc, argv)) { do_cogen = true; }
 
+
+        // get input
+        char *comp_lib_path = NULL;
+        char *instr_lib_path = NULL;
+        if (CLAContainsArg("--complib", argc, argv) || CLAContainsArg("-c", argc, argv)) {
+            comp_lib_path = CLAGetArgValue("--complib", argc, argv);
+        }
+        if (CLAContainsArg("--instrlib", argc, argv) || CLAContainsArg("-i", argc, argv)) {
+            instr_lib_path = CLAGetArgValue("--instrlib", argc, argv);
+        }
+
+
+        // TODO: potentially exit with incorrect input
+
+
+        // init
         MArena a_tmp = ArenaCreate();
         MArena a_work = ArenaCreate();
         StringInit();
+        StrBuff buff = StrBuffInit();
         MapIter iter = {};
 
-        char *comp_lib_path = argv[1];
 
-        StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
-        HashMap components = ParseComponents(&a_work, comp_paths, dbg_print_names);
-        printf("\nParsed %d Components\n", components.noccupants);
+        // components
+        HashMap comp_map = {};
+        if (comp_lib_path != NULL) {
+            StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
+            comp_map = ParseComponents(&a_work, comp_paths, true);
 
-        StrBuff buff = StrBuffInit();
-        iter = {};
-        while (Component *comp = (Component*) MapNextVal(&components, &iter)) {
-            // print component names
-            if (dbg_print_names) {
-                printf("COMPONENT: "); StrPrint(comp->type); printf("\n");
+            iter = {};
+            while (Component *comp = (Component*) MapNextVal(&comp_map, &iter)) {
+
+                // cogen components
+                if (do_cogen) {
+                    // print component names
+                    StrPrint("Cogen: ", comp->type, " -> ");
+                    StrBuffClear(&buff);
+                    ComponentCogen(&buff, comp);
+
+                    FInfo info = FInfoGet(StrZeroTerm(comp->file_path));
+                    Str f_safe = StrPathBuild(info.dirname, info.basename, StrL("h"));
+                    StrPrint(f_safe);
+                    printf("\n");
+
+                    SaveFile(StrZeroTerm(f_safe), buff.str, buff.len);
+                }
             }
-            printf("\n");
-
-            // cogen components
-            if (do_cogen_components) {
+            if (do_cogen) {
+                printf("Cogen meta file -> meta_comps.h\n");
                 StrBuffClear(&buff);
-                printf("Cogen: ");
-                StrPrint(comp->file_path);
-                printf("\n");
+                ComponentMetaCogen(&buff, &comp_map);
 
-                ComponentCogen(&buff, comp);
-
-                FInfo info = FInfoGet(StrZeroTerm(comp->file_path));
-                Str f_safe = StrPathBuild(info.dirname, info.basename, StrL("h"));
-                printf("Saving: ");
-                StrPrint(f_safe);
-                printf("\n");
-
-                SaveFile(StrZeroTerm(f_safe), buff.str, buff.len);
+                void *data = 0;
+                SaveFile("meta_comps.h", buff.str, buff.len);
             }
         }
 
-        if (do_cogen_components) {
-            printf("Meta: ");
-            StrBuffClear(&buff);
-            ComponentMetaCogen(&buff, &components);
 
-            void *data = 0;
-            SaveFile("meta_comps.h", buff.str, buff.len);
-        }
+        if (instr_lib_path) {
+            StrLst *instr_paths = GetFiles(instr_lib_path, "instr", true);
+            HashMap instr_map = ParseInstruments(&a_work, instr_paths);
+            printf("\nParsed %d Instruments\n\n", instr_map.noccupants);
 
-        char *instr_path = argv[2];
-        StrLst *instr_paths = GetFiles(instr_path, "instr", true);
-        HashMap instruments = ParseInstruments(&a_work, instr_paths);
-        printf("\nParsed %d Instruments\n\n", instruments.noccupants);
+            // print instruments
+            iter = {};
+            while (Instrument *instr = (Instrument*) MapNextVal(&instr_map, &iter)) {
+                StrPrint("Type checking: ", instr->name, "\n");
+                bool has_error = TypeCheckInstrument(&a_tmp, instr, &comp_map);
+                printf("\n");
+                if (CLAContainsArg("--print_instr", argc, argv)) { InstrumentPrint(instr, true, true, true); }
 
-        // print instruments
-        iter = {};
-        while (Instrument *instr = (Instrument*) MapNextVal(&instruments, &iter)) {
-            bool has_error = TypeCheckInstrument(&a_tmp, instr, &components);
-            if (has_error == true) {
-                printf(" - ERROR");
+                if (do_cogen) {
+                    StrBuffClear(&buff);
+                    InstrumentCogen(&buff, instr);
+                }
+                SaveFile("instr_gen.h", buff.str, buff.len);
             }
-            printf("\n");
-
-            if (dbg_print_names) {
-                printf("INSTRUMENT: "); StrPrint(instr->name);
-            }
-
-            if (dbg_print_instr_details) {
-                InstrumentPrint(instr, true, true, true);
-            }
-
-            if (do_cogen_instruments) {
-                StrBuffClear(&buff);
-                InstrumentCogen(&buff, instr);
-            }
-            SaveFile("instr_gen.h", buff.str, buff.len);
         }
 
     }
