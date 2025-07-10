@@ -143,13 +143,18 @@ void InstrumentCogen(StrBuff *b, Instrument *instr) {
             }
         }
         StrBuffPrint1K(b, "    Init_%.*s(&%.*s, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
+
+        // TODO: set AT, ROT
+        StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s)\n", 6, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str);
+        if (c.rot_defined) {
+            StrBuffPrint1K(b, "    // ROT: (%.*s, %.*s, %.*s)\n", 6, c.rot_x.len, c.rot_x.str, c.rot_y.len, c.rot_y.str, c.rot_z.len, c.rot_z.str);
+        }
     }
     StrBuffPrint1K(b, "}\n\n", 0);
 
     // close header guard
     StrBuffPrint1K(b, "#endif // %.*s\n", 2, instr->name.len, instr->name.str);
 }
-
 
 Str StrInsertReplace(Str src, Str amend, Str at) {
     Str before = src;
@@ -167,12 +172,7 @@ Str StrInsertReplace(Str src, Str amend, Str at) {
     return result;
 }
 
-
 void AmendInstParDefaultValue(Array<Parameter> pars) {
-
-    char buff[200];
-    Str amend = { &buff[0], 0 };
-
     for (s32 j = 0; j < pars.len; ++j) {
         Parameter *p = pars.arr + j;
 

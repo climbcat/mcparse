@@ -181,13 +181,11 @@ int main (int argc, char **argv) {
     TimeProgram;
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("Usage: parser <comp_lib> <instr> | [options]\n");
+        printf("Usage: parser --complib <comp-lib-root-folder> --instr <instr-file> | [options]\n");
         printf("\n");
-        printf("comp_lib            component files root path\n");
-        printf("instr               instrument file or root path\n");
-        printf("--help              display help (this text)\n");
-        printf("--cogen             generate code\n");
-        printf("--test              run test functions\n");
+        printf("--help                  display help (this text)\n");
+        printf("--test                  run test functions\n");
+        printf("--cogen                 generate code\n");
         exit(0);
     }
     else if (CLAContainsArg("--test", argc, argv)) {
@@ -204,8 +202,8 @@ int main (int argc, char **argv) {
         if (CLAContainsArg("--complib", argc, argv) || CLAContainsArg("-c", argc, argv)) {
             comp_lib_path = CLAGetArgValue("--complib", argc, argv);
         }
-        if (CLAContainsArg("--instrlib", argc, argv) || CLAContainsArg("-i", argc, argv)) {
-            instr_lib_path = CLAGetArgValue("--instrlib", argc, argv);
+        if (CLAContainsArg("--instr", argc, argv) || CLAContainsArg("-i", argc, argv)) {
+            instr_lib_path = CLAGetArgValue("--instr", argc, argv);
         }
 
 
