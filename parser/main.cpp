@@ -233,12 +233,24 @@ int main (int argc, char **argv) {
                 }
             }
             if (do_cogen) {
-                printf("Cogen meta file -> meta_comps.h\n");
+                printf("\n");
                 StrBuffClear(&buff);
                 ComponentMetaCogen(&buff, &comp_map);
 
                 void *data = 0;
                 SaveFile("comps_meta.h", buff.str, buff.len);
+
+
+                // save component meta file
+
+                // TODO: should work when comp_lib_path is a file OR a folder, we need to check this
+                //      (here assuming it is a folder)
+                //Str dirpath = StrDirPath( StrL(comp_lib_path) );
+                Str dirpath = StrL(comp_lib_path);
+                Str savefile = StrSPrint("%.*s/comps_meta.h", 4, dirpath.len, dirpath.str);
+                StrPrint("Saving component meta file to: ", savefile, "\n\n");
+
+                SaveFile(StrZeroTerm(savefile), buff.str, buff.len);
             }
         }
 
@@ -261,7 +273,14 @@ int main (int argc, char **argv) {
                     InstrumentCogen(&buff, instr);
                 }
 
-                SaveFile("instr_config", buff.str, buff.len);
+                // save instrument config file
+                // TODO: should work when comp_lib_path is a file OR a folder, we need to check this
+                //      (here assuming it is a file)
+                Str dirpath = StrDirPath( StrL(instr_lib_path) );
+                Str savefile = StrSPrint("%.*s/%.*s_config.h", 4, dirpath.len, dirpath.str, instr->name.len, instr->name.str);
+                StrPrint("Saving instument config file to: ", savefile, "\n");
+
+                SaveFile(StrZeroTerm(savefile), buff.str, buff.len);
             }
         }
 

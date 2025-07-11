@@ -1303,6 +1303,32 @@ List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
 
 
 
+// CHANGE: moved up here for StrSPrint
+static MArena _g_a_strings;
+static MArena *g_a_strings;
+MArena *StringCreateArena() {
+    if (g_a_strings == NULL) {
+        _g_a_strings = ArenaCreate();
+        g_a_strings = &_g_a_strings;
+    }
+    return g_a_strings;
+}
+MArena *StringInit() {
+    return StringCreateArena();
+}
+void StringSetGlobalArena(MArena *a) {
+    g_a_strings = a;
+}
+MArena *StringGetGlobalArena() {
+    return g_a_strings;
+}
+MArena *InitStrings() {
+    return StringCreateArena();
+}
+
+
+
+
 // CHANGE
 struct Str {
     char *str;
@@ -1340,6 +1366,25 @@ inline void StrPrint(const char *aff, Str s, const char *suf) {
 inline void StrPrint(Str *s) {
     printf("%.*s", s->len, s->str);
 }
+
+
+// CHANGE
+Str StrSPrint(const char *format, s32 cnt, ...) {
+    ArenaEnsureSpace(g_a_strings, KILOBYTE);
+    Str s = {};
+    s.str = (char*) ArenaAlloc(g_a_strings, 0);
+
+    va_list args;
+    va_start(args, cnt);
+
+    s.len = vsnprintf(s.str, KILOBYTE, format, args);
+    ArenaAlloc(g_a_strings, s.len, false);
+
+    va_end(args);
+
+    return s;
+}
+
 
 bool StrEqual(Str a, Str b) {
     u32 i = 0;
@@ -1622,7 +1667,7 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
 
 
 //
-// StrLst: string list builder functions
+//  StrLst: string list builder functions
 
 
 StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
@@ -1784,33 +1829,6 @@ void StrBuffClear(StrBuff *buff) {
     ArenaClear(&buff->a);
     buff->str = (char*) ArenaAlloc(&buff->a, 0);
     buff->len = 0;
-}
-
-
-//
-//  Automated arena signatures
-
-
-static MArena _g_a_strings;
-static MArena *g_a_strings;
-MArena *StringCreateArena() {
-    if (g_a_strings == NULL) {
-        _g_a_strings = ArenaCreate();
-        g_a_strings = &_g_a_strings;
-    }
-    return g_a_strings;
-}
-MArena *StringInit() {
-    return StringCreateArena();
-}
-void StringSetGlobalArena(MArena *a) {
-    g_a_strings = a;
-}
-MArena *StringGetGlobalArena() {
-    return g_a_strings;
-}
-MArena *InitStrings() {
-    return StringCreateArena();
 }
 
 
@@ -2698,6 +2716,7 @@ Str StrExtension(Str path) {
     return StrExtension(StrZeroTerm(path));
 }
 
+// CHANGE
 Str StrDirPath(Str path) {
     assert(g_a_strings != NULL && "init strings first");
 
@@ -2710,6 +2729,11 @@ Str StrDirPath(Str path) {
         cat = StrCat(cat, "/");
         slash = slash->next;
     }
+
+    if (cat.len == 0) {
+        cat = StrL(".");
+    }
+
     return cat;
 }
 
