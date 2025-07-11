@@ -60,11 +60,11 @@ Array<Parameter> ParseComponentParams(MArena *a_dest, Tokenizer *t, TokenType pa
 }
 
 
-Component *ParseComponent(MArena *a_dest, char *text) {
+Component *ParseComponent(MArena *a_dest, Str text) {
     TimeFunction;
 
     Tokenizer tokenizer = {};
-    tokenizer.Init(text);
+    tokenizer.Init(text.str);
     Tokenizer *t = &tokenizer;
     Token token;
     Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));

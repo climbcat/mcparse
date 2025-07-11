@@ -38,6 +38,7 @@ struct ComponentCall {
 };
 
 struct Instrument {
+    Str path;
     Str name;
     Str dependency_str;
     Array<Parameter> params;
@@ -55,11 +56,11 @@ struct Instrument {
 };
 
 
-Instrument *ParseInstrument(MArena *a_dest, char *text) {
+Instrument *ParseInstrument(MArena *a_dest, Str text) {
     TimeFunction;
 
     Tokenizer tokenizer = {};
-    tokenizer.Init(text);
+    tokenizer.Init(text.str);
     Tokenizer *t = &tokenizer;
     Token token;
     Instrument *instr = (Instrument*) ArenaAlloc(a_dest, sizeof(Instrument));

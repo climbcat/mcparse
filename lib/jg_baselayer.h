@@ -1302,9 +1302,11 @@ List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
 //
 
 
+
+// CHANGE
 struct Str {
-    char *str = NULL;
-    u32 len = 0;
+    char *str;
+    u32 len;
 };
 
 
@@ -1655,11 +1657,24 @@ StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
     return StrLstPush(a, str, lst);
 }
 
+
+// CHANGE
+/*
 char *StrLstNext(MArena *a, StrLst **lst) {
     char *str = (*lst)->str;
     *lst = (*lst)->next;
     return str;
 }
+*/
+
+// CHANGE
+Str StrLstNext(StrLst **lst) {
+    Str s = (*lst)->GetStr();
+    *lst = (*lst)->next;
+    return s;
+}
+
+
 
 void StrLstPrint(StrLst lst) {
     StrLst *iter = &lst;
@@ -1891,10 +1906,14 @@ inline
 StrLst *StrLstPush(Str str, StrLst *after = NULL) {
     return StrLstPush(g_a_strings, StrZeroTerm(str), after);
 }
+
+/*
 inline
 char *StrLstNext(StrLst **lst) {
     return StrLstNext(g_a_strings, lst);
 }
+*/
+
 StrLst *StrLstPush(StrLst *lst, char *str) {
     return StrLstPush(g_a_strings, lst, str);
 }
@@ -2565,6 +2584,34 @@ void *LoadFileFSeek(MArena *a_dest, char *filepath, u32 *size = NULL) {
 void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {
     return LoadFileFSeek(a_dest, (char*) filepath, size);
 }
+
+
+
+
+// CHANGE
+void *LoadFileFSeek(MArena *a_dest, Str filepath, u32 *size = NULL) {
+    assert(filepath.len < 1024);
+    char filepath_zt[1024];
+    sprintf(filepath_zt, "%.*s", filepath.len, filepath.str);
+    filepath_zt[filepath.len] = 0;
+
+    void *data = LoadFileFSeek(a_dest, filepath_zt, size);
+    return data;
+}
+
+// CHANGE
+Str LoadTextFileFSeek(MArena *a_dest, Str filepath) {
+    char filepath_zt[1024];
+    sprintf(filepath_zt, "%.*s", filepath.len, filepath.str);
+    filepath_zt[filepath.len] = 0;
+
+    u32 size;
+    void *data = LoadFileFSeek(a_dest, filepath_zt, &size);
+    return Str { (char*) data, size };
+}
+
+
+
 
 bool SaveFile(char *filepath, u8 *data, u32 len);
 

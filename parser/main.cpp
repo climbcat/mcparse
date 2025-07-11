@@ -42,14 +42,15 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
     s32 parsed_cnt = 0;
 
     while (fpaths) {
-        char *filename = StrLstNext(&fpaths);
-        char *text = (char*) LoadFileFSeek(&a_files, filename);
-        if (text == NULL) {
+        Str filename = StrLstNext(&fpaths);
+        Str text = LoadTextFileFSeek(&a_files, filename);
+        if (text.len == 0) {
             continue;
         }
 
-        printf("parsing  #%.3d: %s \n", parsed_cnt, filename);
+        printf("parsing  #%.3d: %.*s \n", parsed_cnt, filename.len, filename.str);
         Instrument *instr = ParseInstrument(a_parse, text);
+        instr->path = filename;
         parsed_cnt++;
 
         if (RegisterInstrument(instr, &map_instrs)) {
@@ -68,15 +69,15 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
     s32 parsed_cnt = 0;
 
     while (fpaths) {
-        char *filename = StrLstNext(&fpaths);
-        char *text = (char*) LoadFileFSeek(&a_files, filename);
-        if (text == NULL) {
+        Str filename = StrLstNext(&fpaths);
+        Str text = LoadTextFileFSeek(&a_files, filename);
+        if (text.len == 0) {
             continue;
         }
 
-        if (dbg_print) printf("parsing  #%.3d: %s \n", parsed_cnt, filename);
+        if (dbg_print) printf("parsing  #%.3d: %.*s \n", parsed_cnt, filename.len, filename.str);
         Component *comp = ParseComponent(a_parse, text);
-        comp->file_path = Str { filename, _strlen(filename) };
+        comp->file_path = filename;
         parsed_cnt++;
 
         if (RegisterComponentType(comp, &map_comps)) {
@@ -169,14 +170,6 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
 }
 
 
-void CLACountCheckExit_0(int min_argc, int argc, const char *msg = "Too few args, use --help for usage info.") {
-    if (argc < min_argc) {
-        printf("%s\n", msg);
-        exit(0);
-    }
-}
-
-
 int main (int argc, char **argv) {
     TimeProgram;
 
@@ -205,9 +198,6 @@ int main (int argc, char **argv) {
         if (CLAContainsArg("--instr", argc, argv) || CLAContainsArg("-i", argc, argv)) {
             instr_lib_path = CLAGetArgValue("--instr", argc, argv);
         }
-
-
-        // TODO: potentially exit with incorrect input
 
 
         // init
@@ -248,7 +238,7 @@ int main (int argc, char **argv) {
                 ComponentMetaCogen(&buff, &comp_map);
 
                 void *data = 0;
-                SaveFile("meta_comps.h", buff.str, buff.len);
+                SaveFile("comps_meta.h", buff.str, buff.len);
             }
         }
 
@@ -270,7 +260,8 @@ int main (int argc, char **argv) {
                     StrBuffClear(&buff);
                     InstrumentCogen(&buff, instr);
                 }
-                SaveFile("instr_gen.h", buff.str, buff.len);
+
+                SaveFile("instr_config", buff.str, buff.len);
             }
         }
 
