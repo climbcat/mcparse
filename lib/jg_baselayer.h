@@ -29,7 +29,7 @@ SOFTWARE.
 
 #define BASELAYER_VERSION_MAJOR 0
 #define BASELAYER_VERSION_MINOR 2
-#define BASELAYER_VERSION_PATCH 1
+#define BASELAYER_VERSION_PATCH 2
 
 
 #ifndef __BASE_H__
@@ -114,41 +114,6 @@ inline f32 MaxF32(f32 a, f32 b) { return (a > b) ? a : b; }
 inline f64 MaxF64(f64 a, f64 b) { return (a > b) ? a : b; }
 
 
-//
-// qol
-
-
-inline void _memcpy(void *dest, const void *src, size_t size) {
-    memcpy(dest, src, size);
-    /*
-    u8 *s = (u8*) src;
-    u8 *d = (u8*) dest;
-
-    for (u32 i = 0; i < size; ++i) {
-        d[i] = s[i];
-    }
-    */
-}
-inline u32 _strcmp(const char *dest, const char *src) {
-    u32 i = 0;
-    while (dest[i] != '\0' || src[i] != '\0') {
-        if (dest[i] != src[i]) {
-            return 1;
-        }
-        ++i;
-    }
-    return 0;
-}
-inline u32 _strlen(char *str) {
-    if (!str) {
-        return 0;
-    }
-    u32 i = 0;
-    while (str[i] != '\0') {
-        ++i;
-    }
-    return i;
-}
 inline void _memzero(void *dest, size_t n) {
     u8 *d = (u8*) dest;
     for (u32 i = 0; i < n; ++i) {
@@ -219,7 +184,7 @@ u32 ParseInt(char *text) {
     if (sgned) {
         ++text;
     }
-    u32 len = _strlen(text);
+    u32 len = (u32) strlen(text);
 
     // decimals before dot
     for (u32 i = 0; i < len; ++i) {
@@ -319,7 +284,7 @@ void CLAInit(s32 argc, char **argv) {
 bool CLAContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
     for (int i = 0; i < argc; ++i) {
         char *arg = argv[i];
-        if (!_strcmp(argv[i], search)) {
+        if (!strcmp(argv[i], search)) {
             if (idx != NULL) {
                 *idx = i;
             }
@@ -333,10 +298,10 @@ bool CLAContainsArgs(const char *search_a, const char *search_b, int argc, char 
     bool found_a = false;
     bool found_b = false;
     for (int i = 0; i < argc; ++i) {
-        if (!_strcmp(argv[i], search_a)) {
+        if (!strcmp(argv[i], search_a)) {
             found_a = true;
         }
-        if (!_strcmp(argv[i], search_b)) {
+        if (!strcmp(argv[i], search_b)) {
             found_b = true;
         }
     }
@@ -348,7 +313,7 @@ char *CLAGetArgValue(const char *key, int argc, char **argv) {
     bool error = !CLAContainsArg(key, argc, argv, &i) || i == argc - 1;;
     if (error == false) {
         char *val = argv[i+1];
-        error = _strlen(val) > 1 && val[0] == '-' && val[1] == '-';
+        error = strlen(val) > 1 && val[0] == '-' && val[1] == '-';
     }
     if (error == true) {
         printf("KW arg %s must be followed by a value arg\n", key);
@@ -606,7 +571,7 @@ void ArenaRelease(MArena *a, u64 len) {
 inline
 void *ArenaPush(MArena *a, void *data, u32 len) {
     void *dest = ArenaAlloc(a, len);
-    _memcpy(dest, data, len);
+    memcpy(dest, data, len);
     return dest;
 }
 
@@ -753,7 +718,7 @@ u32 PoolPtr2Idx(MPool *p, void *ptr) {
 
 inline
 void *PoolIdx2Ptr(MPool *p, u32 idx) {
-    assert(idx < p->block_size);
+    assert(idx < p->nblocks);
 
     if (idx == 0) {
         return NULL;
@@ -803,51 +768,6 @@ MPoolT<T> PoolCreate(u32 nblocks) {
     MPoolT<T> pool;
     pool._p = pool_inner;
     return pool;
-}
-
-
-//
-//  Memory arena context - just a quick way to get some memory up
-
-
-struct MContext {
-    // temporary, persistent, lifetime
-    MArena _a_tmp;
-    MArena _a_pers;
-    MArena _a_life;
-    MArena *a_tmp;
-    MArena *a_pers;
-    MArena *a_life;
-};
-
-static MContext _g_mctx;
-static MContext *g_mctx;
-MContext *GetContext(u64 arenas_fixed_size = 0) {
-    if (g_mctx == NULL) {
-        g_mctx = &_g_mctx;
-        g_mctx->_a_tmp = ArenaCreate(arenas_fixed_size);
-        g_mctx->a_tmp = &g_mctx->_a_tmp;
-        g_mctx->_a_pers = ArenaCreate(arenas_fixed_size);
-        g_mctx->a_pers = &g_mctx->_a_pers;
-        g_mctx->_a_life = ArenaCreate(arenas_fixed_size);
-        g_mctx->a_life = &g_mctx->_a_life;
-    }
-    return g_mctx;
-}
-
-MArena *GetArenaTemp() {
-    MContext *ctx = GetContext();
-    return ctx->a_tmp;
-}
-
-MArena *GetArenaPers() {
-    MContext *ctx = GetContext();
-    return ctx->a_pers;
-}
-
-MArena *GetArenaLife() {
-    MContext *ctx = GetContext();
-    return ctx->a_life;
 }
 
 
@@ -1298,77 +1218,134 @@ List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
 
 
 //
-//  Str; length-based strings
-//
+//  Init
 
 
-
-// CHANGE: moved up here for StrSPrint
 static MArena _g_a_strings;
 static MArena *g_a_strings;
-MArena *StringCreateArena() {
+static MArena _g_a_string_interns;
+static MArena *g_a_string_interns;
+
+static MArena *g_a_strings_cached;
+static MArena *g_a_string_interns_cached;
+
+void StrSetArenas(MArena *a_tmp, MArena *a_intern) {
+    g_a_strings_cached = g_a_strings;
+    g_a_string_interns_cached = g_a_string_interns;
+
+    g_a_strings = a_tmp;
+    g_a_string_interns = a_intern;
+}
+void StrPopArenas() {
+    g_a_strings = g_a_strings_cached;
+    g_a_string_interns = g_a_string_interns_cached;
+}
+
+void StrInit() {
     if (g_a_strings == NULL) {
         _g_a_strings = ArenaCreate();
         g_a_strings = &_g_a_strings;
     }
+    if (g_a_string_interns == NULL) {
+        _g_a_string_interns = ArenaCreate();
+        g_a_string_interns = &_g_a_strings;
+    }
+}
+
+MArena *StrGetTmpArena() {
     return g_a_strings;
 }
-MArena *StringInit() {
-    return StringCreateArena();
-}
-void StringSetGlobalArena(MArena *a) {
-    g_a_strings = a;
-}
-MArena *StringGetGlobalArena() {
-    return g_a_strings;
-}
-MArena *InitStrings() {
-    return StringCreateArena();
+
+MArena *StrGetInternArena() {
+    return g_a_string_interns;
 }
 
 
+//
+//  Str
 
 
-// CHANGE
 struct Str {
     char *str;
     u32 len;
 };
 
 
-char *StrZeroTerm(MArena *a, Str s) {
-    char * result = (char*) ArenaAlloc(a, s.len + 1);
-    _memcpy(result, s.str, s.len);
-    result[s.len] = 0;
-    return result;
+inline
+Str StrAlloc(MArena *a_dest, u32 len) {
+    char *buff = (char*) ArenaAlloc(a_dest, len);
+    return Str { buff, len };
 }
 
-Str StrLiteral(MArena *a, const char *lit) {
+inline
+Str StrAlloc(u32 len) {
+    char *buff = (char*) ArenaAlloc(g_a_strings, len);
+    return Str { buff, len };
+}
+
+Str StrIntern(Str s) { // NOTE: not an actual interna at this time, but just pushes the string to a the current lifetime arena
+    Str s_dest = {};
+    if (s.len) {
+        s_dest = StrAlloc(g_a_string_interns, s.len);
+        memcpy(s_dest.str, s.str, s.len);
+    }
+    return s_dest;
+}
+
+char *StrZ(Str s, bool check_unsafe = false) {
+    if (check_unsafe && s.str[s.len] == '\0') {
+        return s.str;
+    }
+    else {
+        char * zt = (char*) ArenaAlloc(g_a_strings, s.len + 1);
+        memcpy(zt, s.str, s.len);
+        zt[s.len] = 0;
+        return zt;
+    }
+}
+
+inline
+char *StrZU(Str s) {
+    return StrZ(s, true);
+}
+
+inline
+Str StrL(const char *str) { // StrLiteral
+    return Str { (char*) str, (u32) strlen((char*) str) };
+}
+
+Str StrL(char *str) {
     Str s;
     s.len = 0;
-    while (*(lit + s.len) != '\0') {
+    while (*(str + s.len) != '\0') {
         ++s.len;
     }
-    s.str = (char*) ArenaAlloc(a, s.len);
-    _memcpy(s.str, lit, s.len);
+    s.str = (char*) ArenaAlloc(g_a_strings, s.len);
+    memcpy(s.str, str, s.len);
 
     return s;
 }
 
-inline void StrPrint(Str s) {
+
+//
+//  String API
+
+
+inline
+void StrPrint(Str s) {
     printf("%.*s", s.len, s.str);
 }
 
-inline void StrPrint(const char *aff, Str s, const char *suf) {
+inline
+void StrPrint(const char *aff, Str s, const char *suf) {
     printf("%s%.*s%s", aff, s.len, s.str, suf);
 }
 
-inline void StrPrint(Str *s) {
+inline
+void StrPrint(Str *s) {
     printf("%.*s", s->len, s->str);
 }
 
-
-// CHANGE
 Str StrSPrint(const char *format, s32 cnt, ...) {
     ArenaEnsureSpace(g_a_strings, KILOBYTE);
     Str s = {};
@@ -1385,7 +1362,6 @@ Str StrSPrint(const char *format, s32 cnt, ...) {
     return s;
 }
 
-
 bool StrEqual(Str a, Str b) {
     u32 i = 0;
     u32 len = MinU32(a.len, b.len);
@@ -1399,6 +1375,11 @@ bool StrEqual(Str a, Str b) {
     return a.len == b.len;
 }
 
+inline
+bool StrEqual(Str a, const char *b) {
+    return StrEqual(a, StrL(b));
+}
+
 bool StrContainsChar(Str s, char c) {
     for (u32 i = 0; i < s.len; ++i) {
         if (c == s.str[i]) {
@@ -1408,17 +1389,21 @@ bool StrContainsChar(Str s, char c) {
     return false;
 }
 
-Str StrCat(MArena *arena, Str a, Str b) {
+Str StrCat(Str a, Str b) {
     Str cat;
     cat.len = a.len + b.len;
-    cat.str = (char*) ArenaAlloc(arena, cat.len);
-    _memcpy(cat.str, a.str, a.len);
-    _memcpy(cat.str + a.len, b.str, b.len);
+    cat.str = (char*) ArenaAlloc(g_a_strings, cat.len);
+    memcpy(cat.str, a.str, a.len);
+    memcpy(cat.str + a.len, b.str, b.len);
 
     return cat;
 }
 
-Str StrTrim(MArena *a, Str s, char t) {
+Str StrCat(Str a, const char *b) {
+    return StrCat(a, StrL(b));
+}
+
+Str StrTrim(Str s, char t) {
     if (s.len && s.str[0] == t) {
             s.str++;
             s.len -= 1;
@@ -1437,10 +1422,19 @@ void StrCopy(Str src, Str dest) {
     }
 }
 
-Str ToStr(char *s) {
-    Str result = {};
-    result.str = s;
-    result.len = _strlen(s);
+Str StrInsertReplace(Str src, Str amend, Str at) {
+    Str before = src;
+    before.len = (at.str - src.str);
+
+    Str after = {};
+    after.len = src.len - before.len - at.len;
+    after.str = (src.str + src.len) - after.len;
+
+    s32 len = src.len - at.len + amend.len;
+    Str result = StrAlloc(len);
+    result = StrCat(before, amend);
+    result = StrCat(result, after);
+
     return result;
 }
 
@@ -1460,7 +1454,7 @@ struct StrLst {
     }
     void SetStr(char * s) {
         str = s;
-        len = _strlen(s);
+        len = (u32) strlen(s);
     }
 };
 
@@ -1493,15 +1487,19 @@ void StrLstPrint(StrLst *lst, const char *sep = "\n") {
     }
 }
 
-StrLst *_StrLstAllocNext(MArena *a_dest) {
+StrLst *_StrLstAllocNext() {
+    MArena *a = g_a_strings;
+
     static StrLst def;
-    StrLst *lst = (StrLst*) ArenaPush(a_dest, &def, sizeof(StrLst));
-    lst->str = (char*) ArenaAlloc(a_dest, 0);
+    StrLst *lst = (StrLst*) ArenaPush(a, &def, sizeof(StrLst));
+    lst->str = (char*) ArenaAlloc(a, 0);
     return lst;
 }
 
-StrLst *StrSplit(MArena *a_dest, Str base, char split) {
-    StrLst *next = _StrLstAllocNext(a_dest);
+StrLst *StrSplit(Str base, char split) {
+    MArena *a = g_a_strings;
+
+    StrLst *next = _StrLstAllocNext();
     StrLst *first = next;
     StrLst *node = next;
 
@@ -1517,15 +1515,15 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
         // copy
         if (j > 0) {
             if (node->len > 0) {
-                next = _StrLstAllocNext(a_dest);
+                next = _StrLstAllocNext();
                 node->next = next;
                 node->first = first;
                 node = next;
             }
 
             node->len = j;
-            ArenaAlloc(a_dest, j);
-            _memcpy(node->str, base.str + i, j);
+            ArenaAlloc(a, j);
+            memcpy(node->str, base.str + i, j);
         }
 
         // iter
@@ -1534,7 +1532,9 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
     return first;
 }
 
-StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
+StrLst *StrSplitSpacesKeepQuoted(Str base) {
+    MArena *a = g_a_strings;
+
     char space = ' ';
     char quote = '"';
 
@@ -1568,7 +1568,7 @@ StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
     }
 
     char split = space;
-    StrLst *next = _StrLstAllocNext(a_dest);
+    StrLst *next = _StrLstAllocNext();
     StrLst *first = next;
     StrLst *node = next;
 
@@ -1596,15 +1596,15 @@ StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
         // copy
         if (j > 0) {
             if (node->len > 0) {
-                next = _StrLstAllocNext(a_dest);
+                next = _StrLstAllocNext();
                 node->next = next;
                 node->first = first;
                 node = next;
             }
 
             node->len = j;
-            ArenaAlloc(a_dest, j);
-            _memcpy(node->str, base.str + i, j);
+            ArenaAlloc(a, j);
+            memcpy(node->str, base.str + i, j);
         }
 
         // iter
@@ -1627,7 +1627,7 @@ Str StrJoin(MArena *a, StrLst *strs) {
     join.str = (char*) ArenaAlloc(a, amount_needed);
     join.len = 0;
     while (strs != NULL) {
-        _memcpy(join.str + join.len, strs->str, strs->len);
+        memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
         strs = strs->next;
     }
@@ -1652,7 +1652,7 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
     join.str = (char*) ArenaAlloc(a, amount_needed);
     join.len = 0;
     while (strs != NULL) {
-        _memcpy(join.str + join.len, strs->str, strs->len);
+        memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
         strs = strs->next;
 
@@ -1670,18 +1670,19 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
 //  StrLst: string list builder functions
 
 
-StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
+StrLst *StrLstPush(char *str, StrLst *after = NULL) {
+    MArena *a = g_a_strings;
+
     StrLst _ = {};
     StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst));
-    lst->len = _strlen(str);
+    lst->len = (u32) strlen(str);
     lst->str = (char*) ArenaAlloc(a, lst->len + 1);
     lst->str[lst->len] = 0;
 
-    for (u32 i = 0; i < lst->len; ++i) {
-        lst->str[i] = str[i];
-    }
+    memcpy(lst->str, str, lst->len);
+
     if (after != NULL) {
-        assert(after->first && "enforce first is set");
+        assert(after->first && "ensure first is set");
 
         after->next = lst;
         lst->first = after->first;
@@ -1692,34 +1693,19 @@ StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
     return lst;
 }
 
-StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
-    
-    // USAGE: e.g.
-    //
-    //  StrLst lst = NULL;
-    //  lst = StrLstPush(lst, "hello strs");
-
-    return StrLstPush(a, str, lst);
+StrLst *StrLstPush(const char *str, StrLst *after = NULL) {
+    return StrLstPush((char*) str, after);
 }
 
-
-// CHANGE
-/*
-char *StrLstNext(MArena *a, StrLst **lst) {
-    char *str = (*lst)->str;
-    *lst = (*lst)->next;
-    return str;
+StrLst *StrLstPush(Str str, StrLst *after = NULL) {
+    return StrLstPush(StrZ(str), after);
 }
-*/
 
-// CHANGE
 Str StrLstNext(StrLst **lst) {
     Str s = (*lst)->GetStr();
     *lst = (*lst)->next;
     return s;
 }
-
-
 
 void StrLstPrint(StrLst lst) {
     StrLst *iter = &lst;
@@ -1771,7 +1757,102 @@ StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
 
 
 //
-// StrBuff: A log or similar output buffer that just extends
+//  Path / filename helpers
+
+
+Str StrBasename(char *path) {
+    // TODO: re-impl. using StrLst navigation, e.g. StrLstLast(); StrLstLen(); StrLstAtIdx(len - 2);
+    //      To robustly find the basename.
+
+    StrLst *before_ext = StrSplit(StrL(path), '.');
+    StrLst *iter = before_ext;
+    while (iter->next) {
+        iter = iter->next;
+        if (iter->next == NULL) {
+            break;
+        }
+        else {
+            before_ext = iter;
+        }
+    }
+
+    StrLst* slashes = StrSplit(before_ext->GetStr(), '/');
+    while (slashes->next) {
+        slashes = slashes->next;
+    }
+
+    return slashes->GetStr();
+}
+
+inline
+Str StrBasename(Str path) {
+    return StrBasename( StrZ(path) );
+}
+
+Str StrExtension(MArena *a, char *path) {
+    Str s { NULL, 0 };
+    StrLst *lst = StrSplit(StrL(path), '.');
+    if (lst->next != NULL) {
+        s = lst->next->GetStr();
+    }
+    return s;
+}
+
+Str StrExtension(char *path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    Str s { NULL, 0 };
+    StrLst *lst = StrSplit(StrL(path), '.');
+    while (lst->next != NULL) {
+        lst = lst->next;
+    }
+    s = lst->GetStr();
+    return s;
+}
+
+Str StrExtension(Str path) {
+    return StrExtension(StrZ(path));
+}
+
+Str StrDirPath(Str path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    StrLst *slash = StrSplit(path, '/');
+    u32 len = StrListLen(slash);
+
+    Str cat = StrL("");
+    for (u32 i = 0; i < len - 1; ++i) {
+        cat = StrCat(cat, slash->GetStr());
+        cat = StrCat(cat, StrL("/"));
+        slash = slash->next;
+    }
+    return cat;
+}
+
+Str StrPathBuild(Str dirname, Str basename, Str ext) {
+    dirname = StrTrim(dirname, '/');
+    basename = StrTrim(basename, '/');
+
+    Str path = dirname;
+    if (dirname.len) {
+       path = StrCat(dirname, StrL("/"));
+    }
+    path = StrCat(path, basename);
+    path = StrCat(path, StrL("."));
+    path = StrCat(path, ext);
+
+    return path;
+}
+
+Str StrPathJoin(Str path_1, Str path_2) {
+    Str path = StrCat(path_1, StrL("/"));
+    path = StrCat(path, path_2);
+    return path;
+}
+
+
+//
+//  StrBuff
 
 
 struct StrBuff {
@@ -1829,111 +1910,6 @@ void StrBuffClear(StrBuff *buff) {
     ArenaClear(&buff->a);
     buff->str = (char*) ArenaAlloc(&buff->a, 0);
     buff->len = 0;
-}
-
-
-//
-//  Wrappers without any arena arg, these just expand on the currently set arena
-
-
-inline
-char *StrZeroTerm(Str s) {
-    return StrZeroTerm(g_a_strings, s);
-}
-inline
-Str StrLiteral(const char *literal) {
-    return StrLiteral(g_a_strings, literal);
-}
-inline
-Str StrInline(const char *literal) {
-    return Str { (char*) literal, _strlen((char*) literal) };
-}
-inline
-Str StrLiteral(char *literal) {
-    return StrLiteral(g_a_strings, (const char*) literal);
-}
-#define StrL StrLiteral
-inline
-bool StrEqual(Str a, const char *lit) {
-    Str b = StrLiteral(lit);
-    return StrEqual(a, b);
-}
-inline
-Str StrAlloc(MArena *a_dest, u32 len) {
-    char *buff = (char*) ArenaAlloc(a_dest, len);
-    return Str { buff, len };
-}
-inline
-Str StrAlloc(u32 len) {
-    char *buff = (char*) ArenaAlloc(g_a_strings, len);
-    return Str { buff, len };
-}
-inline
-Str StrCat(Str a, Str b) {
-    return StrCat(g_a_strings, a, b);
-}
-inline
-Str StrCat(Str a, char *b) {
-    return StrCat(g_a_strings, a, StrLiteral(b));
-}
-inline
-Str StrCat(Str a, const char *b) {
-    return StrCat(g_a_strings, a, StrLiteral(b));
-}
-inline
-Str StrCat(const char *a, Str b) {
-    return StrCat(g_a_strings, StrLiteral(a), b);
-}
-inline
-StrLst *StrSplit(Str base, char split) {
-    return StrSplit(g_a_strings, base, split);
-}
-inline
-StrLst *StrSplitSpacesKeepQuoted(Str base) {
-    return StrSplitSpacesKeepQuoted(g_a_strings, base);
-}
-inline
-StrLst *StrSplitLines(Str base) {
-    return StrSplit(g_a_strings, base, '\n');
-}
-inline
-StrLst *StrSplitWords(Str base) {
-    return StrSplit(g_a_strings, base, ' ');
-}
-inline
-Str StrJoin(StrLst *strs) {
-    return StrJoin(g_a_strings, strs);
-}
-inline
-Str StrTrim(Str s, char t) {
-    return StrTrim(g_a_strings, s, t);
-}
-inline
-Str StrJoinInsertChar(StrLst *strs, char insert) {
-    return StrJoinInsertChar(g_a_strings, strs, insert);
-}
-inline
-StrLst *StrLstPush(char *str, StrLst *after = NULL) {
-    return StrLstPush(g_a_strings, str, after);
-}
-inline
-StrLst *StrLstPush(const char *str, StrLst *after = NULL) {
-    return StrLstPush(g_a_strings, (char*) str, after);
-}
-inline
-StrLst *StrLstPush(Str str, StrLst *after = NULL) {
-    return StrLstPush(g_a_strings, StrZeroTerm(str), after);
-}
-
-/*
-inline
-char *StrLstNext(StrLst **lst) {
-    return StrLstNext(g_a_strings, lst);
-}
-*/
-
-StrLst *StrLstPush(StrLst *lst, char *str) {
-    return StrLstPush(g_a_strings, lst, str);
 }
 
 
@@ -2106,7 +2082,7 @@ u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
     // save key and value
     if (is_resetval) {
         assert(sz_val == collider->sz_val && "demand the same size for reset-vals");
-        _memcpy(collider->val, val, sz_val);
+        memcpy(collider->val, val, sz_val);
     }
     else {
         hdr->sz_val = sz_val;
@@ -2131,7 +2107,7 @@ u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
 void DictStorageWalk(Dict *dct) {
     DictKeyVal *kv = dct->head;
     while (kv != NULL) {
-        printf("%s : %u\n", StrZeroTerm(kv->key), *((u32*) kv->val));
+        printf("%s : %u\n", StrZ(kv->key), *((u32*) kv->val));
 
         kv = kv->nxt;
     }
@@ -2154,11 +2130,11 @@ void DictPut(Dict *dct, Str key, void *val, u32 sz = 0) {
 }
 inline
 void DictPut(Dict *dct, char *key, void *val, u32 sz = 0) {
-    return DictPut(dct, Str { key, _strlen(key) }, val, sz);
+    return DictPut(dct, Str { key, (u32) strlen(key) }, val, sz);
 }
 inline
 void DictPut(Dict *dct, const char *key, void *val, u32 sz = 0) {
-    return DictPut(dct, Str { (char*) key, _strlen( (char*) key) }, val, sz);
+    return DictPut(dct, Str { (char*) key, (u32) strlen( (char*) key) }, val, sz);
 }
 
 void *DictGet(Dict *dct, Str key) {
@@ -2175,11 +2151,11 @@ void *DictGet(Dict *dct, Str key) {
 }
 inline
 void *DictGet(Dict *dct, char *key) {
-    return DictGet(dct, Str { key, _strlen(key) } );
+    return DictGet(dct, Str { key, (u32) strlen(key) } );
 }
 inline
 void *DictGet(Dict *dct, const char *key) {
-    return DictGet(dct, Str { (char*) key, _strlen((char*) key) } );
+    return DictGet(dct, Str { (char*) key, (u32) strlen((char*) key) } );
 }
 
 
@@ -2599,14 +2575,6 @@ void *LoadFileFSeek(MArena *a_dest, char *filepath, u32 *size = NULL) {
     return dest;
 }
 
-void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {
-    return LoadFileFSeek(a_dest, (char*) filepath, size);
-}
-
-
-
-
-// CHANGE
 void *LoadFileFSeek(MArena *a_dest, Str filepath, u32 *size = NULL) {
     assert(filepath.len < 1024);
     char filepath_zt[1024];
@@ -2617,7 +2585,6 @@ void *LoadFileFSeek(MArena *a_dest, Str filepath, u32 *size = NULL) {
     return data;
 }
 
-// CHANGE
 Str LoadTextFileFSeek(MArena *a_dest, Str filepath) {
     char filepath_zt[1024];
     sprintf(filepath_zt, "%.*s", filepath.len, filepath.str);
@@ -2628,8 +2595,23 @@ Str LoadTextFileFSeek(MArena *a_dest, Str filepath) {
     return Str { (char*) data, size };
 }
 
+void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {
+    return LoadFileFSeek(a_dest, (char*) filepath, size);
+}
 
+Str LoadTextFile(MArena *a_files, const char *f_path) {
+    Str f_str = {};
+    f_str.str = (char*) LoadFileFSeek(a_files, f_path, &f_str.len);
 
+    return f_str;
+}
+
+Str LoadTextFile(MArena *a_files, Str f_path) {
+    Str f_str = {};
+    f_str.str = (char*) LoadFileFSeek(a_files, StrZ(f_path), &f_str.len);
+
+    return f_str;
+}
 
 bool SaveFile(char *filepath, u8 *data, u32 len);
 
@@ -2656,113 +2638,11 @@ bool ArenaSave(MArena *a, const char *filename) {
     return ArenaSave(a, (char *) filename);
 }
 
-
-//
-//  Path / filename helpers
-
-
-Str StrBasename(char *path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    // TODO: shouldn't this fail?
-
-    Str before_ext = StrSplit(StrLiteral(path), '.')->GetStr();
-    StrLst* slashes = StrSplit(before_ext, '/');
-    while (slashes->next) {
-        slashes = slashes->next;
-    }
-    return slashes->GetStr();
-}
-
-Str StrBasename(MArena *a, char *path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    // TODO: shouldn't this fail?
-
-    Str before_ext = StrSplit(a, StrLiteral(a, path), '.')->GetStr();
-    StrLst* slashes = StrSplit(a, before_ext, '/');
-    while (slashes->next) {
-        slashes = slashes->next;
-    }
-    return slashes->GetStr();
-}
-
-Str StrBasename(Str path) {
-    return StrBasename(StrZeroTerm(path));
-}
-
-Str StrExtension(MArena *a, char *path) {
-    Str s { NULL, 0 };
-    StrLst *lst = StrSplit(a, StrLiteral(a, path), '.');
-    if (lst->next != NULL) {
-        s = lst->next->GetStr();
-    }
-    return s;
-}
-
-Str StrExtension(char *path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    Str s { NULL, 0 };
-    StrLst *lst = StrSplit(StrLiteral(path), '.');
-    while (lst->next != NULL) {
-        lst = lst->next;
-    }
-    s = lst->GetStr();
-    return s;
-}
-
-Str StrExtension(Str path) {
-    return StrExtension(StrZeroTerm(path));
-}
-
-// CHANGE
-Str StrDirPath(Str path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    StrLst *slash = StrSplit(path, '/');
-    u32 len = StrListLen(slash);
-
-    Str cat = StrL("");
-    for (u32 i = 0; i < len - 1; ++i) {
-        cat = StrCat(cat, slash->GetStr());
-        cat = StrCat(cat, "/");
-        slash = slash->next;
-    }
-
-    if (cat.len == 0) {
-        cat = StrL(".");
-    }
-
-    return cat;
-}
-
-Str StrPathBuild(Str dirname, Str basename, Str ext) {
-    dirname = StrTrim(dirname, '/');
-    basename = StrTrim(basename, '/');
-
-    Str path = dirname;
-    if (dirname.len) {
-       path = StrCat(dirname, "/");
-    }
-    path = StrCat(path, basename);
-    path = StrCat(path, ".");
-    path = StrCat(path, ext);
-
-    return path;
-}
-
-Str StrPathJoin(Str path_1, Str path_2) {
-    Str path = StrCat(path_1, "/");
-    path = StrCat(path, path_2);
-    return path;
-}
-
-StrLst *GetFilesExt(const char *extension, const char *path = ".") {
-    StrLst *all = GetFilesInFolderPaths(InitStrings(), path);
+StrLst *GetFilesExt(const char *extension, const char *path = ".") { // filter files in a string list by extension
+    StrLst *all = GetFilesInFolderPaths(StrGetTmpArena(), path);
     StrLst *filtered = NULL;
     StrLst *first = NULL;
-    Str ext = StrLiteral(extension);
+    Str ext = StrL(extension);
     while (all != NULL) {
         Str _fpath = all->GetStr();
         Str _ext = StrExtension(_fpath);
@@ -2793,17 +2673,17 @@ struct FInfo {
     Str BuildName(const char *prefix, const char *suffix, const char *ext) {
         Str bn_new = StrL(prefix);
         bn_new = StrCat(bn_new, basename);
-        bn_new = StrCat(bn_new, suffix);
+        bn_new = StrCat(bn_new, StrL(suffix));
         Str rebuilt = StrPathBuild(dirname, bn_new, StrL(ext));
         return rebuilt;
     }
     char *BuildNameZ(const char *prefix, const char *suffix, const char *ext) {
-        return StrZeroTerm( this->BuildName(prefix, suffix, ext) );
+        return StrZ( this->BuildName(prefix, suffix, ext) );
     }
     Str StripDirname() {
         Str filename = StrL("");
         filename = StrCat(filename, basename);
-        filename = StrCat(filename, ".");
+        filename = StrCat(filename, StrL("."));
         filename = StrCat(filename, ext);
         return filename;
     }
@@ -2849,31 +2729,6 @@ Str GetYYMMDD() {
     printf("%s\n", buff);
 
     return s;
-}
-
-
-//
-// Baselayer initialization
-
-
-MContext *InitBaselayer() {
-    RandInit();
-    StringInit();
-    return GetContext();
-}
-
-void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
-    if (
-        BASELAYER_VERSION_MAJOR != major ||
-        BASELAYER_VERSION_MINOR != minor ||
-        BASELAYER_VERSION_PATCH != patch
-    ) {
-        assert(1 == 0 && "baselayer version check failed");
-    }
-}
-
-void BaselayerPrintVersion() {
-    printf("%d.%d.%d\n", BASELAYER_VERSION_MAJOR, BASELAYER_VERSION_MINOR, BASELAYER_VERSION_PATCH);
 }
 
 
@@ -3050,22 +2905,22 @@ const char *getBuild() { // courtesy of S.O.
             if (d) {
                 d = opendir(rootpath);
 
-                Str path = StrLiteral(rootpath);
+                Str path = StrL(rootpath);
                 if (path.len == 1 && path.str[0] == '.') {
                     path.len = 0;
                 }
                 else if (path.str[path.len-1] != '/') {
-                    path = StrCat(path, "/");
+                    path = StrCat(path, StrL("/"));
                 }
 
                 StrLst *lst = NULL;
                 while ((dir = readdir(d)) != NULL) {
                     // omit "." and ".."
-                    if (!_strcmp(dir->d_name, ".") || !_strcmp(dir->d_name, "..")) {
+                    if (!strcmp(dir->d_name, ".") || !strcmp(dir->d_name, "..")) {
                         continue;
                     }
 
-                    Str dname = StrCat( path, StrLiteral(dir->d_name) );
+                    Str dname = StrCat(path, StrL(dir->d_name));
                     lst = StrLstPush(dname, lst);
                     if (first == NULL) {
                         first = lst;
@@ -3082,27 +2937,27 @@ const char *getBuild() { // courtesy of S.O.
             if (DIR *dir = opendir(rootpath)) {
                 dir = opendir(rootpath);
 
-                Str path = StrLiteral(rootpath);
+                Str path = StrL(rootpath);
                 if (path.len == 1 && path.str[0] == '.') {
                     path.len = 0;
                 }
                 else if (path.str[path.len-1] != '/') {
-                    path = StrCat(path, "/");
+                    path = StrCat(path, StrL("/"));
                 }
 
                 while ((dir_entry = readdir(dir)) != NULL) {
-                    if (!_strcmp(dir_entry->d_name, ".") || !_strcmp(dir_entry->d_name, "..")) {
+                    if (!strcmp(dir_entry->d_name, ".") || !strcmp(dir_entry->d_name, "..")) {
                         continue;
                     }
 
-                    Str file_path = StrCat( path, StrLiteral(dir_entry->d_name) );
+                    Str file_path = StrCat( path, StrL(dir_entry->d_name) );
                     if (head == NULL) {
                         head = tail;
                     }
 
                     if (dir_entry->d_type == 4) { // recurse into directory
                         if (do_recurse) {
-                            tail = GetFilePaths_Rec( StrZeroTerm(file_path), head, tail, extension_filter, true);
+                            tail = GetFilePaths_Rec( StrZ(file_path), head, tail, extension_filter, true);
                         }
                     }
                     else {
@@ -3349,6 +3204,66 @@ const char *getBuild() { // courtesy of S.O.
 #define DLL_IMPORTEXPORT DLL_IMPORT
 #endif
 #endif
+
+
+#endif
+
+
+#ifndef __INIT_H__
+#define __INIT_H__
+
+
+//
+// Baselayer initialization
+
+
+struct MContext {
+    // temporary, persistent, lifetime
+    MArena _a_tmp;
+    MArena _a_pers;
+    MArena _a_life;
+    MArena *a_tmp;
+    MArena *a_pers;
+    MArena *a_life;
+};
+
+static MContext _g_mctx;
+static MContext *g_mctx;
+MContext *GetContext(u64 arenas_fixed_size = 0) {
+    if (g_mctx == NULL) {
+        g_mctx = &_g_mctx;
+        g_mctx->_a_tmp = ArenaCreate(arenas_fixed_size);
+        g_mctx->a_tmp = &g_mctx->_a_tmp;
+        g_mctx->_a_pers = ArenaCreate(arenas_fixed_size);
+        g_mctx->a_pers = &g_mctx->_a_pers;
+        g_mctx->_a_life = ArenaCreate(arenas_fixed_size);
+        g_mctx->a_life = &g_mctx->_a_life;
+    }
+    return g_mctx;
+}
+
+
+MContext *InitBaselayer() {
+    MContext *ctx = GetContext();
+    StrSetArenas(ctx->a_tmp, ctx->a_life);
+    RandInit();
+
+    return ctx;
+}
+
+void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
+    if (
+        BASELAYER_VERSION_MAJOR != major ||
+        BASELAYER_VERSION_MINOR != minor ||
+        BASELAYER_VERSION_PATCH != patch
+    ) {
+        assert(1 == 0 && "baselayer version check failed");
+    }
+}
+
+void BaselayerPrintVersion() {
+    printf("%d.%d.%d\n", BASELAYER_VERSION_MAJOR, BASELAYER_VERSION_MINOR, BASELAYER_VERSION_PATCH);
+}
 
 
 #endif
