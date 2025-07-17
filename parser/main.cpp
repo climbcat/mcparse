@@ -173,6 +173,9 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
 int main (int argc, char **argv) {
     TimeProgram;
 
+    BaselayerAssertVersion(0, 2, 2);
+    CbuiAssertVersion(0,2,0);
+
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("Usage: parser --complib <comp-lib-root-folder> --instr <instr-file> | [options]\n");
         printf("\n");
@@ -203,7 +206,7 @@ int main (int argc, char **argv) {
         // init
         MArena a_tmp = ArenaCreate();
         MArena a_work = ArenaCreate();
-        StringInit();
+        StrInit();
         StrBuff buff = StrBuffInit();
         MapIter iter = {};
 
@@ -224,12 +227,12 @@ int main (int argc, char **argv) {
                     StrBuffClear(&buff);
                     ComponentCogen(&buff, comp);
 
-                    FInfo info = FInfoGet(StrZeroTerm(comp->file_path));
+                    FInfo info = FInfoGet(StrZ(comp->file_path));
                     Str f_safe = StrPathBuild(info.dirname, info.basename, StrL("h"));
                     StrPrint(f_safe);
                     printf("\n");
 
-                    SaveFile(StrZeroTerm(f_safe), buff.str, buff.len);
+                    SaveFile(StrZ(f_safe), buff.str, buff.len);
                 }
             }
             if (do_cogen) {
@@ -250,7 +253,7 @@ int main (int argc, char **argv) {
                 Str savefile = StrSPrint("%.*s/comps_meta.h", 4, dirpath.len, dirpath.str);
                 StrPrint("Saving component meta file to: ", savefile, "\n\n");
 
-                SaveFile(StrZeroTerm(savefile), buff.str, buff.len);
+                SaveFile(StrZ(savefile), buff.str, buff.len);
             }
         }
 
@@ -280,7 +283,7 @@ int main (int argc, char **argv) {
                 Str savefile = StrSPrint("%.*s/%.*s_config.h", 4, dirpath.len, dirpath.str, instr->name.len, instr->name.str);
                 StrPrint("Saving instument config file to: ", savefile, "\n");
 
-                SaveFile(StrZeroTerm(savefile), buff.str, buff.len);
+                SaveFile(StrZ(savefile), buff.str, buff.len);
             }
         }
 

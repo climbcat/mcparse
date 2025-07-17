@@ -156,22 +156,6 @@ void InstrumentCogen(StrBuff *b, Instrument *instr) {
     StrBuffPrint1K(b, "#endif // %.*s\n", 2, instr->name.len, instr->name.str);
 }
 
-Str StrInsertReplace(Str src, Str amend, Str at) {
-    Str before = src;
-    before.len = (at.str - src.str);
-
-    Str after = {};
-    after.len = src.len - before.len - at.len;
-    after.str = (src.str + src.len) - after.len;
-
-    s32 len = src.len - at.len + amend.len;
-    Str result = StrAlloc(len);
-    result = StrCat(before, amend);
-    result = StrCat(result, after);
-
-    return result;
-}
-
 void AmendInstParDefaultValue(Array<Parameter> pars) {
     for (s32 j = 0; j < pars.len; ++j) {
         Parameter *p = pars.arr + j;
