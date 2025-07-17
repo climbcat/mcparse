@@ -10,5 +10,4 @@ build/*
 .vscode/*
 */.vscode/*
 */*/.vscode/*
-*/*jg_baselayer.h
-
+lib/
