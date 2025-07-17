@@ -21,6 +21,10 @@ struct StructMember {
 };
 
 
+void HandleParseError(Tokenizer *t) {
+    t->parse_error = true;
+}
+
 bool RequiredRVal(Tokenizer *t, Token *tok_out) {
     if (t->parse_error) return false;
 
@@ -33,11 +37,9 @@ bool RequiredRVal(Tokenizer *t, Token *tok_out) {
         return true;
     }
     else {
-        printf("\n\nERROR: Expected r-value, got '%s'\n", TokenTypeToSymbol(tok.type));
+        printf("\nERROR: Expected r-value, got '%s'\n", TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
-
-        // TODO: call hanlde error function
-        assert(1 == 0 && "DBG break");
+        HandleParseError(t);
 
         return false;
     }
@@ -66,7 +68,9 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
                 // TODO: call hanlde error function
                 printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(TOK_MCSTAS_C_EXPRESSION), TokenTypeToString(tok.type));
                 PrintLineError(t, &tok, "");
-                assert(1 == 0 && "DBG break");
+
+                //assert(1 == 0 && "DBG break");
+                HandleParseError(t);
 
                 return false;
             }
@@ -219,7 +223,8 @@ bool Required(Tokenizer *t, Token *tok_out, TokenType req) {
         PrintLineError(t, &tok, "");
 
         // TODO: call HandleParseError
-        assert(1 == 0 && "DBG break");
+        //assert(1 == 0 && "DBG break");
+        HandleParseError(t);
 
         return false;
     }
@@ -251,7 +256,8 @@ bool BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 optio
         PrintLineError(t, &tok, "");
 
         // TODO: call HandleParseError
-        assert(1 == 0 && "DBG break");
+        //assert(1 == 0 && "DBG break");
+        HandleParseError(t);
 
         return false;
     }
@@ -272,7 +278,8 @@ bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1,
         PrintLineError(t, &tok, "");
 
         // TODO: call HandleParseError
-        assert(1 == 0 && "DBG break");
+        //assert(1 == 0 && "DBG break");
+        HandleParseError(t);
 
         return false;
     }
@@ -293,7 +300,8 @@ bool OptionOfFour(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, 
         PrintLineError(t, &tok, "");
 
         // TODO: call HandleParseError
-        assert(1 == 0 && "DBG break");
+        //assert(1 == 0 && "DBG break");
+        HandleParseError(t);
 
         return false;
     }
@@ -316,7 +324,8 @@ bool OptionOfFive(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, 
         PrintLineError(t, &tok, "");
 
         // TODO: call HandleParseError
-        assert(1 == 0 && "DBG break");
+        //assert(1 == 0 && "DBG break");
+        HandleParseError(t);
 
         return false;
     }
@@ -336,8 +345,8 @@ bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
         printf("\n\nERROR: Expected '%s' or '%s', got %s\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
 
-
-        assert(1 == 0 && "DBG break");
+        //assert(1 == 0 && "DBG break");
+        HandleParseError(t);
 
         return false;
     }
@@ -383,8 +392,9 @@ void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
     arr_at_tail->max = arr_at_tail->len;
 }
 
-
 Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value_expression = false) {
+    if (t->parse_error) return {};
+
     Array<Parameter> params = InitArray<Parameter>(a_dest, 1024);
     Token token;
 
@@ -487,7 +497,8 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
             }
             else if (token.type == TOK_ENDOFSTREAM) {
                 // TODO: do HandleParseError
-                assert(1 == 0 && "DBG break");
+                //assert(1 == 0 && "DBG break");
+                HandleParseError(t);
 
                 return false;
             }
@@ -501,8 +512,9 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
 }
 
 
+// TODO: this function could do with a rewrite
 Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
-    // TODO: this function could do with a rewrite
+    if (t->parse_error) return {};
 
     Array<StructMember> mems = {};
     mems.arr = (StructMember*) ArenaAlloc(a_dest, 0);

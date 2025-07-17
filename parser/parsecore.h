@@ -549,7 +549,7 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
     for (s32 i = 0; i < mark; i++) {
         printf(" ");
     }
-    printf("^\n");
+    printf("^\n\n");
 
 
     // S.O. example how to get terminal width s.t. we can avoid line wrap, which would break the ^ location cursor

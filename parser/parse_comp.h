@@ -110,8 +110,7 @@ Component *ParseComponent(MArena *a_dest, Str text) {
     };
 
     bool block_parse = true;
-    Tokenizer t_at_declare = {};
-    while (block_parse) {
+    while (block_parse && t->parse_error == false) {
         Tokenizer dont_advance = *t;
 
         if (BranchMultiple(&dont_advance, &token, options_blocks, 8, "code block", TOK_MCSTAS_END)) {
@@ -143,6 +142,7 @@ Component *ParseComponent(MArena *a_dest, Str text) {
 
     // end
     Required(t, &token, TOK_MCSTAS_END);
+    comp->parse_error = t->parse_error;
 
     return comp;
 }

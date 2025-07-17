@@ -67,6 +67,9 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
     HashMap map_comps = InitMap(a_parse, StrListLen(fpaths) * 3);
     s32 registered_cnt = 0;
     s32 parsed_cnt = 0;
+    s32 error_cnt = 0;
+    s32 duplicate_cnt = 0;
+    s32 total_cnt = 0;
 
     while (fpaths) {
         Str filename = StrLstNext(&fpaths);
@@ -75,19 +78,31 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
             continue;
         }
 
-        if (dbg_print) printf("parsing  #%.3d: %.*s \n", parsed_cnt, filename.len, filename.str);
+        if (dbg_print) printf("parsing  #%.3d: %.*s", parsed_cnt, filename.len, filename.str);
         Component *comp = ParseComponent(a_parse, text);
         comp->file_path = filename;
-        parsed_cnt++;
 
-        if (RegisterComponentType(comp, &map_comps)) {
-            registered_cnt++;
+        if (comp->parse_error == true) {
+            error_cnt++;
         }
+        else {
+            parsed_cnt++;
+
+            if (RegisterComponentType(comp, &map_comps)) {
+                registered_cnt++;
+            }
+            else {
+                duplicate_cnt++;
+            }
+        }
+        if (dbg_print) printf("\n");
+
+        total_cnt++;
     }
 
     if (dbg_print) {
         printf("\n");
-        printf("Parsed %d components (registered %d, total data size %lu bytes)\n", parsed_cnt, registered_cnt, a_parse->used + a_files.used);
+        printf("Components parsed: %d, registered: %d, parse-errors: %d, duplicates: %d, total: %d\n", parsed_cnt, registered_cnt, duplicate_cnt, error_cnt, total_cnt /* a_parse->used + a_files.used */ );
         printf("\n");
     }
 
