@@ -34,7 +34,7 @@ bool RegisterInstrument(Instrument *instr, HashMap *map) {
     return name_is_unique;
 }
 
-HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
+HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
     MArena a_files = ArenaCreate();
 
     HashMap map_instrs = InitMap(a_parse, StrListLen(fpaths) * 3);
@@ -48,10 +48,12 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths) {
             continue;
         }
 
-        printf("parsing  #%.3d: %.*s \n", parsed_cnt, filename.len, filename.str);
+        if (dbg_print) printf("parsing  #%.3d: %.*s", parsed_cnt, filename.len, filename.str);
         Instrument *instr = ParseInstrument(a_parse, text);
         instr->path = filename;
         parsed_cnt++;
+
+        if (dbg_print) printf("\n");
 
         if (RegisterInstrument(instr, &map_instrs)) {
             registered_cnt++;
@@ -102,7 +104,8 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
 
     if (dbg_print) {
         printf("\n");
-        printf("Components parsed: %d, registered: %d, parse-errors: %d, duplicates: %d, total: %d\n", parsed_cnt, registered_cnt, duplicate_cnt, error_cnt, total_cnt /* a_parse->used + a_files.used */ );
+        printf("Components: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
+            total_cnt, registered_cnt, error_cnt, duplicate_cnt /* a_parse->used + a_files.used */ );
         printf("\n");
     }
 
@@ -192,16 +195,20 @@ int main (int argc, char **argv) {
     CbuiAssertVersion(0,2,0);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("Usage: parser --complib <comp-lib-root-folder> --instr <instr-file> | [options]\n");
+        printf("Usage: parser [--comps <comp-lib-root-folder>] [--instrs <instr-file>] [--cogen]\n");
         printf("\n");
         printf("--help                  display help (this text)\n");
-        printf("--test                  run test functions\n");
+        printf("--comps                 parse component file or folder hierarchy/library\n");
+        printf("--instrs                parse instrument file or folder hierarchy/library\n");
         printf("--cogen                 generate code\n");
         exit(0);
     }
+
     else if (CLAContainsArg("--test", argc, argv)) {
-        // any tests code here
+        // any test code here
+
     }
+
     else {
         bool do_cogen = false;
         if (CLAContainsArg("--cogen", argc, argv)) { do_cogen = true; }
@@ -210,11 +217,11 @@ int main (int argc, char **argv) {
         // get input
         char *comp_lib_path = NULL;
         char *instr_lib_path = NULL;
-        if (CLAContainsArg("--complib", argc, argv) || CLAContainsArg("-c", argc, argv)) {
-            comp_lib_path = CLAGetArgValue("--complib", argc, argv);
+        if (CLAContainsArg("--comps", argc, argv) || CLAContainsArg("-c", argc, argv)) {
+            comp_lib_path = CLAGetArgValue("--comps", argc, argv);
         }
-        if (CLAContainsArg("--instr", argc, argv) || CLAContainsArg("-i", argc, argv)) {
-            instr_lib_path = CLAGetArgValue("--instr", argc, argv);
+        if (CLAContainsArg("--instrs", argc, argv) || CLAContainsArg("-i", argc, argv)) {
+            instr_lib_path = CLAGetArgValue("--instrs", argc, argv);
         }
 
 
@@ -255,17 +262,9 @@ int main (int argc, char **argv) {
                 StrBuffClear(&buff);
                 ComponentMetaCogen(&buff, &comp_map);
 
-                void *data = 0;
-                SaveFile("comps_meta.h", buff.str, buff.len);
-
-
-                // save component meta file
-
-                // TODO: should work when comp_lib_path is a file OR a folder, we need to check this
-                //      (here assuming it is a folder)
-                //Str dirpath = StrDirPath( StrL(comp_lib_path) );
-                Str dirpath = StrL(comp_lib_path);
-                Str savefile = StrSPrint("%.*s/comps_meta.h", 4, dirpath.len, dirpath.str);
+                // save component aggregate file
+                Str dirpath = StrDirPath( StrL(comp_lib_path) );
+                Str savefile = StrPathBuild(dirpath, StrL("comps_meta"), StrL("h"));
                 StrPrint("Saving component meta file to: ", savefile, "\n\n");
 
                 SaveFile(StrZ(savefile), buff.str, buff.len);
@@ -273,9 +272,10 @@ int main (int argc, char **argv) {
         }
 
 
+        // instruments
         if (instr_lib_path) {
             StrLst *instr_paths = GetFiles(instr_lib_path, "instr", true);
-            HashMap instr_map = ParseInstruments(&a_work, instr_paths);
+            HashMap instr_map = ParseInstruments(&a_work, instr_paths, true);
             printf("\nParsed %d Instruments\n\n", instr_map.noccupants);
 
             // print instruments
@@ -289,16 +289,15 @@ int main (int argc, char **argv) {
                 if (do_cogen) {
                     StrBuffClear(&buff);
                     InstrumentCogen(&buff, instr);
+
+                    // save instrument config file
+                    Str dirpath = StrDirPath( StrL(instr_lib_path) );
+                    Str basename = StrCat(instr->name, "_config");
+                    Str savefile = StrPathBuild(dirpath, basename, StrL("h"));
+                    StrPrint("Saving instument config file to: ", savefile, "\n");
+
+                    SaveFile(StrZ(savefile), buff.str, buff.len);
                 }
-
-                // save instrument config file
-                // TODO: should work when comp_lib_path is a file OR a folder, we need to check this
-                //      (here assuming it is a file)
-                Str dirpath = StrDirPath( StrL(instr_lib_path) );
-                Str savefile = StrSPrint("%.*s/%.*s_config.h", 4, dirpath.len, dirpath.str, instr->name.len, instr->name.str);
-                StrPrint("Saving instument config file to: ", savefile, "\n");
-
-                SaveFile(StrZ(savefile), buff.str, buff.len);
             }
         }
 
