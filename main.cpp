@@ -13,6 +13,14 @@
 #include "src/cogen_instr.h"
 
 
+struct ParseStats {
+    s32 total_cnt = 0;
+    s32 parsed_cnt = 0;
+    s32 registered_cnt = 0;
+    s32 duplicate_cnt = 0;
+    s32 error_cnt = 0;
+};
+
 bool RegisterComponentType(Component *comp, HashMap *map) {
     u64 val = MapGet(map, comp->type);
     bool type_was_unique = (val == 0);
@@ -33,105 +41,77 @@ bool RegisterInstrument(Instrument *instr, HashMap *map) {
     return name_is_unique;
 }
 
-HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
-    MArena a_files = ArenaCreate();
-
-    HashMap map_instrs = InitMap(a_parse, StrListLen(fpaths) * 3);
-    s32 total_cnt = 0;
-    s32 parsed_cnt = 0;
-    s32 registered_cnt = 0;
-    s32 duplicate_cnt = 0;
-    s32 error_cnt = 0;
+ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths) {
+    ParseStats ps = {};
 
     while (fpaths) {
         Str filename = StrLstNext(&fpaths);
-        Str text = LoadTextFileFSeek(&a_files, filename);
+        Str text = LoadTextFileFSeek(a_dest, filename);
         if (text.len == 0) {
             continue;
         }
 
-        if (dbg_print) printf("parsing  #%.3d: %.*s", total_cnt, filename.len, filename.str);
+        printf("parsing  #%.3d: %.*s", ps.total_cnt, filename.len, filename.str);
 
-        Instrument *instr = ParseInstrument(a_parse, text);
+        Instrument *instr = ParseInstrument(a_dest, text);
         instr->path = filename;
-        instr->check_idx = total_cnt;
+        instr->check_idx = ps.total_cnt;
 
         if (instr->parse_error) {
-            error_cnt++;
+            ps.error_cnt++;
         }
         else {
-            parsed_cnt++;
+            ps.parsed_cnt++;
 
-            if (RegisterInstrument(instr, &map_instrs)) {
-                registered_cnt++;
+            if (RegisterInstrument(instr, map_instrs)) {
+                ps.registered_cnt++;
             }
             else {
-                parsed_cnt++;
-                duplicate_cnt++;
+                ps.parsed_cnt++;
+                ps.duplicate_cnt++;
             }
         }
-        if (dbg_print) printf("\n");
+        printf("\n");
 
-        total_cnt++;
+        ps.total_cnt++;
     }
 
-    if (dbg_print) {
-        printf("\n");
-        printf("Instruments: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
-            total_cnt, registered_cnt, error_cnt, duplicate_cnt);
-        printf("\n");
-    }
-
-    return map_instrs;
+    return ps;
 }
 
-HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
-    MArena a_files = ArenaCreate();
-
-    HashMap map_comps = InitMap(a_parse, StrListLen(fpaths) * 3);
-    s32 registered_cnt = 0;
-    s32 parsed_cnt = 0;
-    s32 error_cnt = 0;
-    s32 duplicate_cnt = 0;
-    s32 total_cnt = 0;
+ParseStats ParseComponents(MArena *a_dest, HashMap *map_comps, StrLst *fpaths) {
+    ParseStats ps = {};
 
     while (fpaths) {
         Str filename = StrLstNext(&fpaths);
-        Str text = LoadTextFileFSeek(&a_files, filename);
+        Str text = LoadTextFileFSeek(a_dest, filename);
         if (text.len == 0) {
             continue;
         }
 
-        if (dbg_print) printf("parsing  #%.3d: %.*s", total_cnt, filename.len, filename.str);
-        Component *comp = ParseComponent(a_parse, text);
+        printf("parsing  #%.3d: %.*s", ps.total_cnt, filename.len, filename.str);
+        Component *comp = ParseComponent(a_dest, text);
         comp->file_path = filename;
 
         if (comp->parse_error == true) {
-            error_cnt++;
+            ps.error_cnt++;
         }
         else {
-            parsed_cnt++;
+            ps.parsed_cnt++;
 
-            if (RegisterComponentType(comp, &map_comps)) {
-                registered_cnt++;
+            if (RegisterComponentType(comp, map_comps)) {
+                ps.registered_cnt++;
             }
             else {
-                duplicate_cnt++;
+                ps.duplicate_cnt++;
             }
         }
-        if (dbg_print) printf("\n");
+        printf("\n");
 
-        total_cnt++;
+        ps.total_cnt++;
     }
 
-    if (dbg_print) {
-        printf("\n");
-        printf("Components: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
-            total_cnt, registered_cnt, error_cnt, duplicate_cnt);
-        printf("\n");
-    }
-
-    return map_comps;
+    return ps;
 }
 
 
@@ -234,8 +214,8 @@ int main (int argc, char **argv) {
 
     BaselayerAssertVersion(0, 2, 3);
 
-    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("Usage: parser [--comps <comp-lib-root-folder>] [--instrs <instr-file>] [--cogen]\n");
+    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv) || argc == 1) {
+        printf("Usage: ./mcparse [--comps <comp-lib-root-folder>] [--instrs <instr-file>] [--cogen]\n");
         printf("\n");
         printf("--help                  display help (this text)\n");
         printf("--comps                 parse component file or folder hierarchy/library\n");
@@ -266,18 +246,18 @@ int main (int argc, char **argv) {
 
 
         // init
-        MArena a_tmp = ArenaCreate();
-        MArena a_work = ArenaCreate();
-        StrInit();
+        MContext *ctx = InitBaselayer();
         StrBuff buff = StrBuffInit();
         MapIter iter = {};
 
 
         // components
         HashMap comp_map = {};
-        if (comp_lib_path != NULL) {
+        ParseStats comp_stats = {};
+        if (comp_lib_path) {
             StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
-            comp_map = ParseComponents(&a_work, comp_paths, true);
+            HashMap comp_map = InitMap(ctx->a_life, StrListLen(comp_paths) * 3);
+            comp_stats = ParseComponents(ctx->a_life, &comp_map, comp_paths);
 
             iter = {};
             while (Component *comp = (Component*) MapNextVal(&comp_map, &iter)) {
@@ -312,11 +292,14 @@ int main (int argc, char **argv) {
 
 
         // instruments
+        ParseStats instr_stats = {};
         if (instr_lib_path) {
             StrLst *instr_paths = GetFiles(instr_lib_path, "instr", true);
-            HashMap instr_map = ParseInstruments(&a_work, instr_paths, true);
+            HashMap instr_map = InitMap(ctx->a_life, StrListLen(instr_paths) * 3);
+            instr_stats = ParseInstruments(ctx->a_life, &instr_map, instr_paths);
 
             // print instruments
+            MArena a_tmp = ArenaCreate();
             iter = {};
             while (Instrument *instr = (Instrument*) MapNextVal(&instr_map, &iter)) {
                 if (instr->parse_error == true) { continue; }
@@ -341,6 +324,18 @@ int main (int argc, char **argv) {
                 }
             }
         }
+        printf("\n");
 
+        // final reporting
+        if (comp_lib_path) {
+            printf("Component parse: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
+                comp_stats.total_cnt, comp_stats.registered_cnt, comp_stats.error_cnt, comp_stats.duplicate_cnt);
+        }
+
+        if (instr_lib_path) {
+            printf("Instrument parse: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
+                instr_stats.total_cnt, instr_stats.registered_cnt, instr_stats.error_cnt, instr_stats.duplicate_cnt);
+        }
+        printf("\n");
     }
 }
