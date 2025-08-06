@@ -5,7 +5,6 @@
 
 
 #include "lib/jg_baselayer.h"
-#include "lib/jg_cbui.h"
 #include "src/parsecore.h"
 #include "src/parsehelpers.h"
 #include "src/parse_comp.h"
@@ -234,7 +233,6 @@ int main (int argc, char **argv) {
     TimeProgram;
 
     BaselayerAssertVersion(0, 2, 3);
-    CbuiAssertVersion(0,2,0);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("Usage: parser [--comps <comp-lib-root-folder>] [--instrs <instr-file>] [--cogen]\n");
