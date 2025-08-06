@@ -4,14 +4,14 @@
 #include <cstddef>
 
 
-#include "../lib/jg_baselayer.h"
-#include "../lib/jg_cbui.h"
-#include "parsecore.h"
-#include "parsehelpers.h"
-#include "parse_comp.h"
-#include "parse_instr.h"
-#include "cogen_comp.h"
-#include "cogen_instr.h"
+#include "lib/jg_baselayer.h"
+#include "lib/jg_cbui.h"
+#include "src/parsecore.h"
+#include "src/parsehelpers.h"
+#include "src/parse_comp.h"
+#include "src/parse_instr.h"
+#include "src/cogen_comp.h"
+#include "src/cogen_instr.h"
 
 
 bool RegisterComponentType(Component *comp, HashMap *map) {
@@ -191,7 +191,7 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
 int main (int argc, char **argv) {
     TimeProgram;
 
-    BaselayerAssertVersion(0, 2, 2);
+    BaselayerAssertVersion(0, 2, 3);
     CbuiAssertVersion(0,2,0);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
@@ -249,8 +249,7 @@ int main (int argc, char **argv) {
                     StrBuffClear(&buff);
                     ComponentCogen(&buff, comp);
 
-                    FInfo info = FInfoGet(StrZ(comp->file_path));
-                    Str f_safe = StrPathBuild(info.dirname, info.basename, StrL("h"));
+                    Str f_safe = StrPathBuild(StrDirPath(comp->file_path), StrBasename(comp->file_path), StrL("h"));
                     StrPrint(f_safe);
                     printf("\n");
 
