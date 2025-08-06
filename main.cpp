@@ -38,8 +38,11 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
     MArena a_files = ArenaCreate();
 
     HashMap map_instrs = InitMap(a_parse, StrListLen(fpaths) * 3);
-    s32 registered_cnt = 0;
+    s32 total_cnt = 0;
     s32 parsed_cnt = 0;
+    s32 registered_cnt = 0;
+    s32 duplicate_cnt = 0;
+    s32 error_cnt = 0;
 
     while (fpaths) {
         Str filename = StrLstNext(&fpaths);
@@ -48,16 +51,36 @@ HashMap ParseInstruments(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
             continue;
         }
 
-        if (dbg_print) printf("parsing  #%.3d: %.*s", parsed_cnt, filename.len, filename.str);
+        if (dbg_print) printf("parsing  #%.3d: %.*s", total_cnt, filename.len, filename.str);
+
         Instrument *instr = ParseInstrument(a_parse, text);
         instr->path = filename;
-        parsed_cnt++;
+        instr->check_idx = total_cnt;
 
+        if (instr->parse_error) {
+            error_cnt++;
+        }
+        else {
+            parsed_cnt++;
+
+            if (RegisterInstrument(instr, &map_instrs)) {
+                registered_cnt++;
+            }
+            else {
+                parsed_cnt++;
+                duplicate_cnt++;
+            }
+        }
         if (dbg_print) printf("\n");
 
-        if (RegisterInstrument(instr, &map_instrs)) {
-            registered_cnt++;
-        }
+        total_cnt++;
+    }
+
+    if (dbg_print) {
+        printf("\n");
+        printf("Instruments: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
+            total_cnt, registered_cnt, error_cnt, duplicate_cnt);
+        printf("\n");
     }
 
     return map_instrs;
@@ -80,7 +103,7 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
             continue;
         }
 
-        if (dbg_print) printf("parsing  #%.3d: %.*s", parsed_cnt, filename.len, filename.str);
+        if (dbg_print) printf("parsing  #%.3d: %.*s", total_cnt, filename.len, filename.str);
         Component *comp = ParseComponent(a_parse, text);
         comp->file_path = filename;
 
@@ -105,7 +128,7 @@ HashMap ParseComponents(MArena *a_parse, StrLst *fpaths, bool dbg_print) {
     if (dbg_print) {
         printf("\n");
         printf("Components: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
-            total_cnt, registered_cnt, error_cnt, duplicate_cnt /* a_parse->used + a_files.used */ );
+            total_cnt, registered_cnt, error_cnt, duplicate_cnt);
         printf("\n");
     }
 
@@ -123,12 +146,16 @@ ComponentCall *_FindByName(Array<ComponentCall> comps, Str name) {
 }
 
 
-bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
+bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, bool dbg_print_missing_types = false) {
     s32 max_copy_comps = 1000;
     HashMap map_cpys = InitMap(a_tmp, max_copy_comps);
 
+    bool type_error = false;
+    bool nameref_error = false;
 
-    bool has_error = false;
+    printf("checking  #%d: ", instr->check_idx);
+    StrPrint(instr->name);
+
     for (s32 i = 0; i < instr->comps.len; ++i) {
         ComponentCall *c = instr->comps.arr + i;
 
@@ -138,18 +165,21 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
             if (StrEqual(c->copy_type, "PREVIOUS")) {
 
                 // TODO: on error, set error flag and skip
-                assert(i > 0 && "copy_type: COPY(PREVIOUS) can not be the first component call");
-
-                Str prev_type = instr->comps.arr[i-1].type;
-                c->type = prev_type;
+                if (i == 0) {
+                    nameref_error = true;
+                    printf("\nERROR: COPY(PREVIOUS) can not be the first component call\n\n");
+                }
+                else {
+                    Str prev_type = instr->comps.arr[i-1].type;
+                    c->type = prev_type;
+                }
             }
             else {
                 ComponentCall *org_comp = _FindByName(instr->comps, c->copy_type);
                 if (org_comp == NULL) {
-                    StrPrint("\n\n", c->copy_type, "\n\n");
+                    StrPrint("\nERROR: Referenced component name not found: ", c->copy_type, "\n\n");
 
-                    // TODO: on error, set error flag and skip
-                    assert(1 == 0 && "component by name not found");
+                    nameref_error = true;
                 }
 
                 // reference the type and args of the copied component
@@ -177,14 +207,26 @@ bool TypeCheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps) {
 
         u64 comp_exists = MapGet(comps, c->type);
         if (comp_exists == 0) {
-            has_error = true;
+            type_error = true;
 
-            printf("    Missing component type (idx %d): ", i);
-            StrPrint(c->type);
-            printf("\n");
+            if (dbg_print_missing_types) {
+                printf("    Missing component type (idx %d): ", i);
+                StrPrint(c->type);
+                printf("\n");
+            }
         }
     }
-    return has_error;
+
+    instr->type_checked = ! type_error;
+    instr->namerefs_checked = ! nameref_error;
+
+    if ((instr->type_checked == true) && (instr->namerefs_checked == true)) { printf(" - OK"); }
+    if ((instr->type_checked == false)) { printf("\n    ERROR: Missing component types"); }
+    if ((instr->namerefs_checked == false)) { printf("\n    ERROR: Component instance name reference"); }
+    if (type_error || nameref_error) { printf("\n"); } 
+    printf("\n");
+
+    return (! type_error) && (! nameref_error);
 }
 
 
@@ -275,15 +317,17 @@ int main (int argc, char **argv) {
         if (instr_lib_path) {
             StrLst *instr_paths = GetFiles(instr_lib_path, "instr", true);
             HashMap instr_map = ParseInstruments(&a_work, instr_paths, true);
-            printf("\nParsed %d Instruments\n\n", instr_map.noccupants);
 
             // print instruments
             iter = {};
             while (Instrument *instr = (Instrument*) MapNextVal(&instr_map, &iter)) {
-                StrPrint("Type checking: ", instr->name, "\n");
-                bool has_error = TypeCheckInstrument(&a_tmp, instr, &comp_map);
-                printf("\n");
-                if (CLAContainsArg("--print_instr", argc, argv)) { InstrumentPrint(instr, true, true, true); }
+                if (instr->parse_error == true) { continue; }
+
+                CheckInstrument(&a_tmp, instr, &comp_map);
+
+                if (CLAContainsArg("--print_instr", argc, argv)) {
+                    InstrumentPrint(instr, true, true, true);
+                }
 
                 if (do_cogen) {
                     StrBuffClear(&buff);

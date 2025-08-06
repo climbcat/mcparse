@@ -52,7 +52,10 @@ struct Instrument {
     Str trace_block;
     Str finally_block;
 
+    s32 check_idx;
     bool parse_error;
+    bool type_checked;
+    bool namerefs_checked;
 };
 
 
@@ -272,8 +275,10 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
     }
 
     ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &instr->finally_block, &_, &_);
+    // TODO: Why is this not just a MCSTAS_END ?
     OptionOfTwo(t, &token, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END);
 
+    instr->parse_error = t->parse_error;
     return instr;
 }
 
