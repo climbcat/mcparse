@@ -1,8 +1,8 @@
 # mcparse
 
-Custom parser for mcstas/mxtrace .instr and .comp files with great error messages.
+Custom parser for mcstas .instr and .comp files with great error messages.
 
-#### build & run
+## build & run
 
 First run the script lib/getdeps.sh which will download a required helper library.
 
@@ -11,7 +11,7 @@ A component library with instrument examples is located in the mcstas-comps fold
 
 (Some of the files are slighty modified, see below.)
 
-#### mcstas-comps
+## mcstas-comps
 
 Component- and instrument files were copied verbatim from a version of the McCode main repository (see mcstas.org).
 
