@@ -223,12 +223,20 @@ int main (int argc, char **argv) {
     BaselayerAssertVersion(0, 2, 4);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv) || argc == 1) {
-        printf("Usage: ./mcparse [--comps <comp-lib-root-folder>] [--instrs <instr-file>] [--cogen]\n");
+        printf("Usage:\n");
+        printf("    mcparse [<lib-path> | --comps <comp-lib-path> --instrs <inst-lib-path>] [--cogen]\n");
         printf("\n");
+        printf("Examples:\n");
+        printf("    mcparse mcstas-comps\n");
+        printf("    mcparse --comps mcstas-comps\n");
+        printf("    mcparse --comps mcstas-comps --cogen\n");
+        printf("\n");
+        printf("Parameters:\n");
         printf("--help                  display help (this text)\n");
-        printf("--comps                 parse component file or folder hierarchy/library\n");
-        printf("--instrs                parse instrument file or folder hierarchy/library\n");
+        printf("--comps                 component file or library path\n");
+        printf("--instrs                instrument file or library path\n");
         printf("--cogen                 generate code\n");
+        printf("\n");
         exit(0);
     }
 
