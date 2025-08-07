@@ -4,7 +4,8 @@
 #include <cstddef>
 
 
-#include "lib/jg_baselayer.h"
+//#include "lib/jg_baselayer.h"
+#include "../baselayer/src/baselayer.h"
 #include "src/parsecore.h"
 #include "src/parsehelpers.h"
 #include "src/parse_comp.h"
@@ -18,7 +19,8 @@ struct ParseStats {
     s32 parsed_cnt = 0;
     s32 registered_cnt = 0;
     s32 duplicate_cnt = 0;
-    s32 error_cnt = 0;
+    s32 parse_error_cnt = 0;
+    s32 type_error_cnt = 0;
 };
 
 bool RegisterComponentType(Component *comp, HashMap *map) {
@@ -42,6 +44,8 @@ bool RegisterInstrument(Instrument *instr, HashMap *map) {
 }
 
 ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths) {
+    TimeFunction;
+
     ParseStats ps = {};
 
     while (fpaths) {
@@ -58,7 +62,7 @@ ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths)
         instr->check_idx = ps.total_cnt;
 
         if (instr->parse_error) {
-            ps.error_cnt++;
+            ps.parse_error_cnt++;
         }
         else {
             ps.parsed_cnt++;
@@ -80,6 +84,8 @@ ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths)
 }
 
 ParseStats ParseComponents(MArena *a_dest, HashMap *map_comps, StrLst *fpaths) {
+    TimeFunction;
+
     ParseStats ps = {};
 
     while (fpaths) {
@@ -94,7 +100,7 @@ ParseStats ParseComponents(MArena *a_dest, HashMap *map_comps, StrLst *fpaths) {
         comp->file_path = filename;
 
         if (comp->parse_error == true) {
-            ps.error_cnt++;
+            ps.parse_error_cnt++;
         }
         else {
             ps.parsed_cnt++;
@@ -125,7 +131,7 @@ ComponentCall *_FindByName(Array<ComponentCall> comps, Str name) {
 }
 
 
-bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, bool dbg_print_missing_types = false) {
+bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, ParseStats *stats, bool dbg_print_missing_types = false) {
     s32 max_copy_comps = 1000;
     HashMap map_cpys = InitMap(a_tmp, max_copy_comps);
 
@@ -187,11 +193,12 @@ bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, bool dbg_
         u64 comp_exists = MapGet(comps, c->type);
         if (comp_exists == 0) {
             type_error = true;
+            stats->type_error_cnt++;
 
             if (dbg_print_missing_types) {
+                printf("\n");
                 printf("    Missing component type (idx %d): ", i);
                 StrPrint(c->type);
-                printf("\n");
             }
         }
     }
@@ -200,7 +207,7 @@ bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, bool dbg_
     instr->namerefs_checked = ! nameref_error;
 
     if ((instr->type_checked == true) && (instr->namerefs_checked == true)) { printf(" - OK"); }
-    if ((instr->type_checked == false)) { printf("\n    ERROR: Missing component types"); }
+    if ((instr->type_checked == false && dbg_print_missing_types == false)) { printf("\n    ERROR: Missing component types"); }
     if ((instr->namerefs_checked == false)) { printf("\n    ERROR: Component instance name reference"); }
     if (type_error || nameref_error) { printf("\n"); } 
     printf("\n");
@@ -212,7 +219,8 @@ bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, bool dbg_
 int main (int argc, char **argv) {
     TimeProgram;
 
-    BaselayerAssertVersion(0, 2, 3);
+    //BaselayerAssertVersion(0, 2, 3);
+    BaselayerAssertVersion(0, 2, 4);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv) || argc == 1) {
         printf("Usage: ./mcparse [--comps <comp-lib-root-folder>] [--instrs <instr-file>] [--cogen]\n");
@@ -243,6 +251,10 @@ int main (int argc, char **argv) {
         if (CLAContainsArg("--instrs", argc, argv) || CLAContainsArg("-i", argc, argv)) {
             instr_lib_path = CLAGetArgValue("--instrs", argc, argv);
         }
+        if (argc > 1 && comp_lib_path == NULL && comp_lib_path == NULL) {
+            comp_lib_path = argv[1];
+            instr_lib_path = argv[1];
+        }
 
 
         // init
@@ -256,7 +268,7 @@ int main (int argc, char **argv) {
         ParseStats comp_stats = {};
         if (comp_lib_path) {
             StrLst *comp_paths = GetFiles(comp_lib_path, "comp", true);
-            HashMap comp_map = InitMap(ctx->a_life, StrListLen(comp_paths) * 3);
+            comp_map = InitMap(ctx->a_life, StrListLen(comp_paths) * 3);
             comp_stats = ParseComponents(ctx->a_life, &comp_map, comp_paths);
 
             iter = {};
@@ -292,10 +304,11 @@ int main (int argc, char **argv) {
 
 
         // instruments
+        HashMap instr_map = {};
         ParseStats instr_stats = {};
         if (instr_lib_path) {
             StrLst *instr_paths = GetFiles(instr_lib_path, "instr", true);
-            HashMap instr_map = InitMap(ctx->a_life, StrListLen(instr_paths) * 3);
+            instr_map = InitMap(ctx->a_life, StrListLen(instr_paths) * 3);
             instr_stats = ParseInstruments(ctx->a_life, &instr_map, instr_paths);
 
             // print instruments
@@ -304,7 +317,7 @@ int main (int argc, char **argv) {
             while (Instrument *instr = (Instrument*) MapNextVal(&instr_map, &iter)) {
                 if (instr->parse_error == true) { continue; }
 
-                CheckInstrument(&a_tmp, instr, &comp_map);
+                CheckInstrument(&a_tmp, instr, &comp_map, &instr_stats, true);
 
                 if (CLAContainsArg("--print_instr", argc, argv)) {
                     InstrumentPrint(instr, true, true, true);
@@ -328,13 +341,13 @@ int main (int argc, char **argv) {
 
         // final reporting
         if (comp_lib_path) {
-            printf("Component parse: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
-                comp_stats.total_cnt, comp_stats.registered_cnt, comp_stats.error_cnt, comp_stats.duplicate_cnt);
+            printf("Component parse: %d total, %d parsed, %d errors [dupes: %d])\n",
+                comp_stats.total_cnt, comp_stats.registered_cnt, comp_stats.parse_error_cnt, comp_stats.duplicate_cnt);
         }
 
         if (instr_lib_path) {
-            printf("Instrument parse: %d, parsed & registered: %d (errors: %d, duplicates: %d)\n",
-                instr_stats.total_cnt, instr_stats.registered_cnt, instr_stats.error_cnt, instr_stats.duplicate_cnt);
+            printf("Instrument parse: %d total, %d parsed, %d errors, type-errs: %d [dupes: %d]\n",
+                instr_stats.total_cnt, instr_stats.registered_cnt, instr_stats.parse_error_cnt, instr_stats.type_error_cnt, instr_stats.duplicate_cnt);
         }
         printf("\n");
     }
