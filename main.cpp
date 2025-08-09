@@ -132,6 +132,8 @@ ComponentCall *_FindByName(Array<ComponentCall> comps, Str name) {
 
 
 bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, ParseStats *stats, bool dbg_print_missing_types = false) {
+    TimeFunction;
+
     s32 max_copy_comps = 1000;
     HashMap map_cpys = InitMap(a_tmp, max_copy_comps);
 
@@ -259,7 +261,7 @@ int main (int argc, char **argv) {
         if (CLAContainsArg("--instrs", argc, argv) || CLAContainsArg("-i", argc, argv)) {
             instr_lib_path = CLAGetArgValue("--instrs", argc, argv);
         }
-        if (argc > 1 && comp_lib_path == NULL && comp_lib_path == NULL) {
+        if (argc > 1 && comp_lib_path == NULL && instr_lib_path == NULL) {
             comp_lib_path = argv[1];
             instr_lib_path = argv[1];
         }
