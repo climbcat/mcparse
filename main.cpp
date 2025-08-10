@@ -4,8 +4,7 @@
 #include <cstddef>
 
 
-//#include "lib/jg_baselayer.h"
-#include "../baselayer/src/baselayer.h"
+#include "lib/jg_baselayer.h"
 #include "src/parsecore.h"
 #include "src/parsehelpers.h"
 #include "src/parse_comp.h"
@@ -221,7 +220,6 @@ bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, ParseStat
 int main (int argc, char **argv) {
     TimeProgram;
 
-    //BaselayerAssertVersion(0, 2, 3);
     BaselayerAssertVersion(0, 2, 4);
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv) || argc == 1) {
