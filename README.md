@@ -61,6 +61,22 @@ environment.
 This project is part of an exploratory project to re-image the mcstas core, and a stand-alone
 demonstration of the parser (and code-generation) section of that idea.
 
+### Note on C++ compatibility
+
+The original C code turned out to be fairly compatible with a standard C++ compiler (g++).
+
+However, explicit porting of each component is still necessary. It was not difficult hard,
+but it can take a bit of extra development time to do.
+
+To be able to proceed with a proof-of-concept for high-level code, only the components
+included by the instrument PSI_DMC were ported so far. However, this includes multiple
+large and non-trivial components, such as Monitor_nD and Source_Maxwell. 
+
+NOTE: In addition to being ported, the support for MPI and PGCC/OpenAcc was removed
+for simplicity's sake. These features were not at all essential for the
+purpose of this project.
+
+
 ### Building high-level functionality
 
 The generated components meta file provides access to all of the parsed components 
