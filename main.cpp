@@ -210,7 +210,7 @@ bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, ParseStat
     if ((instr->type_checked == true) && (instr->namerefs_checked == true)) { printf(" - OK"); }
     if ((instr->type_checked == false && dbg_print_missing_types == false)) { printf("\n    ERROR: Missing component types"); }
     if ((instr->namerefs_checked == false)) { printf("\n    ERROR: Component instance name reference"); }
-    if (type_error || nameref_error) { printf("\n"); } 
+    if ((type_error || nameref_error) && dbg_print_missing_types) { printf("\n"); } 
     printf("\n");
 
     return (! type_error) && (! nameref_error);
@@ -318,6 +318,7 @@ int main (int argc, char **argv) {
             StrLst *instr_paths = GetFiles(instr_lib_path, "instr", true);
             instr_map = InitMap(ctx->a_life, StrListLen(instr_paths) * 3);
             instr_stats = ParseInstruments(ctx->a_life, &instr_map, instr_paths);
+            printf("\n");
 
             // print instruments
             MArena a_tmp = ArenaCreate();
@@ -325,7 +326,7 @@ int main (int argc, char **argv) {
             while (Instrument *instr = (Instrument*) MapNextVal(&instr_map, &iter)) {
                 if (instr->parse_error == true) { continue; }
 
-                CheckInstrument(&a_tmp, instr, &comp_map, &instr_stats, true);
+                CheckInstrument(&a_tmp, instr, &comp_map, &instr_stats, (comp_lib_path != NULL));
 
                 if (CLAContainsArg("--print_instr", argc, argv)) {
                     InstrumentPrint(instr, true, true, true);

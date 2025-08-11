@@ -566,6 +566,24 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
             mem->defval = tok.GetValue();
         }
 
+        while (Optional(t, &tok, TOK_COMMA)) {
+            // subsequent fields after the comma in e.g.: int a, b, c;
+            
+            StructMember *listed = (StructMember*) ArenaAlloc(a_dest, sizeof(StructMember));
+            listed->type = mem->type;
+            listed->is_pointer_type = Optional(t, &tok, TOK_ASTERISK);
+
+            Required(t, &tok, TOK_IDENTIFIER);
+            listed->name = tok.GetValue();
+
+            if (Optional(t, &tok, TOK_ASSIGN)) {
+                RequiredRValOrExpression(t, &tok);
+                listed->defval = tok.GetValue();
+            }
+
+            cnt++;
+        }
+
         Required(t, &tok, TOK_SEMICOLON);
     }
 
