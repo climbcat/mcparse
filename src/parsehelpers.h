@@ -65,17 +65,14 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             if (tok.type == TOK_COMMA || tok.type == TOK_RBRACK) {
                 *tok_out = tok;
 
-                // TODO: call hanlde error function
                 printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(TOK_MCSTAS_C_EXPRESSION), TokenTypeToString(tok.type));
                 PrintLineError(t, &tok, "");
-
-                //assert(1 == 0 && "DBG break");
                 HandleParseError(t);
 
                 return false;
             }
             token = {};
-            token.type = TOK_MCSTAS_C_EXPRESSION; // TODO: should be TOK_MCSTAS_EXPRESSION or what
+            token.type = TOK_MCSTAS_C_EXPRESSION;
             token.text = tok.text;
         }
 
@@ -186,8 +183,8 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             } break;
 
             case TOK_ENDOFSTREAM: {
-                // TODO: call hanlde error function
-                assert(1 == 0 && "DBG break");
+                HandleParseError(t);
+                return false;
             } break;
 
             default: {
@@ -221,9 +218,6 @@ bool Required(Tokenizer *t, Token *tok_out, TokenType req) {
     else {
         printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
-
-        // TODO: call HandleParseError
-        //assert(1 == 0 && "DBG break");
         HandleParseError(t);
 
         return false;
@@ -241,7 +235,6 @@ bool BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 optio
     for (s32 i = 0; i < options_cnt; ++i) {
         if (tok.type == options[i]) {
             *t = was;
-
             return true;
         }
     }
@@ -254,16 +247,12 @@ bool BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 optio
     else {
         printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal_rewind), TokenTypeToString(tok.type));
         PrintLineError(t, &tok, "");
-
-        // TODO: call HandleParseError
-        //assert(1 == 0 && "DBG break");
         HandleParseError(t);
 
         return false;
     }
 }
 
-// TODO: replace with Options(cnt) og OptionalMultiple
 bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2) {
     if (t->parse_error) return false;
 
@@ -276,9 +265,6 @@ bool OptionOfThree(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1,
     else {
         printf("\n\nERROR: Expected '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
-
-        // TODO: call HandleParseError
-        //assert(1 == 0 && "DBG break");
         HandleParseError(t);
 
         return false;
@@ -298,16 +284,12 @@ bool OptionOfFour(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, 
     else {
         printf("\n\nERROR: Expected '%s', '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(opt3), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
-
-        // TODO: call HandleParseError
-        //assert(1 == 0 && "DBG break");
         HandleParseError(t);
 
         return false;
     }
 }
 
-// TODO: replace with Options(cnt)
 bool OptionOfFive(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, TokenType opt2, TokenType opt3, TokenType opt4) {
     if (t->parse_error) return false;
 
@@ -322,16 +304,12 @@ bool OptionOfFive(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1, 
     else {
         printf("\n\nERROR: Expected '%s', '%s', '%s', '%s' or '%s', got '%s'\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(opt2), TokenTypeToSymbol(opt3), TokenTypeToSymbol(opt4), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
-
-        // TODO: call HandleParseError
-        //assert(1 == 0 && "DBG break");
         HandleParseError(t);
 
         return false;
     }
 }
 
-// TODO: replace with Options(cnt)
 bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
     if (t->parse_error) return false;
 
@@ -344,8 +322,6 @@ bool OptionOfTwo(Tokenizer *t, Token *tok_out, TokenType opt0, TokenType opt1) {
     else {
         printf("\n\nERROR: Expected '%s' or '%s', got %s\n", TokenTypeToSymbol(opt0), TokenTypeToSymbol(opt1), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
-
-        //assert(1 == 0 && "DBG break");
         HandleParseError(t);
 
         return false;
@@ -465,7 +441,7 @@ Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value
 }
 
 bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy, Str *extend) {
-    if (t->parse_error) return false; // technically not necessary perhaps
+    if (t->parse_error) return false;
 
     Token token = {};
 
@@ -496,8 +472,6 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
                 break;
             }
             else if (token.type == TOK_ENDOFSTREAM) {
-                // TODO: do HandleParseError
-                //assert(1 == 0 && "DBG break");
                 HandleParseError(t);
 
                 return false;
@@ -511,8 +485,29 @@ bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_co
     return true;
 }
 
+void _ParseOptionalBracketedArrayDeclaration(Tokenizer *t, StructMember *mem) {
+    Token tok;
+    if (Optional(t, &tok, TOK_LSBRACK)) {
+        assert(mem->is_pointer_type == false);
 
-// TODO: this function could do with a rewrite
+        OptionOfThree(t, &tok, TOK_INT, TOK_IDENTIFIER, TOK_RSBRACK);
+        Str s_array_size = {};
+        if (tok.type == TOK_RSBRACK) {
+            s_array_size = { (char*) "0", 1 };
+        }
+        else {
+            s_array_size = tok.GetValue();
+
+            if (tok.type == TOK_INT) {
+                mem->array_type_sz = ParseInt(s_array_size.str, s_array_size.len);
+            }
+            mem->is_array_type = true;
+            assert(mem->array_type_sz >= 0);
+            Required(t, &tok, TOK_RSBRACK);
+        }
+    }
+}
+
 Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
     if (t->parse_error) return {};
 
@@ -540,30 +535,28 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
         Required(t, &tok, TOK_IDENTIFIER);
         mem->name = tok.GetValue();
 
-        if (Optional(t, &tok, TOK_LSBRACK)) {
-            assert(mem->is_pointer_type == false);
-
-            OptionOfTwo(t, &tok, TOK_INT, TOK_IDENTIFIER);
-            Str s_array_size = tok.GetValue();
-            if (tok.type == TOK_INT) {
-                mem->array_type_sz = ParseInt(s_array_size.str, s_array_size.len);
-            }
-            mem->is_array_type = true;
-            assert(mem->array_type_sz >= 0);
-            Required(t, &tok, TOK_RSBRACK);
-        }
-
         if (Optional(t, &tok, TOK_IDENTIFIER)) {
-            // This would be a 3-word type + name s.a. "long long nparticles"
-            // Extend the type into what was previously the name, and reset the name to the latest token
+            // this would be a 3-word type + name s.a. "long long nparticles"
+
             s32 diff = (mem->name.str - mem->type.str); 
             mem->type.len += diff + mem->name.len - mem->type.len;
             mem->name = tok.GetValue();
         }
+        _ParseOptionalBracketedArrayDeclaration(t, mem);
 
         if (Optional(t, &tok, TOK_ASSIGN)) {
-            RequiredRValOrExpression(t, &tok);
-            mem->defval = tok.GetValue();
+            if (Optional(t, &tok, TOK_LBRACE)) {
+                mem->defval.str = tok.text;
+                do {
+                    tok = GetToken(t);
+                }
+                while (tok.type != TOK_RBRACE);
+                mem->defval.len = tok.text - mem->defval.str + 1;
+            }
+            else {
+                RequiredRValOrExpression(t, &tok);
+                mem->defval = tok.GetValue();
+            }
         }
 
         while (Optional(t, &tok, TOK_COMMA)) {
@@ -576,6 +569,7 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
             Required(t, &tok, TOK_IDENTIFIER);
             listed->name = tok.GetValue();
 
+            _ParseOptionalBracketedArrayDeclaration(t, listed);
             if (Optional(t, &tok, TOK_ASSIGN)) {
                 RequiredRValOrExpression(t, &tok);
                 listed->defval = tok.GetValue();

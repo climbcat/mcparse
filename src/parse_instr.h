@@ -2,7 +2,6 @@
 #define __PINSTR_H__
 
 
-// sould be a linked list? Simply because this allows in-lining
 struct ComponentCall {
     ComponentCall *next;
     ComponentCall *first;
@@ -87,27 +86,15 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
         }
     }
 
-    // declare members
-
-    Required(t, &token, TOK_MCSTAS_DECLARE);
-    Required(t, &token, TOK_LPERCENTBRACE);
-    instr->declare_members = ParseMembers(a_dest, t);
-    Required(t, &token, TOK_RPERCENTBRACE);
-
-
-    // TODO: code block be ordering-agnostic
-    /*
-    TokenType options_params[] = {
-        TOK_MCSTAS_SETTING,
-        TOK_MCSTAS_OUTPUT,
-        TOK_MCSTAS_STATE,
-        TOK_MCSTAS_POLARISATION,
-    };
-    */
+    // declare block as struct members
+    if (Optional(t, &token, TOK_MCSTAS_DECLARE)) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+        instr->declare_members = ParseMembers(a_dest, t);
+        Required(t, &token, TOK_RPERCENTBRACE);
+    }
 
     // code blocks
     Str _;
-    //ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
     ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &instr->uservars_block, &_, &_);
     ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &instr->initalize_block, &_, &_);
 
@@ -121,11 +108,9 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
         }
 
         Tokenizer rewind = *t;
-        // TODO: integrate the "%include" keyword somehow; or maybe handle it differently
         if (OptionOfFive(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_REMOVABLE, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END)) {
             if (token.type == TOK_MCSTAS_END || token.type == TOK_MCSTAS_FINALLY) {
                 *t = rewind;
-
                 break;
             }
 
@@ -182,7 +167,6 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
             if (has_explicit_params) {
                 c.args = ParseParamsBlock(a_dest, t, true);
             }
-
 
             // when / jump
             if (Optional(t, &token, TOK_MCSTAS_JUMP)) {
@@ -247,8 +231,6 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
                 }
             }
 
-            // TODO: make GROUP / JUMP agnostic to ordering of WHEN / AT 
-
             // group
             if (Optional(t, &token, TOK_MCSTAS_GROUP)) {
                 Required(t, &token, TOK_IDENTIFIER);
@@ -265,7 +247,6 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
                 c.when = token.GetValue();
             }
 
-
             ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
             instr->comps.Add(c);
         }
@@ -275,8 +256,7 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
     }
 
     ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &instr->finally_block, &_, &_);
-    // TODO: Why is this not just a MCSTAS_END ?
-    OptionOfTwo(t, &token, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END);
+    Required(t, &token, TOK_MCSTAS_END);
 
     instr->parse_error = t->parse_error;
     return instr;
