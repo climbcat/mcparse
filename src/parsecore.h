@@ -531,11 +531,7 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
     if (token != NULL) {
         toklen = token->len;
     }
-
-    // print message
     printf("%s\n", msg);
-
-    // print line nb. tag
     char lineno_tag[200];
     s32 col = (tokenizer->at - toklen) - tokenizer->at_linestart;
     sprintf(lineno_tag, "%d,%d| ", tokenizer->line, col);
@@ -550,24 +546,6 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
         printf(" ");
     }
     printf("^\n");
-
-
-    // S.O. example how to get terminal width s.t. we can avoid line wrap, which would break the ^ location cursor
-    /*
-    #include <sys/ioctl.h>
-    #include <stdio.h>
-    #include <unistd.h>
-
-    int main (int argc, char **argv)
-    {
-        struct winsize w;
-        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-
-        printf ("lines %d\n", w.ws_row);
-        printf ("columns %d\n", w.ws_col);
-        return 0;  // make sure your main returns int
-    }
-    */
 }
 
 Token GetToken(Tokenizer *tokenizer);

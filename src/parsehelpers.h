@@ -65,7 +65,7 @@ bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
             if (tok.type == TOK_COMMA || tok.type == TOK_RBRACK) {
                 *tok_out = tok;
 
-                printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(TOK_MCSTAS_C_EXPRESSION), TokenTypeToString(tok.type));
+                printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(TOK_MCSTAS_C_EXPRESSION), TokenTypeToSymbol(tok.type));
                 PrintLineError(t, &tok, "");
                 HandleParseError(t);
 
@@ -216,7 +216,7 @@ bool Required(Tokenizer *t, Token *tok_out, TokenType req) {
         return true;
     }
     else {
-        printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(req), TokenTypeToString(tok.type));
+        printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(req), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
         HandleParseError(t);
 
@@ -245,7 +245,7 @@ bool BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 optio
         return true;
     }
     else {
-        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal_rewind), TokenTypeToString(tok.type));
+        printf("\n\nERROR: Expected '%s' or '%s', got '%s'\n", options_error, TokenTypeToSymbol(terminal_rewind), TokenTypeToSymbol(tok.type));
         PrintLineError(t, &tok, "");
         HandleParseError(t);
 
