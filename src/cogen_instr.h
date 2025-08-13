@@ -27,14 +27,10 @@ void PrintUndefs(StrBuff *b, InstrumentParse *instr) {
 void AmendInstParDefaultValue(Array<Parameter> pars);
 
 
-void InstrumentCogen(StrBuff *b, InstrumentParse *instr) {
+void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
     // header guard
     StrBuffPrint1K(b, "#ifndef __%.*s__\n", 2, instr->name.len, instr->name.str);
     StrBuffPrint1K(b, "#define __%.*s__\n", 2, instr->name.len, instr->name.str);
-    StrBuffPrint1K(b, "\n\n", 0);
-
-    // includes
-    StrBuffPrint1K(b, "#include \"meta_comps.h\"\n", 0);
     StrBuffPrint1K(b, "\n\n", 0);
 
     // struct
@@ -125,24 +121,27 @@ void InstrumentCogen(StrBuff *b, InstrumentParse *instr) {
     StrBuffPrint1K(b, "}\n\n", 0);
 
     // trace
-    StrBuffPrint1K(b, "void Config_%.*s(%.*s *spec, Instrument *instr) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "void Config_%.*s(MArena *a_dest, %.*s *spec, Instrument *instr) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "    s32 index = 0;\n", 0);
+
     for (s32 i = 0; i < instr->comps.len; ++i) {
         ComponentCall c = instr->comps.arr[i];
-        
-        StrBuffPrint1K(b, "\n    %.*s %.*s = Create_%.*s(%d, (char*) \"%.*s\");\n", 9, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, i, c.name.len, c.name.str);
+
+        StrBuffPrint1K(b, "\n    Component *%.*s = CreateComponent(a_dest, CT_%.*s, index++, \"%.*s\");\n", 6, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
+        StrBuffPrint1K(b, "\n    %.*s *%.*s_comp = (%.*s*) %.*s->comp;\n", 8, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
         AmendInstParDefaultValue(c.args);
         for (s32 j = 0; j < c.args.len; ++j) {
             Parameter p = c.args.arr[j];
 
             if (p.default_val.len && p.default_val.str[0] == '"') {
                 // we need to cast to char* !
-                StrBuffPrint1K(b, "    %.*s.%.*s = (char*) %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
+                StrBuffPrint1K(b, "    %.*s_comp->%.*s = (char*) %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
             }
             else {
-                StrBuffPrint1K(b, "    %.*s.%.*s = %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
+                StrBuffPrint1K(b, "    %.*s_comp->%.*s = %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
             }
         }
-        StrBuffPrint1K(b, "    Init_%.*s(&%.*s, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
+        StrBuffPrint1K(b, "    Init_%.*s(%.*s_comp, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
 
         // TODO: set AT, ROT
         StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s)\n", 6, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str);

@@ -287,7 +287,7 @@ int main (int argc, char **argv) {
                     // print component names
                     StrPrint("Cogen: ", comp->type, " -> ");
                     StrBuffClear(&buff);
-                    ComponentCogen(&buff, comp);
+                    CogenComponent(&buff, comp);
 
                     Str f_safe = StrPathBuild(StrDirPath(comp->file_path), StrBasename(comp->file_path), StrL("h"));
                     StrPrint(f_safe);
@@ -299,7 +299,7 @@ int main (int argc, char **argv) {
             if (do_cogen) {
                 printf("\n");
                 StrBuffClear(&buff);
-                ComponentMetaCogen(&buff, &comp_map);
+                CogenComponentMeta(&buff, &comp_map);
 
                 // save component aggregate file
                 Str dirpath = StrDirPath( StrL(comp_lib_path) );
@@ -334,7 +334,7 @@ int main (int argc, char **argv) {
 
                 if (do_cogen) {
                     StrBuffClear(&buff);
-                    InstrumentCogen(&buff, instr);
+                    CogenInstrumentConfig(&buff, instr);
 
                     // save instrument config file
                     Str dirpath = StrDirPath( StrL(instr_lib_path) );
