@@ -127,14 +127,13 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
     for (s32 i = 0; i < instr->comps.len; ++i) {
         ComponentCall c = instr->comps.arr[i];
 
-        StrBuffPrint1K(b, "\n    Component *%.*s = CreateComponent(a_dest, CT_%.*s, index++, \"%.*s\");\n", 6, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
-        StrBuffPrint1K(b, "\n    %.*s *%.*s_comp = (%.*s*) %.*s->comp;\n", 8, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
+        StrBuffPrint1K(b, "    Component *%.*s = CreateComponent(a_dest, CT_%.*s, index++, \"%.*s\");\n", 6, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
+        StrBuffPrint1K(b, "    %.*s *%.*s_comp = (%.*s*) %.*s->comp;\n", 8, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
         AmendInstParDefaultValue(c.args);
         for (s32 j = 0; j < c.args.len; ++j) {
             Parameter p = c.args.arr[j];
 
             if (p.default_val.len && p.default_val.str[0] == '"') {
-                // we need to cast to char* !
                 StrBuffPrint1K(b, "    %.*s_comp->%.*s = (char*) %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
             }
             else {
@@ -144,10 +143,17 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         StrBuffPrint1K(b, "    Init_%.*s(%.*s_comp, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
 
         // TODO: set AT, ROT
+        if (c.at_absolute) {
+            StrBuffPrint1K(b, "    // ABSOLUTE\n", 0);
+        }
+        else if (c.at_relative_to.len) {
+            StrBuffPrint1K(b, "    // RELATIVE %.*s\n", 2, c.at_relative_to.len, c.at_relative_to.str);
+        }
         StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s)\n", 6, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str);
         if (c.rot_defined) {
             StrBuffPrint1K(b, "    // ROT: (%.*s, %.*s, %.*s)\n", 6, c.rot_x.len, c.rot_x.str, c.rot_y.len, c.rot_y.str, c.rot_z.len, c.rot_z.str);
         }
+        StrBuffPrint1K(b, "\n", 0);
     }
     StrBuffPrint1K(b, "}\n\n", 0);
 
