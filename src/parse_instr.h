@@ -36,7 +36,7 @@ struct ComponentCall {
     Array<Parameter> args;
 };
 
-struct Instrument {
+struct InstrumentParse {
     Str path;
     Str name;
     Str dependency_str;
@@ -58,14 +58,14 @@ struct Instrument {
 };
 
 
-Instrument *ParseInstrument(MArena *a_dest, Str text) {
+InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
     TimeFunction;
 
     Tokenizer tokenizer = {};
     tokenizer.Init(text.str);
     Tokenizer *t = &tokenizer;
     Token token;
-    Instrument *instr = (Instrument*) ArenaAlloc(a_dest, sizeof(Instrument));
+    InstrumentParse *instr = (InstrumentParse*) ArenaAlloc(a_dest, sizeof(InstrumentParse));
     instr->comps = InitArray<ComponentCall>(a_dest, 1000);
     instr->includes = InitArray<Str>(a_dest, 10);
 
@@ -263,7 +263,7 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
 }
 
 
-void InstrumentPrint(Instrument *instr, bool print_blocks, bool print_comps, bool print_comp_details) {
+void InstrumentPrint(InstrumentParse *instr, bool print_blocks, bool print_comps, bool print_comp_details) {
 
     printf("\n");
     printf("instrparse: "); StrPrint(instr->name); printf("- %u parameters, %u compnents", instr->params.len, instr->comps.len);

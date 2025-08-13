@@ -2,7 +2,7 @@
 #define __COGEN_INSTR_H__
 
 
-void PrintDefines(StrBuff *b, Instrument *instr) {
+void PrintDefines(StrBuff *b, InstrumentParse *instr) {
     for (s32 i = 0; i < instr->params.len; ++i) {
         Parameter p = instr->params.arr[i];
         StrBuffPrint1K(b, "    #define %.*s spec->%.*s\n", 4, p.name.len, p.name.str, p.name.len, p.name.str);
@@ -13,7 +13,7 @@ void PrintDefines(StrBuff *b, Instrument *instr) {
         StrBuffPrint1K(b, "    #define %.*s spec->%.*s\n", 4, m.name.len, m.name.str, m.name.len, m.name.str);
     }
 }
-void PrintUndefs(StrBuff *b, Instrument *instr) {
+void PrintUndefs(StrBuff *b, InstrumentParse *instr) {
     for (s32 i = 0; i < instr->params.len; ++i) {
         Parameter p = instr->params.arr[i];
         StrBuffPrint1K(b, "    #undef %.*s\n", 2, p.name.len, p.name.str);
@@ -27,7 +27,7 @@ void PrintUndefs(StrBuff *b, Instrument *instr) {
 void AmendInstParDefaultValue(Array<Parameter> pars);
 
 
-void InstrumentCogen(StrBuff *b, Instrument *instr) {
+void InstrumentCogen(StrBuff *b, InstrumentParse *instr) {
     // header guard
     StrBuffPrint1K(b, "#ifndef __%.*s__\n", 2, instr->name.len, instr->name.str);
     StrBuffPrint1K(b, "#define __%.*s__\n", 2, instr->name.len, instr->name.str);

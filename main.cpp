@@ -22,7 +22,7 @@ struct ParseStats {
     s32 type_error_cnt = 0;
 };
 
-bool RegisterComponentType(Component *comp, HashMap *map) {
+bool RegisterComponentType(ComponentParse *comp, HashMap *map) {
     u64 val = MapGet(map, comp->type);
     bool type_was_unique = (val == 0);
     if (type_was_unique) {
@@ -32,7 +32,7 @@ bool RegisterComponentType(Component *comp, HashMap *map) {
     return type_was_unique;
 }
 
-bool RegisterInstrument(Instrument *instr, HashMap *map) {
+bool RegisterInstrument(InstrumentParse *instr, HashMap *map) {
     u64 val = MapGet(map, instr->name);
     bool name_is_unique = (val == 0);
     if (name_is_unique) {
@@ -56,7 +56,7 @@ ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths)
 
         printf("parsing  #%.3d: %.*s", ps.total_cnt, filename.len, filename.str);
 
-        Instrument *instr = ParseInstrument(a_dest, text);
+        InstrumentParse *instr = ParseInstrument(a_dest, text);
         instr->path = filename;
         instr->check_idx = ps.total_cnt;
 
@@ -95,7 +95,7 @@ ParseStats ParseComponents(MArena *a_dest, HashMap *map_comps, StrLst *fpaths) {
         }
 
         printf("parsing  #%.3d: %.*s", ps.total_cnt, filename.len, filename.str);
-        Component *comp = ParseComponent(a_dest, text);
+        ComponentParse *comp = ParseComponent(a_dest, text);
         comp->file_path = filename;
 
         if (comp->parse_error == true) {
@@ -130,7 +130,7 @@ ComponentCall *_FindByName(Array<ComponentCall> comps, Str name) {
 }
 
 
-bool CheckInstrument(MArena *a_tmp, Instrument *instr, HashMap *comps, ParseStats *stats, bool dbg_print_missing_types = false) {
+bool CheckInstrument(MArena *a_tmp, InstrumentParse *instr, HashMap *comps, ParseStats *stats, bool dbg_print_missing_types = false) {
     TimeFunction;
 
     s32 max_copy_comps = 1000;
@@ -280,7 +280,7 @@ int main (int argc, char **argv) {
             comp_stats = ParseComponents(ctx->a_life, &comp_map, comp_paths);
 
             iter = {};
-            while (Component *comp = (Component*) MapNextVal(&comp_map, &iter)) {
+            while (ComponentParse *comp = (ComponentParse*) MapNextVal(&comp_map, &iter)) {
 
                 // cogen components
                 if (do_cogen) {
@@ -323,7 +323,7 @@ int main (int argc, char **argv) {
             // print instruments
             MArena a_tmp = ArenaCreate();
             iter = {};
-            while (Instrument *instr = (Instrument*) MapNextVal(&instr_map, &iter)) {
+            while (InstrumentParse *instr = (InstrumentParse*) MapNextVal(&instr_map, &iter)) {
                 if (instr->parse_error == true) { continue; }
 
                 CheckInstrument(&a_tmp, instr, &comp_map, &instr_stats, (comp_lib_path != NULL));

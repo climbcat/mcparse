@@ -2,7 +2,7 @@
 #define __PCOMP_H__
 
 
-struct Component {
+struct ComponentParse {
     Str file_path;
     Str type;
     Str type_copy;
@@ -60,14 +60,14 @@ Array<Parameter> ParseComponentParams(MArena *a_dest, Tokenizer *t, TokenType pa
 }
 
 
-Component *ParseComponent(MArena *a_dest, Str text) {
+ComponentParse *ParseComponent(MArena *a_dest, Str text) {
     TimeFunction;
 
     Tokenizer tokenizer = {};
     tokenizer.Init(text.str);
     Tokenizer *t = &tokenizer;
     Token token;
-    Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));
+    ComponentParse *comp = (ComponentParse*) ArenaAlloc(a_dest, sizeof(ComponentParse));
 
     // component type
     Required(t, &token, TOK_MCSTAS_DEFINE);
