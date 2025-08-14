@@ -298,21 +298,19 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     // struct
     // TODO: extract from coged'd code, use an int for the enum)
     StrBuffPrint1K(b, "struct Component {\n", 0);
-    StrBuffPrint1K(b, "    CompType type;\n", 0);
-    StrBuffPrint1K(b, "    void *comp;\n", 0);
+    StrBuffPrint1K(b, "    Transform *transform;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
+    StrBuffPrint1K(b, "    CompType type;\n", 0);
     StrBuffPrint1K(b, "    Str type_name;\n", 0);
     StrBuffPrint1K(b, "    Str name;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
-    StrBuffPrint1K(b, "    Matrix4f t;\n", 0);
-    StrBuffPrint1K(b, "    Matrix4f *parent;\n", 0);
+    StrBuffPrint1K(b, "    void *comp;\n", 0);
     StrBuffPrint1K(b, "};\n\n\n", 0);
 
     // create
     // TODO: check that the switch does translate into a branch table (as we are using the packed enum values as conditionals)
     StrBuffPrint1K(b, "Component *CreateComponent(MArena *a_dest, CompType type, s32 index, const char *name) {\n", 0);
     StrBuffPrint1K(b, "    Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));\n", 0);
-    StrBuffPrint1K(b, "    comp->t = Matrix4f_Identity();\n", 0);
     StrBuffPrint1K(b, "    comp->type = type;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "    switch (type) {\n", 0);
