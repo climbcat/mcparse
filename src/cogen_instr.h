@@ -121,13 +121,17 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
     StrBuffPrint1K(b, "}\n\n", 0);
 
     // trace
-    StrBuffPrint1K(b, "void Config_%.*s(MArena *a_dest, %.*s *spec, Instrument *instr) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
-    StrBuffPrint1K(b, "    s32 index = 0;\n", 0);
+    StrBuffPrint1K(b, "Array<Component*> Config_%.*s(MArena *a_dest, %.*s *spec, Instrument *instr) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "    Array<Component*> comp_sequence = InitArray<Component*>(a_dest, %d);\n", 1, instr->comps.len);
+    StrBuffPrint1K(b, "    f32 at_x, at_y, at_z;\n", 0);
+    StrBuffPrint1K(b, "    f32 phi_x, phi_y, phi_z;\n", 0);
+    StrBuffPrint1K(b, "    s32 index = 0;\n\n", 0);
 
     for (s32 i = 0; i < instr->comps.len; ++i) {
         ComponentCall c = instr->comps.arr[i];
 
         StrBuffPrint1K(b, "    Component *%.*s = CreateComponent(a_dest, CT_%.*s, index++, \"%.*s\");\n", 6, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
+        StrBuffPrint1K(b, "    comp_sequence.Add(%.*s);\n", 2, c.name.len, c.name.str);
         StrBuffPrint1K(b, "    %.*s *%.*s_comp = (%.*s*) %.*s->comp;\n", 8, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
         AmendInstParDefaultValue(c.args);
         for (s32 j = 0; j < c.args.len; ++j) {
@@ -142,16 +146,32 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         }
         StrBuffPrint1K(b, "    Init_%.*s(%.*s_comp, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
 
-        // TODO: set AT, ROT
         if (c.at_absolute) {
             StrBuffPrint1K(b, "    // ABSOLUTE\n", 0);
+            StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
         }
         else if (c.at_relative_to.len) {
             StrBuffPrint1K(b, "    // RELATIVE %.*s\n", 2, c.at_relative_to.len, c.at_relative_to.str);
+            Str at_relative_to = c.at_relative_to;
+            if ( StrEqual(c.at_relative_to, StrL("PREVIOUS")) ) {
+                assert(i > 0);
+                at_relative_to = instr->comps.arr[i-1].name;
+            }
+            StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, at_relative_to.len, at_relative_to.str);
         }
         StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s)\n", 6, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str);
+        StrBuffPrint1K(b, "    at_x = %.*s;\n", 2, c.at_x.len, c.at_x.str);
+        StrBuffPrint1K(b, "    at_y = %.*s;\n", 2, c.at_y.len, c.at_y.str);
+        StrBuffPrint1K(b, "    at_z = %.*s;\n", 2, c.at_z.len, c.at_z.str);
         if (c.rot_defined) {
             StrBuffPrint1K(b, "    // ROT: (%.*s, %.*s, %.*s)\n", 6, c.rot_x.len, c.rot_x.str, c.rot_y.len, c.rot_y.str, c.rot_z.len, c.rot_z.str);
+            StrBuffPrint1K(b, "    phi_x = %.*s;\n", 2, c.rot_x.len, c.rot_x.str);
+            StrBuffPrint1K(b, "    phi_y = %.*s;\n", 2, c.rot_y.len, c.rot_y.str);
+            StrBuffPrint1K(b, "    phi_z = %.*s;\n", 2, c.rot_z.len, c.rot_z.str);
+            StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildRotateX( phi_z * deg2rad ) * TransformBuildRotateX( phi_y * deg2rad ) * TransformBuildRotateX( phi_x * deg2rad ) * TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
+        }
+        else {
+            StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
         }
         StrBuffPrint1K(b, "\n", 0);
     }
