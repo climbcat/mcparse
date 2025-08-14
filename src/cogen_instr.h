@@ -13,6 +13,7 @@ void PrintDefines(StrBuff *b, InstrumentParse *instr) {
         StrBuffPrint1K(b, "    #define %.*s spec->%.*s\n", 4, m.name.len, m.name.str, m.name.len, m.name.str);
     }
 }
+
 void PrintUndefs(StrBuff *b, InstrumentParse *instr) {
     for (s32 i = 0; i < instr->params.len; ++i) {
         Parameter p = instr->params.arr[i];
@@ -24,7 +25,30 @@ void PrintUndefs(StrBuff *b, InstrumentParse *instr) {
         StrBuffPrint1K(b, "    #undef %.*s\n", 2, m.name.len, m.name.str);
     }
 }
-void AmendInstParDefaultValue(Array<Parameter> pars);
+
+void AmendIdentifiesInRValue(Str *value) {
+    Tokenizer t = {};
+    t.Init(value->str);
+    char *t_at0 = t.at;
+
+    while (true) {
+        Token tok = GetToken(&t);
+        if (tok.type == TOK_IDENTIFIER) {
+            Str identifier = tok.GetValue();
+            Str amend = StrCat(StrL("spec->"), identifier);
+            *value = StrInsertReplace(*value, amend, identifier);
+
+            s32 t_advance = t.at - t_at0;
+            t.at = value->str;
+            t_at0 = t.at;
+            t.at += t_advance + 6;
+        }
+
+        if (t.at >= (value->str + value->len)) {
+            break;
+        }
+    }
+}
 
 
 void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
@@ -133,7 +157,17 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         StrBuffPrint1K(b, "    Component *%.*s = CreateComponent(a_dest, CT_%.*s, index++, \"%.*s\");\n", 6, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
         StrBuffPrint1K(b, "    comp_sequence.Add(%.*s);\n", 2, c.name.len, c.name.str);
         StrBuffPrint1K(b, "    %.*s *%.*s_comp = (%.*s*) %.*s->comp;\n", 8, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
-        AmendInstParDefaultValue(c.args);
+
+
+        // TODO: move to dedicated code section
+        // amend parameter asignments
+        for (s32 j = 0; j < c.args.len; ++j) {
+            Parameter *p = c.args.arr + j;
+
+            // put "spec->" in front of identifiers in these rvalues
+            AmendIdentifiesInRValue(&p->default_val);
+        }
+
         for (s32 j = 0; j < c.args.len; ++j) {
             Parameter p = c.args.arr[j];
 
@@ -146,6 +180,7 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         }
         StrBuffPrint1K(b, "    Init_%.*s(%.*s_comp, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
 
+        /*
         // check at-relative vs. rot-relative
         if (c.at_relative_to.len) {
             if (c.rot_relative_to.len) {
@@ -156,6 +191,7 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
                 assert(StrEqual(c.at_relative_to, c.rot_relative_to) && "different at_relative and rot_relative");
             }
         }
+        */
 
         if (c.at_absolute) {
             StrBuffPrint1K(b, "    // ABSOLUTE\n", 0);
@@ -170,11 +206,23 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
             }
             StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, at_relative_to.len, at_relative_to.str);
         }
+
+        // TODO: move to dedicated code section
+        AmendIdentifiesInRValue(&c.at_x);
+        AmendIdentifiesInRValue(&c.at_y);
+        AmendIdentifiesInRValue(&c.at_z);
+
         StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s)\n", 6, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str);
         StrBuffPrint1K(b, "    at_x = %.*s;\n", 2, c.at_x.len, c.at_x.str);
         StrBuffPrint1K(b, "    at_y = %.*s;\n", 2, c.at_y.len, c.at_y.str);
         StrBuffPrint1K(b, "    at_z = %.*s;\n", 2, c.at_z.len, c.at_z.str);
         if (c.rot_defined) {
+
+            // TODO: move to dedicated code section
+            AmendIdentifiesInRValue(&c.rot_x);
+            AmendIdentifiesInRValue(&c.rot_y);
+            AmendIdentifiesInRValue(&c.rot_z);
+
             StrBuffPrint1K(b, "    // ROT: (%.*s, %.*s, %.*s)\n", 6, c.rot_x.len, c.rot_x.str, c.rot_y.len, c.rot_y.str, c.rot_z.len, c.rot_z.str);
             StrBuffPrint1K(b, "    phi_x = %.*s;\n", 2, c.rot_x.len, c.rot_x.str);
             StrBuffPrint1K(b, "    phi_y = %.*s;\n", 2, c.rot_y.len, c.rot_y.str);
@@ -192,33 +240,5 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
     StrBuffPrint1K(b, "#endif // %.*s\n", 2, instr->name.len, instr->name.str);
 }
 
-void AmendInstParDefaultValue(Array<Parameter> pars) {
-    for (s32 j = 0; j < pars.len; ++j) {
-        Parameter *p = pars.arr + j;
-
-        // first time:
-        Tokenizer t = {};
-        t.Init(p->default_val.str);
-        char *t_at0 = t.at;
-
-        while (true) {
-            Token tok = GetToken(&t);
-            if (tok.type == TOK_IDENTIFIER) {
-                Str parname = tok.GetValue();
-                Str amend = StrCat(StrL("spec->"), parname);
-                p->default_val = StrInsertReplace(p->default_val, amend, parname);
-
-                s32 t_advance = t.at - t_at0;
-                t.at = p->default_val.str;
-                t_at0 = t.at;
-                t.at += t_advance + 6;
-            }
-            if (t.at >= (p->default_val.str + p->default_val.len)) {
-                break;
-            }
-        }
-    }
-
-}
 
 #endif
