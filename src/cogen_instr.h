@@ -146,6 +146,17 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         }
         StrBuffPrint1K(b, "    Init_%.*s(%.*s_comp, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
 
+        // check at-relative vs. rot-relative
+        if (c.at_relative_to.len) {
+            if (c.rot_relative_to.len) {
+                // NOTE: we actually don't want to deal with rot_relative being different from at_relative if we can avoid it
+                //      It is a bit gnarly to program and from a usability standpoint, makes the instrument more comples neddlessly.
+                //      Yet here we are.
+
+                assert(StrEqual(c.at_relative_to, c.rot_relative_to) && "different at_relative and rot_relative");
+            }
+        }
+
         if (c.at_absolute) {
             StrBuffPrint1K(b, "    // ABSOLUTE\n", 0);
             StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
