@@ -180,57 +180,94 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         }
         StrBuffPrint1K(b, "    Init_%.*s(%.*s_comp, instr);\n", 4, c.type.len, c.type.str, c.name.len, c.name.str);
 
-        /*
-        // check at-relative vs. rot-relative
-        if (c.at_relative_to.len) {
-            if (c.rot_relative_to.len) {
-                // NOTE: we actually don't want to deal with rot_relative being different from at_relative if we can avoid it
-                //      It is a bit gnarly to program and from a usability standpoint, makes the instrument more comples neddlessly.
-                //      Yet here we are.
 
-                assert(StrEqual(c.at_relative_to, c.rot_relative_to) && "different at_relative and rot_relative");
-            }
-        }
-        */
-
-        if (c.at_absolute) {
-            StrBuffPrint1K(b, "    // ABSOLUTE\n", 0);
-            StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
-        }
-        else if (c.at_relative_to.len) {
-            StrBuffPrint1K(b, "    // RELATIVE %.*s\n", 2, c.at_relative_to.len, c.at_relative_to.str);
-            Str at_relative_to = c.at_relative_to;
-            if ( StrEqual(c.at_relative_to, StrL("PREVIOUS")) ) {
-                assert(i > 0);
-                at_relative_to = instr->comps.arr[i-1].name;
-            }
-            StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, at_relative_to.len, at_relative_to.str);
-        }
-
-        // TODO: move to dedicated code section
+        // pre-fix instrument variable use in AT/ROT with "spec->" which makes those available in generated code
         AmendIdentifiesInRValue(&c.at_x);
         AmendIdentifiesInRValue(&c.at_y);
         AmendIdentifiesInRValue(&c.at_z);
-
-        StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s)\n", 6, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str);
-        StrBuffPrint1K(b, "    at_x = %.*s;\n", 2, c.at_x.len, c.at_x.str);
-        StrBuffPrint1K(b, "    at_y = %.*s;\n", 2, c.at_y.len, c.at_y.str);
-        StrBuffPrint1K(b, "    at_z = %.*s;\n", 2, c.at_z.len, c.at_z.str);
         if (c.rot_defined) {
 
             // TODO: move to dedicated code section
             AmendIdentifiesInRValue(&c.rot_x);
             AmendIdentifiesInRValue(&c.rot_y);
             AmendIdentifiesInRValue(&c.rot_z);
+        }
 
-            StrBuffPrint1K(b, "    // ROT: (%.*s, %.*s, %.*s)\n", 6, c.rot_x.len, c.rot_x.str, c.rot_y.len, c.rot_y.str, c.rot_z.len, c.rot_z.str);
+        // eliminate any use of the PREVIOUS keyword
+        if ( StrEqual(c.at_relative_to, StrL("PREVIOUS")) ) {
+            assert(i > 0);
+            c.at_relative_to = instr->comps.arr[i-1].name;
+        }
+        if ( StrEqual(c.rot_relative_to, StrL("PREVIOUS")) ) {
+            assert(i > 0);
+            c.rot_relative_to = instr->comps.arr[i-1].name;
+        }
+
+        // NOTE: The ABSOLUTE is handled inline using the flags at_absolute and rot_absolute
+        if (c.rot_defined == false) {
+
+            // only AT is defined
+            StrBuffPrint1K(b, "    // case #1:      Only AT is defined\n", 0);
+            StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s) RELATIVE %.*s\n", 8, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str, c.at_relative_to.len, c.at_relative_to.str);
+
+            StrBuffPrint1K(b, "    at_x = %.*s;\n", 2, c.at_x.len, c.at_x.str);
+            StrBuffPrint1K(b, "    at_y = %.*s;\n", 2, c.at_y.len, c.at_y.str);
+            StrBuffPrint1K(b, "    at_z = %.*s;\n", 2, c.at_z.len, c.at_z.str);
+
+            if (c.at_absolute) {
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
+            }
+            else {
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, c.at_relative_to.len, c.at_relative_to.str);
+            }
+            StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
+        }
+        else if (c.rot_defined && StrEqual(c.at_relative_to, c.rot_relative_to)) {
+
+            // AT relative and ROT relative match
+            StrBuffPrint1K(b, "    // case #2:      AT and ROT are defined RELATIVE to the same parent\n", 0);
+            StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s) RELATIVE %.*s\n", 8, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str, c.at_relative_to.len, c.at_relative_to.str);
+            StrBuffPrint1K(b, "    // ROT: (%.*s, %.*s, %.*s) RELATIVE %.*s\n", 8, c.rot_x.len, c.rot_x.str, c.rot_y.len, c.rot_y.str, c.rot_z.len, c.rot_z.str, c.rot_relative_to.len, c.rot_relative_to.str);
+
+            StrBuffPrint1K(b, "    at_x = %.*s;\n", 2, c.at_x.len, c.at_x.str);
+            StrBuffPrint1K(b, "    at_y = %.*s;\n", 2, c.at_y.len, c.at_y.str);
+            StrBuffPrint1K(b, "    at_z = %.*s;\n", 2, c.at_z.len, c.at_z.str);
             StrBuffPrint1K(b, "    phi_x = %.*s;\n", 2, c.rot_x.len, c.rot_x.str);
             StrBuffPrint1K(b, "    phi_y = %.*s;\n", 2, c.rot_y.len, c.rot_y.str);
             StrBuffPrint1K(b, "    phi_z = %.*s;\n", 2, c.rot_z.len, c.rot_z.str);
-            StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildRotateX( phi_z * deg2rad ) * TransformBuildRotateX( phi_y * deg2rad ) * TransformBuildRotateX( phi_x * deg2rad ) * TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
+
+            if (c.at_absolute) {
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
+            }
+            else {
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, c.at_relative_to.len, c.at_relative_to.str);
+            }
+            StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildRotateZ( phi_z * deg2rad ) * TransformBuildRotateY( phi_y * deg2rad ) * TransformBuildRotateX( phi_x * deg2rad ) * TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
         }
-        else {
-            StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
+        else if (c.rot_defined) {
+
+            // AT relative and ROT relative do not match
+            StrBuffPrint1K(b, "    // case #3:      AT and ROT are defined RELATIVE to different parents\n", 0);
+            StrBuffPrint1K(b, "    // AT:  (%.*s, %.*s, %.*s) RELATIVE %.*s\n", 8, c.at_x.len, c.at_x.str, c.at_y.len, c.at_y.str, c.at_z.len, c.at_z.str, c.at_relative_to.len, c.at_relative_to.str);
+            StrBuffPrint1K(b, "    // ROT: (%.*s, %.*s, %.*s) RELATIVE %.*s\n", 8, c.rot_x.len, c.rot_x.str, c.rot_y.len, c.rot_y.str, c.rot_z.len, c.rot_z.str, c.rot_relative_to.len, c.rot_relative_to.str);
+
+            StrBuffPrint1K(b, "    at_x = %.*s;\n", 2, c.at_x.len, c.at_x.str);
+            StrBuffPrint1K(b, "    at_y = %.*s;\n", 2, c.at_y.len, c.at_y.str);
+            StrBuffPrint1K(b, "    at_z = %.*s;\n", 2, c.at_z.len, c.at_z.str);
+            StrBuffPrint1K(b, "    phi_x = %.*s;\n", 2, c.rot_x.len, c.rot_x.str);
+            StrBuffPrint1K(b, "    phi_y = %.*s;\n", 2, c.rot_y.len, c.rot_y.str);
+            StrBuffPrint1K(b, "    phi_z = %.*s;\n", 2, c.rot_z.len, c.rot_z.str);
+
+            if (c.at_absolute) {
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
+            }
+            else {
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, c.at_relative_to.len, c.at_relative_to.str);
+            }
+
+            // now what??
+            StrBuffPrint1K(b, "    // TODO: fix\n", 0);
+            StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildRotateZ( phi_z * deg2rad ) * TransformBuildRotateY( phi_y * deg2rad ) * TransformBuildRotateX( phi_x * deg2rad ) * TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
         }
         StrBuffPrint1K(b, "\n", 0);
     }
