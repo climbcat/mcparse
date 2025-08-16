@@ -258,9 +258,8 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         }
         StrBuffPrint1K(b, "\n", 0);
     }
-    StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "    return comp_sequence;\n", 0);
-    StrBuffPrint1K(b, "}\n\n", 0);
+    StrBuffPrint1K(b, "}\n\n\n", 0);
 
     // close header guard
     StrBuffPrint1K(b, "#endif // %.*s\n", 2, instr->name.len, instr->name.str);

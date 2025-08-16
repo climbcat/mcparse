@@ -317,7 +317,7 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     iter = {};
     while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "        case CT_%.*s: {\n", 2, comp->type.len, comp->type.str);
-        StrBuffPrint1K(b, "            %.*s comp_spec = Create_%.*s(index, (char*) \"name\");\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+        StrBuffPrint1K(b, "            %.*s comp_spec = Create_%.*s(index, (char*) name);\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
         StrBuffPrint1K(b, "            comp->comp = ArenaPush(a_dest, &comp_spec, sizeof(%.*s));\n", 2, comp->type.len, comp->type.str);
         StrBuffPrint1K(b, "            comp->type_name = StrL(comp_spec.type);\n", 0);
         StrBuffPrint1K(b, "            comp->name = StrL(comp_spec.name);\n", 0);
