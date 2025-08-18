@@ -295,12 +295,28 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "\n    CT_CNT\n", 0);
     StrBuffPrint1K(b, "};\n\n\n", 0);
 
+    // category enum
+    StrBuffPrint1K(b, "enum CompCategory {\n", 0);
+    StrBuffPrint1K(b, "    CCAT_UNDEF,\n\n", 0);
+    StrBuffPrint1K(b, "    CCAT_SOURCE,\n", 0);
+    StrBuffPrint1K(b, "    CCAT_OPTICS,\n", 0);
+    StrBuffPrint1K(b, "    CCAT_SAMPLE,\n", 0);
+    StrBuffPrint1K(b, "    CCAT_MONITOR,\n", 0);
+    StrBuffPrint1K(b, "    CCAT_MISC,\n", 0);
+    StrBuffPrint1K(b, "    CCAT_CONTRIB,\n", 0);
+    StrBuffPrint1K(b, "    CCAT_UNION,\n", 0);
+    StrBuffPrint1K(b, "    CCAT_SASMODEL,\n", 0);
+    StrBuffPrint1K(b, "    \n", 0);
+    StrBuffPrint1K(b, "    CCAT_CNT\n", 0);
+    StrBuffPrint1K(b, "};\n\n\n", 0);
+
     // struct
     // TODO: extract from coged'd code, use an int for the enum)
     StrBuffPrint1K(b, "struct Component {\n", 0);
     StrBuffPrint1K(b, "    Transform *transform;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "    CompType type;\n", 0);
+    StrBuffPrint1K(b, "    CompCategory cat;\n", 0);
     StrBuffPrint1K(b, "    Str type_name;\n", 0);
     StrBuffPrint1K(b, "    Str name;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
@@ -321,6 +337,7 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
         StrBuffPrint1K(b, "            comp->comp = ArenaPush(a_dest, &comp_spec, sizeof(%.*s));\n", 2, comp->type.len, comp->type.str);
         StrBuffPrint1K(b, "            comp->type_name = StrL(comp_spec.type);\n", 0);
         StrBuffPrint1K(b, "            comp->name = StrL(comp_spec.name);\n", 0);
+        StrBuffPrint1K(b, "            comp->cat = CCAT_UNDEF;\n", 0);
         StrBuffPrint1K(b, "        } break;\n", 0);
         StrBuffPrint1K(b, "\n", 0);
     }
@@ -362,7 +379,7 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
     iter = {};
     while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
-        StrBuffPrint1K(b, "        case CT_%.*s: { Display_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+        StrBuffPrint1K(b, "        case CT_%.*s: { Finally_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     }
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
