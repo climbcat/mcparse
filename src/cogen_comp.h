@@ -277,13 +277,19 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "#ifndef __META_COMPS__\n", 0);
     StrBuffPrint1K(b, "#define __META_COMPS__\n\n\n", 0);
 
-    // no includes, these should be in the app headers
-
+    // include component sources
+    MArena *a_tmp = GetContext()->a_tmp;
+    u32 component_cnt = 0;
     MapIter iter = {};
     while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "#include \"%.*s.h\"\n", 2, comp->type.len, comp->type.str);
+
+        component_cnt++;
     }
     StrBuffPrint1K(b, "\n\n", 0);
+
+    // build a category map
+    HashMap comp_categories_tmp = InitMap(a_tmp, component_cnt);
 
     // type enum
     StrBuffPrint1K(b, "enum CompType {\n", 0);
@@ -291,21 +297,20 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     iter = {};
     while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "    CT_%.*s,\n", 2, comp->type.len, comp->type.str);
+
+        Str cat = FindDirCategory(comp->file_path);
+        MapPut(&comp_categories_tmp, cat, ArenaPush(a_tmp, &cat, sizeof(Str)));
     }
     StrBuffPrint1K(b, "\n    CT_CNT\n", 0);
     StrBuffPrint1K(b, "};\n\n\n", 0);
 
-    // category enum
+    // categories
     StrBuffPrint1K(b, "enum CompCategory {\n", 0);
     StrBuffPrint1K(b, "    CCAT_UNDEF,\n\n", 0);
-    StrBuffPrint1K(b, "    CCAT_SOURCE,\n", 0);
-    StrBuffPrint1K(b, "    CCAT_OPTICS,\n", 0);
-    StrBuffPrint1K(b, "    CCAT_SAMPLE,\n", 0);
-    StrBuffPrint1K(b, "    CCAT_MONITOR,\n", 0);
-    StrBuffPrint1K(b, "    CCAT_MISC,\n", 0);
-    StrBuffPrint1K(b, "    CCAT_CONTRIB,\n", 0);
-    StrBuffPrint1K(b, "    CCAT_UNION,\n", 0);
-    StrBuffPrint1K(b, "    CCAT_SASMODEL,\n", 0);
+    iter = {};
+    while (Str *cat = (Str*) MapNextVal(&comp_categories_tmp, &iter)) {
+        StrBuffPrint1K(b, "    CCAT_%.*s,\n", 2, cat->len, cat->str);
+    }
     StrBuffPrint1K(b, "    \n", 0);
     StrBuffPrint1K(b, "    CCAT_CNT\n", 0);
     StrBuffPrint1K(b, "};\n\n\n", 0);
@@ -337,7 +342,7 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
         StrBuffPrint1K(b, "            comp->comp = ArenaPush(a_dest, &comp_spec, sizeof(%.*s));\n", 2, comp->type.len, comp->type.str);
         StrBuffPrint1K(b, "            comp->type_name = StrL(comp_spec.type);\n", 0);
         StrBuffPrint1K(b, "            comp->name = StrL(comp_spec.name);\n", 0);
-        StrBuffPrint1K(b, "            comp->cat = CCAT_UNDEF;\n", 0);
+        StrBuffPrint1K(b, "            comp->cat = CCAT_%.*s;\n", 2, comp->category.len, comp->category.str);
         StrBuffPrint1K(b, "        } break;\n", 0);
         StrBuffPrint1K(b, "\n", 0);
     }

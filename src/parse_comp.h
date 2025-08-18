@@ -6,6 +6,7 @@ struct ComponentParse {
     Str file_path;
     Str type;
     Str type_copy;
+    Str category;
 
     Array<Parameter> setting_params;
     Array<Parameter> out_params;

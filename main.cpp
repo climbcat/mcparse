@@ -3,8 +3,27 @@
 #include <cstdio>
 #include <cstddef>
 
-
 #include "lib/jg_baselayer.h"
+
+
+// TODO: export to the baselayer 
+// TODO: have a StrIntern type-thing which is better && works with HasMap (the Str struct itself is pushed)
+Str FindDirCategory(Str path) {
+    Str category_name = {};
+    Str dirpath = StrDirPath(path);
+
+    if (dirpath.len) {
+        StrLst *dirname = StrSplit(dirpath, '/');
+
+        while (dirname->next) {
+            dirname = dirname->next;
+        }
+        category_name = dirname->GetStr();
+    }
+    return category_name;
+}
+
+
 #include "src/parsecore.h"
 #include "src/parsehelpers.h"
 #include "src/parse_comp.h"
@@ -82,6 +101,7 @@ ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths)
     return ps;
 }
 
+
 ParseStats ParseComponents(MArena *a_dest, HashMap *map_comps, StrLst *fpaths) {
     TimeFunction;
 
@@ -97,6 +117,7 @@ ParseStats ParseComponents(MArena *a_dest, HashMap *map_comps, StrLst *fpaths) {
         printf("parsing  #%.3d: %.*s", ps.total_cnt, filename.len, filename.str);
         ComponentParse *comp = ParseComponent(a_dest, text);
         comp->file_path = filename;
+        comp->category = FindDirCategory(filename);
 
         if (comp->parse_error == true) {
             ps.parse_error_cnt++;
