@@ -146,6 +146,8 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
 
     // trace
     StrBuffPrint1K(b, "Array<Component*> Config_%.*s(MArena *a_dest, %.*s *spec, Instrument *instr) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "    instr->name = (char*) \"%.*s\";\n", 1, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "    Array<Component*> comp_sequence = InitArray<Component*>(a_dest, %d);\n", 1, instr->comps.len);
     StrBuffPrint1K(b, "    f32 at_x, at_y, at_z;\n", 0);
     StrBuffPrint1K(b, "    f32 phi_x, phi_y, phi_z;\n", 0);
