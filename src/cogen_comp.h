@@ -274,15 +274,15 @@ void CogenComponent(StrBuff *b, ComponentParse *comp) {
 
 
 void CogenComponentMeta(StrBuff *b, HashMap *components) {
-    StrBuffPrint1K(b, "#ifndef __META_COMPS__\n", 0);
-    StrBuffPrint1K(b, "#define __META_COMPS__\n\n\n", 0);
+    StrBuffPrint1K(b, "#ifndef __COMPS_META___\n", 0);
+    StrBuffPrint1K(b, "#define __COMPS_META___\n\n\n", 0);
 
     // include component sources
     MArena *a_tmp = GetContext()->a_tmp;
     u32 component_cnt = 0;
     MapIter iter = {};
     while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
-        StrBuffPrint1K(b, "#include \"%.*s.h\"\n", 2, comp->type.len, comp->type.str);
+        StrBuffPrint1K(b, "#include \"comps/%.*s.h\"\n", 2, comp->type.len, comp->type.str);
 
         component_cnt++;
     }
