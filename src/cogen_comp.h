@@ -346,6 +346,16 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
 
+    // display
+    StrBuffPrint1K(b, "void DisplayComponent(Component *comp) {\n", 0);
+    StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
+    iter = {};
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
+        StrBuffPrint1K(b, "        case CT_%.*s: { Display_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    }
+    StrBuffPrint1K(b, "\n", 0);
+    StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
+
     // trace
     StrBuffPrint1K(b, "void TraceComponent(Component *comp, Neutron *particle, Instrument *instr = NULL) {\n", 0);
     StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
@@ -356,12 +366,12 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
 
-    // display
-    StrBuffPrint1K(b, "void DisplayComponent(Component *comp) {\n", 0);
+    // save
+    StrBuffPrint1K(b, "void SaveComponent(Component *comp) {\n", 0);
     StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
     iter = {};
     while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
-        StrBuffPrint1K(b, "        case CT_%.*s: { Display_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+        StrBuffPrint1K(b, "        case CT_%.*s: { Save_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     }
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
