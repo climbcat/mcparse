@@ -5,7 +5,6 @@
 // share block
 
 
-
 struct Bender {
     int index;
     char *name;

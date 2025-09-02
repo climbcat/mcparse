@@ -5,7 +5,6 @@
 // share block
 
 
-
 struct Beamstop {
     int index;
     char *name;

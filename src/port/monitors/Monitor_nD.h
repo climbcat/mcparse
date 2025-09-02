@@ -5,7 +5,6 @@
 // share block
 
 
-
 struct Monitor_nD {
     int index;
     char *name;

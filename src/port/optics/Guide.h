@@ -5,7 +5,6 @@
 // share block
 
 
-
 struct Guide {
     int index;
     char *name;

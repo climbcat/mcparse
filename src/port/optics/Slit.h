@@ -5,6 +5,7 @@
 // share block
 
 
+
 void slit_print_if(int condition, char* level, char* message, char* component){
     if (condition) fprintf(stderr, "Slit: %s: %s: %s\n", component, level, message);
 } 

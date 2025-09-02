@@ -5,6 +5,7 @@
 // share block
 
 
+
 /* ToDo: Should be component local names. */
 #ifndef AL_WINDOW
 #define avogadro 6.022 /* 10E23 Atoms per mole (mol-1) */

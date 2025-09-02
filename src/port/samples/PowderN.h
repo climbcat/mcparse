@@ -6,6 +6,7 @@
 
 
 
+
 /* Declare structures and functions only once in each instrument. */
 #ifndef POWDERN_DECL
 #define POWDERN_DECL

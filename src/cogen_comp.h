@@ -39,12 +39,15 @@ void CogenComponent(StrBuff *b, ComponentParse *comp) {
     //
     // share block
 
-    StrBuffPrint1K(b, "// share block\n\n", 0);
-    StrBuffAppend(b, comp->share_block);
+    StrBuffPrint1K(b, "// share block\n", 0);
     StrBuffPrint1K(b, "\n\n", 0);
+    if (comp->share_block.len) {
+        StrBuffAppend(b, comp->share_block);
+        StrBuffPrint1K(b, "\n\n", 0);
+    }
 
     //
-    // struct
+    // component struct
 
     StrBuffPrint1K(b, "struct %.*s {\n", 2, comp->type.len, comp->type.str);
     StrBuffPrint1K(b, "    int index;\n", 0);

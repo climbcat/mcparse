@@ -5,6 +5,7 @@
 // share block
 
 
+
 #ifndef DIV_CUTOFF
 #define DIV_CUTOFF 2            /* ~ 10^-5 cutoff. */
 #endif

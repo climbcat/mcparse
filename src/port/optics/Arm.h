@@ -5,7 +5,6 @@
 // share block
 
 
-
 struct Arm {
     int index;
     char *name;

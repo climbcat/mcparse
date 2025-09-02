@@ -5,7 +5,6 @@
 // share block
 
 
-
 struct Progress_bar {
     int index;
     char *name;

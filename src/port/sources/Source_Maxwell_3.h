@@ -5,6 +5,7 @@
 // share block
 
 
+
     /* A normalised Maxwellian distribution : Integral over all l = 1 */
     #pragma acc routine seq
     double SM3_Maxwell(double l, double temp)

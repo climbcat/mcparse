@@ -5,7 +5,6 @@
 // share block
 
 
-
 struct PSD_monitor {
     int index;
     char *name;
