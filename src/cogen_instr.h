@@ -126,12 +126,21 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         }
         StrBuffPrint1K(b, ";\n", 0);
     }
-    StrBuffPrint1K(b, "};\n\n", 0);
+    StrBuffPrint1K(b, "};\n\n\n", 0);
 
 
-    // init
-    StrBuffPrint1K(b, "void Init_%.*s(%.*s *spec) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
+    // signature
+    StrBuffPrint1K(b, "static %.*s %.*s_var;\n\n\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "Array<Component*> InitAndConfig_%.*s(MArena *a_dest, Instrument *instr, u32 ncount) {\n", 4, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "    %.*s *spec = &%.*s_var;\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
     StrBuffPrint1K(b, "\n", 0);
+    StrBuffPrint1K(b, "    // NOTE: We must set mcncount BEFORE initialization.\n", 0);
+    StrBuffPrint1K(b, "    //      This is used by API call mcget_ncount(), and called by some components during init (SourceMaxwell)\n", 0);
+    StrBuffPrint1K(b, "    mcset_ncount(ncount);\n", 0);
+    StrBuffPrint1K(b, "\n\n    // initialize\n\n\n", 0);
+
+
+    // init instrument
     if (instr->initalize_block.len) {
         PrintDefines(b, instr);
         StrBuffPrint1K(b, "    ////////////////////////////////////////////////////////////////\n\n", 0);
@@ -140,12 +149,12 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
 
         StrBuffPrint1K(b, "\n\n    ////////////////////////////////////////////////////////////////\n", 0);
         PrintUndefs(b, instr);
-        StrBuffPrint1K(b, "\n", 0);
     }
-    StrBuffPrint1K(b, "}\n\n", 0);
+    StrBuffPrint1K(b, "\n\n", 0);
 
-    // trace
-    StrBuffPrint1K(b, "Array<Component*> Config_%.*s(MArena *a_dest, %.*s *spec, Instrument *instr) {\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
+
+    // "trace" e.g. configure & initialize components
+    StrBuffPrint1K(b, "    // configure\n\n\n", 0);
     StrBuffPrint1K(b, "    instr->name = (char*) \"%.*s\";\n", 1, instr->name.len, instr->name.str);
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "    Array<Component*> comp_sequence = InitArray<Component*>(a_dest, %d);\n", 1, instr->comps.len);
@@ -260,8 +269,15 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
         }
         StrBuffPrint1K(b, "\n", 0);
     }
+    StrBuffPrint1K(b, "    SceneGraphUpdate();\n", 0);
+    StrBuffPrint1K(b, "    UpdateLegacyTransforms(comp_sequence);\n", 0);
+    StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "    return comp_sequence;\n", 0);
     StrBuffPrint1K(b, "}\n\n\n", 0);
+
+
+    // TODO: cogen FINALLY section
+
 
     // close header guard
     StrBuffPrint1K(b, "#endif // %.*s\n", 2, instr->name.len, instr->name.str);
