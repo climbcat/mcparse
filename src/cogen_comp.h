@@ -318,8 +318,11 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "    CCAT_CNT\n", 0);
     StrBuffPrint1K(b, "};\n\n\n", 0);
 
+    StrBuffPrint1K(b, "Str StrLS(char *str) {\n", 0);
+    StrBuffPrint1K(b, "    return Str { str, (u32) strlen(str) };\n", 0);
+    StrBuffPrint1K(b, "}\n\n\n", 0);
+
     // create
-    // TODO: check that the switch does translate into a branch table (as we are using the packed enum values as conditionals)
     StrBuffPrint1K(b, "Component *CreateComponent(MArena *a_dest, CompType type, s32 index, const char *name) {\n", 0);
     StrBuffPrint1K(b, "    Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));\n", 0);
     StrBuffPrint1K(b, "    comp->type = type;\n", 0);
@@ -330,8 +333,8 @@ void CogenComponentMeta(StrBuff *b, HashMap *components) {
         StrBuffPrint1K(b, "        case CT_%.*s: {\n", 2, comp->type.len, comp->type.str);
         StrBuffPrint1K(b, "            %.*s comp_spec = Create_%.*s(index, (char*) name);\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
         StrBuffPrint1K(b, "            comp->comp = ArenaPush(a_dest, &comp_spec, sizeof(%.*s));\n", 2, comp->type.len, comp->type.str);
-        StrBuffPrint1K(b, "            comp->type_name = StrL(comp_spec.type);\n", 0);
-        StrBuffPrint1K(b, "            comp->name = StrL(comp_spec.name);\n", 0);
+        StrBuffPrint1K(b, "            comp->type_name = StrLS(comp_spec.type);\n", 0);
+        StrBuffPrint1K(b, "            comp->name = StrLS(comp_spec.name);\n", 0);
         StrBuffPrint1K(b, "            comp->cat = CCAT_%.*s;\n", 2, comp->category.len, comp->category.str);
         StrBuffPrint1K(b, "        } break;\n", 0);
         StrBuffPrint1K(b, "\n", 0);
