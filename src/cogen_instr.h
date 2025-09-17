@@ -131,10 +131,10 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
 
     // signature
     StrBuffPrint1K(b, "static %.*s %.*s_var;\n\n\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
-    StrBuffPrint1K(b, "Array<Component*> InitAndConfig_%.*s(MArena *a_dest, Instrument *instr, u32 ncount) {\n", 4, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "InstrumentConfig InitAndConfig_%.*s(MArena *a_dest, u32 ncount) {\n", 4, instr->name.len, instr->name.str);
     StrBuffPrint1K(b, "    %.*s *spec = &%.*s_var;\n", 4, instr->name.len, instr->name.str, instr->name.len, instr->name.str);
     StrBuffPrint1K(b, "\n", 0);
-    StrBuffPrint1K(b, "    // NOTE: We must set mcncount BEFORE initialization.\n", 0);
+    StrBuffPrint1K(b, "    // NOTE: mcncount must be set BEFORE initialization:\n", 0);
     StrBuffPrint1K(b, "    //      This is used by API call mcget_ncount(), and called by some components during init (SourceMaxwell)\n", 0);
     StrBuffPrint1K(b, "    mcset_ncount(ncount);\n", 0);
     StrBuffPrint1K(b, "\n\n    // initialize\n\n\n", 0);
@@ -154,19 +154,25 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
 
 
     // "trace" e.g. configure & initialize components
-    StrBuffPrint1K(b, "    // configure\n\n\n", 0);
-    StrBuffPrint1K(b, "    instr->name = (char*) \"%.*s\";\n", 1, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "    // configuration pre-amble\n\n\n", 0);
+    StrBuffPrint1K(b, "    InstrumentConfig config = {};\n", 0);
+    StrBuffPrint1K(b, "    config.scenegraph = SceneGraphInit(cbui.ctx->a_pers);\n", 0);
+    StrBuffPrint1K(b, "    Instrument *instr = &config.instr;\n", 0);
+    StrBuffPrint1K(b, "    SceneGraphHandle *sg = &config.scenegraph;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
-    StrBuffPrint1K(b, "    Array<Component*> comp_sequence = InitArray<Component*>(a_dest, %d);\n", 1, instr->comps.len);
+    StrBuffPrint1K(b, "    instr->name = (char*) \"%.*s\";\n", 2, instr->name.len, instr->name.str);
+    StrBuffPrint1K(b, "    config.comps = InitArray<Component*>(a_dest, 32);\n", 0);
     StrBuffPrint1K(b, "    f32 at_x, at_y, at_z;\n", 0);
     StrBuffPrint1K(b, "    f32 phi_x, phi_y, phi_z;\n", 0);
-    StrBuffPrint1K(b, "    s32 index = 0;\n\n", 0);
+    StrBuffPrint1K(b, "    s32 index = 0;\n", 0);
+    StrBuffPrint1K(b, "\n\n", 0);
+    StrBuffPrint1K(b, "    // configure components\n\n\n", 0);
 
     for (s32 i = 0; i < instr->comps.len; ++i) {
         ComponentCall c = instr->comps.arr[i];
 
         StrBuffPrint1K(b, "    Component *%.*s = CreateComponent(a_dest, CT_%.*s, index++, \"%.*s\");\n", 6, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
-        StrBuffPrint1K(b, "    comp_sequence.Add(%.*s);\n", 2, c.name.len, c.name.str);
+        StrBuffPrint1K(b, "    config.comps.Add(%.*s);\n", 2, c.name.len, c.name.str);
         StrBuffPrint1K(b, "    %.*s *%.*s_comp = (%.*s*) %.*s->comp;\n", 8, c.type.len, c.type.str, c.name.len, c.name.str, c.type.len, c.type.str, c.name.len, c.name.str);
 
 
@@ -181,7 +187,6 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
 
         for (s32 j = 0; j < c.args.len; ++j) {
             Parameter p = c.args.arr[j];
-
             if (p.default_val.len && p.default_val.str[0] == '"') {
                 StrBuffPrint1K(b, "    %.*s_comp->%.*s = (char*) %.*s;\n", 6, c.name.len, c.name.str, p.name.len, p.name.str, p.default_val.len, p.default_val.str);
             }
@@ -226,10 +231,10 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
             StrBuffPrint1K(b, "    at_z = %.*s;\n", 2, c.at_z.len, c.at_z.str);
 
             if (c.at_absolute) {
-                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(sg);\n", 2, c.name.len, c.name.str);
             }
             else {
-                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, c.at_relative_to.len, c.at_relative_to.str);
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(sg, %.*s->transform);\n", 4, c.name.len, c.name.str, c.at_relative_to.len, c.at_relative_to.str);
             }
             StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildTranslation( { at_x, at_y, at_z } );\n", 2, c.name.len, c.name.str);
         }
@@ -255,24 +260,24 @@ void CogenInstrumentConfig(StrBuff *b, InstrumentParse *instr) {
             StrBuffPrint1K(b, "    phi_z = %.*s;\n", 2, c.rot_z.len, c.rot_z.str);
 
             if (c.at_absolute) {
-                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc();\n", 2, c.name.len, c.name.str);
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(sg);\n", 2, c.name.len, c.name.str);
             }
             else {
-                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(%.*s->transform);\n", 4, c.name.len, c.name.str, c.at_relative_to.len, c.at_relative_to.str);
+                StrBuffPrint1K(b, "    %.*s->transform = SceneGraphAlloc(sg, %.*s->transform);\n", 4, c.name.len, c.name.str, c.at_relative_to.len, c.at_relative_to.str);
             }
             StrBuffPrint1K(b, "    %.*s->transform->t_loc = TransformBuildTranslation( { at_x, at_y, at_z } ) * TransformBuildRotateZ( phi_z * deg2rad ) * TransformBuildRotateY( phi_y * deg2rad ) * TransformBuildRotateX( phi_x * deg2rad );\n", 2, c.name.len, c.name.str);
 
             // amend for case #3
             if (same_at_rot_relative == false) {
-                StrBuffPrint1K(b, "    SceneGraphSetRotParent( %.*s->transform, %.*s->transform );\n", 4, c.name.len, c.name.str, c.rot_relative_to.len, c.rot_relative_to.str);
+                StrBuffPrint1K(b, "    SceneGraphSetRotParent(sg, %.*s->transform, %.*s->transform);\n", 4, c.name.len, c.name.str, c.rot_relative_to.len, c.rot_relative_to.str);
             }
         }
         StrBuffPrint1K(b, "\n", 0);
     }
-    StrBuffPrint1K(b, "    SceneGraphUpdate();\n", 0);
-    StrBuffPrint1K(b, "    UpdateLegacyTransforms(comp_sequence);\n", 0);
+    StrBuffPrint1K(b, "    SceneGraphUpdate(sg);\n", 0);
+    StrBuffPrint1K(b, "    UpdateLegacyTransforms(config.comps);\n", 0);
     StrBuffPrint1K(b, "\n", 0);
-    StrBuffPrint1K(b, "    return comp_sequence;\n", 0);
+    StrBuffPrint1K(b, "    return config;\n", 0);
     StrBuffPrint1K(b, "}\n\n\n", 0);
 
 
