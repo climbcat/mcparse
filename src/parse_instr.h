@@ -388,7 +388,7 @@ void InstrumentPrint(InstrumentParse *instr, bool print_blocks, bool print_comps
 
                 if (cc.extend.len) {
                     printf("\n");
-                    StrPrint("EXTEND \%(", cc.extend, "\n\%)\n");
+                    StrPrint("EXTEND %(", cc.extend, "\n%)\n");
 
                 }
                 printf("\n\n");

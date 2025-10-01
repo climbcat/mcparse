@@ -1,4 +1,0 @@
-cmake_minimum_required(VERSION 3.13.0)
-project(mcparse VERSION 0.1.0)
-
-add_executable(mcparse main.cpp)

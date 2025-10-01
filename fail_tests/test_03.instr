@@ -5,10 +5,10 @@
 ***************************************************/
 
 DEFINE INSTRUMENT PSI_DMC(
-    lambda=2.5666,
-    R=0.87,
-    R_curve=0.87,
-    string filename="Na2Ca3Al2F14.laz"
+    lambda = 2.5666,
+    R = 0.87,
+    R_curve = 0.87,
+    string filename = "Na2Ca3Al2F14.laz"
 )
 
 DECLARE
@@ -31,12 +31,11 @@ INITIALIZE
 
 TRACE
 
-COMPONENT source_arm = Progress_bar()
-AT (0, 0, 0) ABSOLUTE
+//COMPONENT source_arm = Progress_bar()
+//AT (0, 0, 0) ABSOLUTE
 
 COMPONENT source = Source_Maxwell_3 (
-        yheight = 0.156
-        xwidth = 0.126,
+        yheight = 0.156, xwidth = 0.126,
         Lmin = lambda-ldiff/2,
         Lmax = lambda+ldiff/2,
         dist = 1.5, focus_xw = 0.02,
