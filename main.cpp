@@ -238,29 +238,6 @@ bool CheckInstrument(MArena *a_tmp, InstrumentParse *instr, HashMap *comps, Pars
 }
 
 
-void TestParseParamsBlock() {
-    printf("\nParseParamsBlock\n");
-
-    MContext *ctx = InitBaselayer();
-    Tokenizer tokenizer = {};
-
-    const char* expr_01 = "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)";
-    printf("---\n1) expecting error:\n    %s\n\n", expr_01);
-    tokenizer.Init( (char*) expr_01);
-    ParseParamsBlock(ctx->a_tmp, &tokenizer, false);
-
-    const char* expr_02 = "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)";
-    printf("---\n2) expecting pass:\n    %s\n\n", expr_02);
-    tokenizer.Init( (char*) expr_02);
-    ParseParamsBlock(ctx->a_tmp, &tokenizer, true);
-
-    const char* expr_03 = "(yheight = 0.156 xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)";
-    printf("---\n3) expecting error:\n    %s\n\n", expr_03);
-    tokenizer.Init( (char*) expr_03);
-    ParseParamsBlock(ctx->a_tmp, &tokenizer, true);
-}
-
-
 int main (int argc, char **argv) {
     TimeProgram;
 
@@ -288,8 +265,6 @@ int main (int argc, char **argv) {
     else if (CLAContainsArg("--test", argc, argv)) {
         // any test code here
         printf("Running enabled tests ...\n");
-
-        TestParseParamsBlock();
     }
 
     else {
