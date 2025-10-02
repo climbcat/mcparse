@@ -604,9 +604,6 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
         if (IsNumeric(c)) {
             continue;
         }
-        else if (i == 0 && (c == '-' || c == '+')) {
-            continue;
-        }
         else if (((c == 'e') || (c == 'E'))) {
             has_sci_e;
             break;
@@ -693,56 +690,18 @@ Token GetToken(Tokenizer *tokenizer)
     case ',':
         token.type = TOK_COMMA;
         break;
-
     case '.':
-    {
-        TokenType next_type = LookAheadNextTokenType(tokenizer);
-        if (next_type == TOK_INT)
-        {
-            ParseNumeric(tokenizer, &token);
-            token.is_rval = true;
-        }
-        else
-        {
-            token.type = TOK_DOT;
-        }
-
-    }
-    break;
-
+        token.type = TOK_DOT;
+        break;
     case '/':
         token.type = TOK_SLASH;
         break;
-
     case '-':
-    {
-        TokenType next_type = LookAheadNextTokenType(tokenizer);
-        if (next_type == TOK_INT || next_type == TOK_FLOAT || next_type == TOK_SCI)
-        {
-            ParseNumeric(tokenizer, &token);
-            token.is_rval = true;
-        }
-        else
-        {
-            token.type = TOK_DASH;
-        }
-    }
-    break;
+        token.type = TOK_DASH;
+        break;
     case '+':
-    {
-        TokenType next_type = LookAheadNextTokenType(tokenizer);
-        if (next_type == TOK_INT || next_type == TOK_FLOAT || next_type == TOK_SCI)
-        {
-            ParseNumeric(tokenizer, &token);
-            token.is_rval = true;
-        }
-        else
-        {
-            token.type = TOK_PLUS;
-        }
-    }
-    break;
-
+        token.type = TOK_PLUS;
+        break;
     case ':':
         token.type = TOK_COLON;
         break;
@@ -802,6 +761,9 @@ Token GetToken(Tokenizer *tokenizer)
 
     case '"':
     {
+        // TODO: handle single quotation // no end quote before EOF -> just have a TOK_QUOTE then
+        //      Probably should not parse a string outright at this level, but have a ParseStringOrQuote() function
+
         token.type = TOK_STRING;
         token.is_rval = true;
 

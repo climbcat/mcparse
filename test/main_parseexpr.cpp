@@ -34,7 +34,16 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
 
     while (tok.type != TOK_ENDOFSTREAM) {
         if (tok.type == TOK_LBRACK) {
-            bracket_level++;
+
+            if ( TokenInFilter(tok_prev.type, operators) ) {
+                // check the bracket was preceeded by an operator
+
+                bracket_level++;
+            }
+            else {
+                printf("fail; parse function call\n");
+                return {};
+            }
         }
         else if (tok.type == TOK_RBRACK) {
             bracket_level--;
@@ -43,7 +52,7 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
         else if (TokenInFilter(tok.type, symbols)) {
             // token is a symbol
 
-            if ( TokenInFilter(tok_prev.type, symbols) ) {
+            if (TokenInFilter(tok_prev.type, symbols)) {
                 // two symbols in a row
 
                 printf("fail; two successive symbols\n");
@@ -54,7 +63,7 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
         else if (TokenInFilter(tok.type, operators)) {
             // token is an operator
 
-            if ( TokenInFilter(tok_prev.type, operators) ) {
+            if (TokenInFilter(tok_prev.type, operators)) {
                 if (tok_prev.type == TOK_LBRACK && (tok.type == TOK_DASH || tok.type == TOK_PLUS)) {
                     // the exception that is fine: (+ or (-
                 }
@@ -97,9 +106,9 @@ Str ParseList_Rec(Tokenizer *t) {
 
 
 const char *test_lines =
+  "func(\"strarg\")\n"
   "a + b / c\n"
   "-21 * 17\n"
-  "func(\"strarg\")\n"
   "9.2 + floor(amp) * sin(phi)\n"
   "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   ;
