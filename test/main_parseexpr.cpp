@@ -25,9 +25,14 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
 
     s32 bracket_level = 0;
 
+    // having access to the two previous tokenizer steps is convenient
+    Tokenizer t_prev = *t;
+    Tokenizer t_prev2 = *t;
+
+    Token tok_prev = {};
+    Token tok_prev2 = {};
     Token tok = {};
     tok = GetToken(t);
-    Token tok_prev = {};
 
     Str expr = {};
     expr.str = tok.text;
@@ -35,14 +40,18 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
     while (tok.type != TOK_ENDOFSTREAM) {
         if (tok.type == TOK_LBRACK) {
 
-            if ( TokenInFilter(tok_prev.type, operators) ) {
+            if ((tok_prev.type == TOK_UNKNOWN) || TokenInFilter(tok_prev.type, operators)) {
                 // check the bracket was preceeded by an operator
 
                 bracket_level++;
             }
             else {
-                printf("fail; parse function call\n");
-                return {};
+                // DBG
+                printf("fail: parse function call\n");
+
+                // rewind back to the before the function name token was parsed
+                *t = t_prev2;
+                break;
             }
         }
         else if (tok.type == TOK_RBRACK) {
@@ -52,26 +61,32 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
         else if (TokenInFilter(tok.type, symbols)) {
             // token is a symbol
 
-            if (TokenInFilter(tok_prev.type, symbols)) {
+            if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, symbols)) {
                 // two symbols in a row
 
+                // DBG
                 printf("fail; two successive symbols\n");
-                return {};
+
+                *t = t_prev;
+                break;
             }
         }
 
         else if (TokenInFilter(tok.type, operators)) {
             // token is an operator
 
-            if (TokenInFilter(tok_prev.type, operators)) {
+            if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, operators)) {
                 if (tok_prev.type == TOK_LBRACK && (tok.type == TOK_DASH || tok.type == TOK_PLUS)) {
                     // the exception that is fine: (+ or (-
                 }
                 else {
                     // two operators in a row
 
+                    // DBG
                     printf("fail: two successive operators\n");
-                    return {};
+
+                    *t = t_prev;
+                    break;
                 }
             }
         }
@@ -80,16 +95,19 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
             // unknown token, return/exit
 
             // TODO: rewind tokenizer back to last save point
-
+            *t = t_prev;
             break;
         }
 
+        t_prev2 = t_prev;
+        t_prev = *t;
+        tok_prev2 = tok_prev;
         tok_prev = tok;
         tok = GetToken(t);
     }
 
     assert(t->at >= expr.str);
-    expr.len = t->at - expr.str - 1;
+    expr.len = t->at - expr.str;
     return expr;
 }
 
@@ -107,10 +125,10 @@ Str ParseList_Rec(Tokenizer *t) {
 
 const char *test_lines =
   "func(\"strarg\")\n"
+  "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   "a + b / c\n"
   "-21 * 17\n"
   "9.2 + floor(amp) * sin(phi)\n"
-  "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   ;
 
 
@@ -163,9 +181,7 @@ void ParseNestedExpressions() {
 
         tokenizer.Init( StrZ(lines_split->GetStr()) );
         Str expr = ParseExpression(t, filter_operators, filter_symbols);
-        if (expr.len) {
-            StrPrint("expression: ", expr, "\n");
-        }
+        StrPrint("expression: ", expr, "\n");
         printf("\n");
 
         lines_split = lines_split->next;
