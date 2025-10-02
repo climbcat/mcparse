@@ -604,6 +604,9 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
         if (IsNumeric(c)) {
             continue;
         }
+        else if (i == 0 && (c == '-' || c == '+')) {
+            continue;
+        }
         else if (((c == 'e') || (c == 'E'))) {
             has_sci_e;
             break;
