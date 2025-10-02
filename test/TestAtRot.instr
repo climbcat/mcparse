@@ -1,0 +1,90 @@
+DEFINE INSTRUMENT PSI_DMC(lambda=2.5666, R=0.87, R_curve=0.87, string filename="Na2Ca3Al2F14.laz",D_PHI=6, SHIFT=0, PACK=0.7, Dw=0.8, int BARNS=1, int SPLITS=58)
+
+DECLARE
+%{
+  double mono_q = 1.8734;
+  double OMA;  
+  double RV;
+  double y_mono = 0.025;
+  double NV = 5;
+  double d_phi_0;
+  double TTM;
+  double sample_radius = 0.008/2;
+  double sample_height = 0.03;
+  double can_radius = 0.0083/2;
+  double can_height = 0.0303;
+  double can_thick = 0.00015;
+  
+  /******Mirrorvalues*****/
+  
+  double alpha;
+  double Qc=0.0217;
+  double R0=0.995;
+  double Mvalue=1.9;
+  double W=1.0/250.0;
+  
+  double alpha_curve;
+  double Qc_curve=0.0217;
+  double R0_curve= 0.995;
+  double Mvalue_curve=2.1;
+  double W_curve=1.0/250.0;
+  
+  double ldiff=0.05;
+  /* Curved guide element angle*/
+  double angleGuideCurved;
+%}
+
+INITIALIZE
+%{
+  TTM = 2*asin(mono_q*lambda/(4*PI))*RAD2DEG;
+  OMA = TTM/2;
+  RV = fabs(2*2.82*sin(DEG2RAD*OMA));
+
+  angleGuideCurved=-2.0*asin(0.4995 /2.0/3612)/PI*180;
+  alpha=(R0-R)/Qc/(Mvalue-1);
+  alpha_curve=(R0_curve-R_curve)/Qc_curve/(Mvalue_curve-1);
+%}
+
+TRACE
+
+COMPONENT source_arm = Arm()
+AT (0, 0, 0) ABSOLUTE
+
+COMPONENT source = Source_Maxwell_3(
+    yheight = 0.156,
+    xwidth = 0.126,
+    Lmin = lambda-ldiff/2,
+    Lmax = lambda+ldiff/2,
+    dist = 1.5,
+    focus_xw = 0.02,
+    focus_yh = 0.12,
+    T1 = 296.16,
+    I1 = 8.5E11,
+    T2 = 40.68,
+    I2 = 5.2E11)
+AT (0, 0, 0) RELATIVE source_arm  ROTATED (0, 0, 0) RELATIVE source_arm
+
+COMPONENT guide1 = Guide(
+    w1 = 0.02,
+    h1 = 0.12,
+    w2 = 0.02,
+    h2 = 0.12,
+    l = 4.66,
+    R0 = R0,
+    Qc = Qc,
+    alpha = alpha,
+    m = 1.8,
+    W = W)
+AT (0, 0, 1.50) RELATIVE source_arm ROTATED (0, 0, 0) RELATIVE source_arm
+
+COMPONENT arm_2 = Arm()
+AT (0, 0, 1 + 4.66) RELATIVE guide1
+
+COMPONENT arm_3 = Arm()
+AT (0, 0, 1) RELATIVE PREVIOUS ROTATED (0, 30, 0) RELATIVE PREVIOUS
+
+COMPONENT arm_4 = Arm()
+AT (0, 0, 1) RELATIVE PREVIOUS
+
+
+END  
