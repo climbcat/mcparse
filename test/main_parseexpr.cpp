@@ -21,8 +21,80 @@ bool TokenInFilter(TokenType tpe, Array<TokenType> filter) {
 }
 
 
-Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols);
 
+
+Str ParseCommaSeperatedList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+    // ... but not the brackets around it
+    Token tok = {};
+
+    Str result = ParseExpression(t, operators, symbols);
+    Tokenizer t_prev = *t;
+
+    if (result.len) {
+        while (true) {
+            tok = GetToken(t);
+            if (tok.type != TOK_COMMA) {
+                *t = t_prev;
+
+                break;
+            }
+            else {
+                Str expr = ParseExpression(t, operators, symbols);
+                result.len += expr.len;
+            }
+
+            t_prev = *t;
+        }
+    }
+
+    result.len = t->at - result.str;
+    return result;
+}
+
+
+Str ParseCall(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+    Str result = {};
+
+    Tokenizer t_prev = *t;
+    Token tok = {};
+
+    // fname
+    tok = GetToken(t);
+    if (tok.type == TOK_IDENTIFIER) {
+        result = tok.GetValue();
+    }
+    else {
+        *t = t_prev;
+
+        return {};
+    }
+
+    // (
+    tok = GetToken(t);
+    if (tok.type != TOK_LBRACK) {
+        *t = t_prev;
+
+        return {};
+    }
+
+    // a list of nested expressions and calls
+    ParseCommaSeperatedList(t, operators, symbols);
+
+    // )
+    tok = GetToken(t);
+    if (tok.type != TOK_RBRACK) {
+        *t = t_prev;
+
+        return {};
+    }
+
+    result.len = t->at - result.str;
+    return result;
+}
+
+
+Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
     s32 bracket_level = 0;
 
     // having access to the two previous tokenizer steps is convenient
@@ -39,7 +111,6 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
 
     while (tok.type != TOK_ENDOFSTREAM) {
         if (tok.type == TOK_LBRACK) {
-
             if ((tok_prev.type == TOK_UNKNOWN) || TokenInFilter(tok_prev.type, operators)) {
                 // check the bracket was preceeded by an operator
 
@@ -54,8 +125,16 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
                 break;
             }
         }
+
         else if (tok.type == TOK_RBRACK) {
-            bracket_level--;
+            if (bracket_level > 0) {
+                bracket_level--;
+            }
+            else {
+                // rewind back to the before the )
+                *t = t_prev;
+                break;
+            }
         }
 
         else if (TokenInFilter(tok.type, symbols)) {
@@ -111,19 +190,11 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
     return expr;
 }
 
-Str ParseCall_Rec(Tokenizer *t) {
-
-    return {};
-}
-
-Str ParseList_Rec(Tokenizer *t) {
-
-    return {};
-}
-
 
 
 const char *test_lines =
+  "func(643.123)\n"
+  "a, b/a, c + 17, -d * 1.3e-19, e\n"
   "func(\"strarg\")\n"
   "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   "a + b / c\n"
@@ -180,9 +251,13 @@ void ParseNestedExpressions() {
         printf("\n");
 
         tokenizer.Init( StrZ(lines_split->GetStr()) );
-        Str expr = ParseExpression(t, filter_operators, filter_symbols);
+        //Str expr = ParseExpression(t, filter_operators, filter_symbols);
+        //Str expr = ParseCommaSeperatedList(t, filter_operators, filter_symbols);
+        Str expr = ParseCall(t, filter_operators, filter_symbols);
         StrPrint("expression: ", expr, "\n");
         printf("\n");
+
+        return;
 
         lines_split = lines_split->next;
     }
