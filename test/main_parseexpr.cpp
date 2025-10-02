@@ -24,7 +24,7 @@ bool TokenInFilter(TokenType tpe, Array<TokenType> filter) {
 Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols);
 
 
-Str ParseCommaSeperatedList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+Str ParseList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
     // ... but not the brackets around it
     Token tok = {};
 
@@ -54,6 +54,8 @@ Str ParseCommaSeperatedList(Tokenizer *t, Array<TokenType> operators, Array<Toke
 
 
 Str ParseCall(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+    // wrapper for ParseList
+
     Str result = {};
 
     Tokenizer t_prev = *t;
@@ -79,7 +81,7 @@ Str ParseCall(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols
     }
 
     // a list of nested expressions and calls
-    ParseCommaSeperatedList(t, operators, symbols);
+    ParseList(t, operators, symbols);
 
     // )
     tok = GetToken(t);
@@ -117,12 +119,13 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
                 bracket_level++;
             }
             else {
-                // DBG
-                printf("fail: parse function call\n");
-
-                // rewind back to the before the function name token was parsed
                 *t = t_prev2;
-                break;
+                if (tok_prev.type == TOK_IDENTIFIER) {
+                    ParseCall(t, operators, symbols);
+                }
+                else {
+                    break;
+                }
             }
         }
 
@@ -251,13 +254,9 @@ void ParseNestedExpressions() {
         printf("\n");
 
         tokenizer.Init( StrZ(lines_split->GetStr()) );
-        //Str expr = ParseExpression(t, filter_operators, filter_symbols);
-        //Str expr = ParseCommaSeperatedList(t, filter_operators, filter_symbols);
-        Str expr = ParseCall(t, filter_operators, filter_symbols);
+        Str expr = ParseList(t, filter_operators, filter_symbols);
         StrPrint("expression: ", expr, "\n");
         printf("\n");
-
-        return;
 
         lines_split = lines_split->next;
     }
