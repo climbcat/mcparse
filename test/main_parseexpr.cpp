@@ -255,7 +255,12 @@ Str ParseBracketedParameterList(Tokenizer *t, Array<TokenType> operators, Array<
                 else {
                     // fail: expected TOK_BRACK or TOK_COMMA
 
-                    printf("\nERROR: Expected ',' or ')', got '%s'\n", TokenTypeToSymbol(tok.type));
+                    if (p.default_val.len) {
+                        printf("\nERROR: Expected ',' or ')', got '%s'\n", TokenTypeToSymbol(tok.type));
+                    }
+                    else {
+                        printf("\nERROR: Expected '=', ',' or ')', got '%s'\n", TokenTypeToSymbol(tok.type));
+                    }
                     PrintLineError(t, &tok, "");
                     HandleParseError(t);
 
@@ -271,6 +276,7 @@ Str ParseBracketedParameterList(Tokenizer *t, Array<TokenType> operators, Array<
 
 
 const char *test_lines =
+  "(yheight = 0.156 xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
   "-21  17\n"
