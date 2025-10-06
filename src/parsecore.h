@@ -38,7 +38,9 @@ enum TokenType {
     TOK_QUESTION, // ?
     TOK_TILDE, // ~
     TOK_OR, // |
+    TOK_OR_COMPARE, // ||
     TOK_AND, // &
+    TOK_AND_COMPARE, // &&
     TOK_PERCENT, // %
     TOK_RPERCENTBRACE, // %{
     TOK_LPERCENTBRACE, // %}
@@ -115,7 +117,9 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_QUESTION: return "TOK_QUESTION";
         case TOK_TILDE: return "TOK_TILDE";
         case TOK_OR: return "TOK_OR";
+        case TOK_OR_COMPARE: return "TOK_OR_COMPARE";
         case TOK_AND: return "TOK_AND";
+        case TOK_AND_COMPARE: return "TOK_AND_COMPARE";
         case TOK_PERCENT: return "TOK_PERCENT";
         case TOK_RPERCENTBRACE: return "TOK_RPERBRACE";
         case TOK_LPERCENTBRACE: return "TOK_LPERBRACE";
@@ -195,7 +199,9 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_QUESTION: return "?";
         case TOK_TILDE: return "~";
         case TOK_OR: return "|";
+        case TOK_OR_COMPARE: return "||";
         case TOK_AND: return "&";
+        case TOK_AND_COMPARE: return "&&";
         case TOK_PERCENT: return "%";
         case TOK_RPERCENTBRACE: return "%{";
         case TOK_LPERCENTBRACE: return "%}";
@@ -690,9 +696,24 @@ Token GetToken(Tokenizer *tokenizer)
     case ',':
         token.type = TOK_COMMA;
         break;
+
     case '.':
-        token.type = TOK_DOT;
-        break;
+    {
+        Tokenizer t_prev = *tokenizer;
+        Token tok_next = GetToken(tokenizer);
+        *tokenizer = t_prev;
+
+        if (tok_next.type == TOK_FLOAT || tok_next.type == TOK_SCI) {
+            token.is_rval = true;
+
+            ParseNumeric(tokenizer, &token);
+        }
+        else {
+            token.type = TOK_DOT;
+        }
+    }
+    break;
+
     case '/':
         token.type = TOK_SLASH;
         break;
@@ -721,11 +742,28 @@ Token GetToken(Tokenizer *tokenizer)
         token.type = TOK_TILDE;
         break;
     case '|':
-        token.type = TOK_OR;
-        break;
+    {
+        if (tokenizer->at[0] == '|') {
+            token.type = TOK_OR_COMPARE;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_OR;
+        }
+    }
+    break;
+
     case '&':
-        token.type = TOK_AND;
-        break;
+    {
+        if (tokenizer->at[0] == '&') {
+            token.type = TOK_AND_COMPARE;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_AND;
+        }
+    }
+    break;
 
     case '%':
     {

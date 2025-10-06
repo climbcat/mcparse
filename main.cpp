@@ -285,6 +285,9 @@ int main (int argc, char **argv) {
             comp_lib_path = argv[1];
             instr_lib_path = argv[1];
         }
+        if (CLAContainsArg("--dbg", argc, argv)) {
+            g_parse_error_causes_exit = true;
+        }
 
 
         // init

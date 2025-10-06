@@ -21,8 +21,13 @@ struct StructMember {
 };
 
 
+static bool g_parse_error_causes_exit;
 void HandleParseError(Tokenizer *t) {
     t->parse_error = true;
+
+    if (g_parse_error_causes_exit) {
+        exit(0);
+    }
 }
 
 bool RequiredRVal(Tokenizer *t, Token *tok_out) {
@@ -368,6 +373,7 @@ void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
     arr_at_tail->max = arr_at_tail->len;
 }
 
+
 Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value_expression = false) {
     if (t->parse_error) return {};
 
@@ -578,7 +584,42 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
             cnt++;
         }
 
-        Required(t, &tok, TOK_SEMICOLON);
+        // Required(t, &tok, TOK_SEMICOLON); // <- not enough, since there can be function declarations too
+
+        // what we did instead:
+        bool proceed_ok = OptionOfTwo(t, &tok, TOK_SEMICOLON, TOK_LBRACK);
+
+        if ( tok.type == TOK_SEMICOLON) {
+            // continue
+        }
+        else {
+            // cut out the entire { function body }
+            u32 brace_level = 0;
+
+            while (tok.type != TOK_ENDOFSTREAM) {
+                if (tok.type == TOK_LBRACE) {
+                    brace_level++;
+                }
+
+                if (tok.type == TOK_RBRACE) {
+                    brace_level--;
+                    if (brace_level == 0) {
+                        break;
+                    }
+                }
+
+                if (tok.type == TOK_ENDOFSTREAM) {
+                    printf("\n\nERROR: Expected '}', got 'end_of_stream'\n");
+                    PrintLineError(t, &tok, "");
+                    HandleParseError(t);
+
+                    break;
+                }
+
+                tok = GetToken(t);
+            }
+        }
+
     }
 
     mems.len = cnt;
@@ -602,12 +643,16 @@ bool TokenInFilter(TokenType tpe, Array<TokenType> filter) {
 
     return false;
 }
-static TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK };
-static TokenType _filter_symbols[] = { TOK_IDENTIFIER, TOK_STRING, TOK_INT, TOK_FLOAT, TOK_SCI };
+static TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK, TOK_AND, TOK_AND_COMPARE, TOK_OR, TOK_OR_COMPARE, TOK_LEDGE, TOK_REDGE, TOK_COLON, TOK_QUESTION };
+static TokenType _filter_symbols[] = { TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS, TOK_NULL, TOK_STRING, TOK_INT, TOK_FLOAT, TOK_SCI };
 static TokenType _filter_seperator[] = { TOK_LBRACK, TOK_RBRACK, TOK_COMMA };
-static Array<TokenType> g_filter_operators = { &_filter_operators[0], 4 };
-static Array<TokenType> g_filter_symbols = { &_filter_symbols[0], 5 };
+static Array<TokenType> g_filter_operators = { &_filter_operators[0], 12 };
+static Array<TokenType> g_filter_symbols = { &_filter_symbols[0], 7 };
 static Array<TokenType> g_filter_seperator = { &_filter_seperator[0], 3 };
+
+
+static MArena *g_arena_parse_params;
+static Array<Parameter> *g_parse_params;
 
 
 Str ParseExpression(Tokenizer *t);
@@ -714,6 +759,27 @@ Str ParseExpression(Tokenizer *t) {
             }
         }
 
+        else if (tok.type == TOK_LBRACE) {
+            s32 brace_level = 0;
+            while (tok.type != TOK_ENDOFSTREAM) {
+                if (tok.type == TOK_RBRACE) {
+                    break;
+                }
+
+                else if (tok.type == TOK_ENDOFSTREAM) {
+                    printf("\n\nERROR: Expected '}', got 'end_of_stream'\n");
+                    PrintLineError(t, &tok, "");
+                    HandleParseError(t);
+
+                    break;
+                }
+
+                else {
+                    tok = GetToken(t);
+                }
+            }
+        }
+
         else if (TokenInFilter(tok.type, g_filter_symbols)) {
             // token is a symbol
 
@@ -728,7 +794,7 @@ Str ParseExpression(Tokenizer *t) {
             }
         }
 
-        else if (TokenInFilter(tok.type, g_filter_operators)) {
+        else if (TokenInFilter(tok.type, g_filter_operators) || tok.type == TOK_DOT ) {
             // token is an operator
 
             if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, g_filter_operators)) {
@@ -810,6 +876,13 @@ Str ParseBracketedParameterList(Tokenizer *t) {
                 }
             }
 
+            //
+            assert(g_arena_parse_params && g_parse_params);
+            ArenaAlloc(g_arena_parse_params, sizeof(Parameter));
+            g_parse_params->max++;
+            g_parse_params->Add(p);
+
+            //
             if (t->parse_error) break;
             t_prev = *t;
             tok = GetToken(t);
@@ -857,6 +930,21 @@ Str ParseBracketedParameterList(Tokenizer *t) {
 
     result.len = t->at - result.str;
     return result;
+}
+
+
+Array<Parameter> ParseParameterList(MArena *a_dest, Tokenizer *t) {
+    Array<Parameter> params = InitArray<Parameter>(a_dest, 0);
+
+    g_arena_parse_params = a_dest;
+    g_parse_params = &params;
+
+    ParseBracketedParameterList(t);
+
+    g_arena_parse_params = NULL;
+    g_parse_params = NULL;
+
+    return params;
 }
 
 

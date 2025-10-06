@@ -76,7 +76,8 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
     instr->name = token.GetValue();
 
     // parameters
-    instr->params = ParseParamsBlock(a_dest, t);
+    //instr->params = ParseParamsBlock(a_dest, t); // TODO <- depricate
+    instr->params = ParseParameterList(a_dest, t);
 
     // flags
     while (Optional(t, &token, TOK_IDENTIFIER)) {
@@ -165,7 +166,8 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
             *t = was;
 
             if (has_explicit_params) {
-                c.args = ParseParamsBlock(a_dest, t, true);
+                //c.args = ParseParamsBlock(a_dest, t, true);
+                c.args = ParseParameterList(a_dest, t);
             }
 
             // when / jump
@@ -394,7 +396,7 @@ void InstrumentPrint(InstrumentParse *instr, bool print_blocks, bool print_comps
                 printf("\n\n");
             }
         }
-
     }
 }
+
 #endif
