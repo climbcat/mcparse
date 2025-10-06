@@ -181,7 +181,6 @@ Str ParseExpression(Tokenizer *t) {
 }
 
 
-
 Str ParseBracketedParameterList(Tokenizer *t) {
     if (t->parse_error) return {};
     Tokenizer t_prev = *t;
@@ -301,7 +300,6 @@ const char *test_lines_arguments =
   ;
 
 
-
 void ParseNestedExpressions() {
     MContext *ctx = InitBaselayer();
     Tokenizer tokenizer = {};
@@ -311,10 +309,6 @@ void ParseNestedExpressions() {
     StrLst *lines_split = StrSplit(lines, '\n');
     Str lines_args = StrL(test_lines_arguments);
     StrLst *lines_args_split = StrSplit(lines_args, '\n');
-
-    //Array<TokenType> filter_operators = { &g_filter_operators[0], 4};
-    //Array<TokenType> filter_symbols = { &g_filter_symbols[0], 5};
-    //Array<TokenType> filter_seperator = { &g_filter_seperator[0], 3};
 
 
     while (lines_split != NULL) {
@@ -390,34 +384,10 @@ void ParseNestedExpressions() {
 }
 
 
-void TestParseParamsBlock() {
-    printf("\nParseParamsBlock\n");
-
-    MContext *ctx = InitBaselayer();
-    Tokenizer tokenizer = {};
-
-    const char* expr_01 = "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)";
-    printf("---\n1) expecting error:\n    %s\n\n", expr_01);
-    tokenizer.Init( (char*) expr_01);
-    ParseParamsBlock(ctx->a_tmp, &tokenizer, false);
-
-    const char* expr_02 = "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)";
-    printf("---\n2) expecting pass:\n    %s\n\n", expr_02);
-    tokenizer.Init( (char*) expr_02);
-    ParseParamsBlock(ctx->a_tmp, &tokenizer, true);
-
-    const char* expr_03 = "(yheight = 0.156 xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)";
-    printf("---\n3) expecting error:\n    %s\n\n", expr_03);
-    tokenizer.Init( (char*) expr_03);
-    ParseParamsBlock(ctx->a_tmp, &tokenizer, true);
-}
-
-
 int main (int argc, char **argv) {
     TimeProgram;
 
     BaselayerAssertVersion(0, 2, 4);
 
-    //TestParseParamsBlock();
     ParseNestedExpressions();
 }
