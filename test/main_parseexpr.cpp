@@ -19,12 +19,18 @@ bool TokenInFilter(TokenType tpe, Array<TokenType> filter) {
 
     return false;
 }
+static TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK };
+static TokenType _filter_symbols[] = { TOK_IDENTIFIER, TOK_STRING, TOK_INT, TOK_FLOAT, TOK_SCI };
+static TokenType _filter_seperator[] = { TOK_LBRACK, TOK_RBRACK, TOK_COMMA };
+static Array<TokenType> g_filter_operators = { &_filter_operators[0], 4};
+static Array<TokenType> g_filter_symbols = { &_filter_symbols[0], 5};
+static Array<TokenType> g_filter_seperator = { &_filter_seperator[0], 3};
 
 
-Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols);
+Str ParseExpression(Tokenizer *t);
 
 
-Str ParseBracketedExpressionList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+Str ParseBracketedExpressionList(Tokenizer *t) {
     if (t->parse_error) return {};
     Tokenizer t_prev = *t;
     Token tok = GetToken(t);
@@ -42,7 +48,7 @@ Str ParseBracketedExpressionList(Tokenizer *t, Array<TokenType> operators, Array
 
     else {
         while (tok.type != TOK_RBRACK) {
-            Str expr = ParseExpression(t, operators, symbols);
+            Str expr = ParseExpression(t);
             if (t->parse_error) break;
 
             t_prev = *t;
@@ -89,7 +95,7 @@ Str ParseBracketedExpressionList(Tokenizer *t, Array<TokenType> operators, Array
 }
 
 
-Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+Str ParseExpression(Tokenizer *t) {
     // returns as long an expression as possible (greedily)
     s32 bracket_level = 0;
 
@@ -107,7 +113,7 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
             if (tok_prev.type == TOK_IDENTIFIER || tok_prev.type == TOK_UNKNOWN) {
                 *t = t_prev;
 
-                ParseBracketedExpressionList(t, operators, symbols);
+                ParseBracketedExpressionList(t);
             }
             else {
                 bracket_level++;
@@ -125,10 +131,10 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
             }
         }
 
-        else if (TokenInFilter(tok.type, symbols)) {
+        else if (TokenInFilter(tok.type, g_filter_symbols)) {
             // token is a symbol
 
-            if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, symbols)) {
+            if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, g_filter_symbols)) {
                 // exit: two symbols in a row
 
                 // DBG
@@ -139,10 +145,10 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
             }
         }
 
-        else if (TokenInFilter(tok.type, operators)) {
+        else if (TokenInFilter(tok.type, g_filter_operators)) {
             // token is an operator
 
-            if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, operators)) {
+            if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, g_filter_operators)) {
                 if (tok_prev.type == TOK_LBRACK && (tok.type == TOK_DASH || tok.type == TOK_PLUS)) {
                     // the exception to the rule: (+ or (-
                 }
@@ -176,7 +182,7 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
 
 
 
-Str ParseBracketedParameterList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+Str ParseBracketedParameterList(Tokenizer *t) {
     if (t->parse_error) return {};
     Tokenizer t_prev = *t;
     Token tok = GetToken(t);
@@ -207,7 +213,7 @@ Str ParseBracketedParameterList(Tokenizer *t, Array<TokenType> operators, Array<
             if (Optional(t, &tok, TOK_ASSIGN)) {
 
                 // TODO: have a flag to turn on/off function calls 'bool allow_calls'
-                p.default_val = ParseExpression(t, operators, symbols);
+                p.default_val = ParseExpression(t);
                 if (p.default_val.len == 0) {
                     // fail: default value must exist after the assignemnt operator
 
@@ -221,9 +227,6 @@ Str ParseBracketedParameterList(Tokenizer *t, Array<TokenType> operators, Array<
                     break;
                 }
             }
-
-            printf("parsed parameter - name: %.*s, type: %.*s, defval: %.*s\n", p.name.len, p.name.str, p.type.len, p.type.str, p.default_val.len, p.default_val.str);
-
 
             if (t->parse_error) break;
             t_prev = *t;
@@ -292,9 +295,11 @@ const char *test_lines_expressions =
   ;
 
 const char *test_lines_arguments =
-  "(yheight = 0.156 xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+  "(yheight = 0.156  xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+  "(yheight   0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   ;
+
 
 
 void ParseNestedExpressions() {
@@ -307,14 +312,9 @@ void ParseNestedExpressions() {
     Str lines_args = StrL(test_lines_arguments);
     StrLst *lines_args_split = StrSplit(lines_args, '\n');
 
-    TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK };
-    Array<TokenType> filter_operators = { &_filter_operators[0], 4};
-
-    TokenType _filter_symbols[] = { TOK_IDENTIFIER, TOK_STRING, TOK_INT, TOK_FLOAT, TOK_SCI };
-    Array<TokenType> filter_symbols = { &_filter_symbols[0], 5};
-
-    TokenType _filter_seperator[] = { TOK_LBRACK, TOK_RBRACK, TOK_COMMA };
-    Array<TokenType> filter_seperator = { &_filter_seperator[0], 3};
+    //Array<TokenType> filter_operators = { &g_filter_operators[0], 4};
+    //Array<TokenType> filter_symbols = { &g_filter_symbols[0], 5};
+    //Array<TokenType> filter_seperator = { &g_filter_seperator[0], 3};
 
 
     while (lines_split != NULL) {
@@ -327,13 +327,13 @@ void ParseNestedExpressions() {
         tok = GetToken(t);
         while (tok.type != TOK_ENDOFSTREAM) {
 
-            if (TokenInFilter(tok.type, filter_operators)) {
+            if (TokenInFilter(tok.type, g_filter_operators)) {
                 printf("p");
             }
-            else if (TokenInFilter(tok.type, filter_symbols)) {
+            else if (TokenInFilter(tok.type, g_filter_symbols)) {
                 printf("y");
             }
-            else if (TokenInFilter(tok.type, filter_seperator)) {
+            else if (TokenInFilter(tok.type, g_filter_seperator)) {
                 printf("e");
             }
             else {
@@ -346,7 +346,7 @@ void ParseNestedExpressions() {
 
         tokenizer.Init( StrZ(lines_split->GetStr()) );
 
-        Str expr = ParseExpression(t, filter_operators, filter_symbols);
+        Str expr = ParseExpression(t);
         StrPrint("expression: ", expr, "\n\n");
 
         lines_split = lines_split->next;
@@ -363,13 +363,13 @@ void ParseNestedExpressions() {
         tok = GetToken(t);
         while (tok.type != TOK_ENDOFSTREAM) {
 
-            if (TokenInFilter(tok.type, filter_operators)) {
+            if (TokenInFilter(tok.type, g_filter_operators)) {
                 printf("p");
             }
-            else if (TokenInFilter(tok.type, filter_symbols)) {
+            else if (TokenInFilter(tok.type, g_filter_symbols)) {
                 printf("y");
             }
-            else if (TokenInFilter(tok.type, filter_seperator)) {
+            else if (TokenInFilter(tok.type, g_filter_seperator)) {
                 printf("e");
             }
             else {
@@ -382,7 +382,7 @@ void ParseNestedExpressions() {
 
         tokenizer.Init( StrZ(lines_args_split->GetStr()) );
 
-        Str expr = ParseBracketedParameterList(t, filter_operators, filter_symbols);
+        Str expr = ParseBracketedParameterList(t);
         StrPrint("parameters: ", expr, "\n\n");
 
         lines_args_split = lines_args_split->next;
