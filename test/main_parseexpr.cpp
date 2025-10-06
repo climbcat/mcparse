@@ -275,9 +275,7 @@ Str ParseBracketedParameterList(Tokenizer *t, Array<TokenType> operators, Array<
 }
 
 
-const char *test_lines =
-  "(yheight = 0.156 xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
-  "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+const char *test_lines_expressions =
   "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
   "-21  17\n"
   "func(643.123)\n"
@@ -293,14 +291,21 @@ const char *test_lines =
   "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
   ;
 
+const char *test_lines_arguments =
+  "(yheight = 0.156 xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+  "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+  ;
+
 
 void ParseNestedExpressions() {
     MContext *ctx = InitBaselayer();
     Tokenizer tokenizer = {};
     Tokenizer *t = &tokenizer;
 
-    Str lines = StrL(test_lines);
+    Str lines = StrL(test_lines_expressions);
     StrLst *lines_split = StrSplit(lines, '\n');
+    Str lines_args = StrL(test_lines_arguments);
+    StrLst *lines_args_split = StrSplit(lines_args, '\n');
 
     TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK };
     Array<TokenType> filter_operators = { &_filter_operators[0], 4};
@@ -341,13 +346,46 @@ void ParseNestedExpressions() {
 
         tokenizer.Init( StrZ(lines_split->GetStr()) );
 
-        Str expr = ParseBracketedParameterList(t, filter_operators, filter_symbols);
-
-        //Str expr = ParseExpression(t, filter_operators, filter_symbols);
+        Str expr = ParseExpression(t, filter_operators, filter_symbols);
         StrPrint("expression: ", expr, "\n\n");
-        return;
 
         lines_split = lines_split->next;
+    }
+
+
+   while (lines_args_split != NULL) {
+        printf("------------------------\n");
+        StrPrint("input:      ", lines_args_split->GetStr(), "\n");
+        tokenizer.Init( StrZ(lines_args_split->GetStr()) );
+
+        printf("tokens:     ");
+        Token tok = {};
+        tok = GetToken(t);
+        while (tok.type != TOK_ENDOFSTREAM) {
+
+            if (TokenInFilter(tok.type, filter_operators)) {
+                printf("p");
+            }
+            else if (TokenInFilter(tok.type, filter_symbols)) {
+                printf("y");
+            }
+            else if (TokenInFilter(tok.type, filter_seperator)) {
+                printf("e");
+            }
+            else {
+                printf("R");
+            }
+
+            tok = GetToken(t);
+        }
+        printf("\n");
+
+        tokenizer.Init( StrZ(lines_args_split->GetStr()) );
+
+        Str expr = ParseBracketedParameterList(t, filter_operators, filter_symbols);
+        StrPrint("parameters: ", expr, "\n\n");
+
+        lines_args_split = lines_args_split->next;
     }
 }
 
