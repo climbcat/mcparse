@@ -24,7 +24,7 @@ bool TokenInFilter(TokenType tpe, Array<TokenType> filter) {
 Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols);
 
 
-Str ParseList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+Str ParseExpressionList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
     // ... but not the brackets around it
     Token tok = {};
 
@@ -53,7 +53,7 @@ Str ParseList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols
 }
 
 
-Str ParseCall(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+Str ParseFunctionCall(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
     // wrapper for ParseList
 
     Str result = {};
@@ -81,7 +81,7 @@ Str ParseCall(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols
     }
 
     // a list of nested expressions and calls
-    ParseList(t, operators, symbols);
+    ParseExpressionList(t, operators, symbols);
 
     // )
     tok = GetToken(t);
@@ -121,7 +121,7 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
             else {
                 *t = t_prev2;
                 if (tok_prev.type == TOK_IDENTIFIER) {
-                    ParseCall(t, operators, symbols);
+                    ParseFunctionCall(t, operators, symbols);
                 }
                 else {
                     break;
@@ -194,7 +194,6 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
 }
 
 
-
 const char *test_lines =
   "func(643.123)\n"
   "a, b/a, c + 17, -d * 1.3e-19, e\n"
@@ -214,10 +213,6 @@ void ParseNestedExpressions() {
     Str lines = StrL(test_lines);
     StrLst *lines_split = StrSplit(lines, '\n');
 
-    StrLstPrint(lines_split);
-    printf("\n");
-
-
     TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK };
     Array<TokenType> filter_operators = { &_filter_operators[0], 4};
 
@@ -229,9 +224,11 @@ void ParseNestedExpressions() {
 
 
     while (lines_split != NULL) {
-        StrPrint("", lines_split->GetStr(), "\n");
+        printf("------------------------\n");
+        StrPrint("input:      ", lines_split->GetStr(), "\n");
         tokenizer.Init( StrZ(lines_split->GetStr()) );
 
+        printf("tokens:     ");
         Token tok = {};
         tok = GetToken(t);
         while (tok.type != TOK_ENDOFSTREAM) {
@@ -254,7 +251,7 @@ void ParseNestedExpressions() {
         printf("\n");
 
         tokenizer.Init( StrZ(lines_split->GetStr()) );
-        Str expr = ParseList(t, filter_operators, filter_symbols);
+        Str expr = ParseExpressionList(t, filter_operators, filter_symbols);
         StrPrint("expression: ", expr, "\n");
         printf("\n");
 
