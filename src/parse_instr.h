@@ -176,12 +176,21 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
                 c.jump = token.GetValue();
             }
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
+
+
+                // TODO: use ParseExpression here
+
+
                 RequiredRValOrExpression(t, &token);
                 c.when = token.GetValue();
             }
 
             // at
             Required(t, &token, TOK_MCSTAS_AT);
+
+
+            // TODO: use ParseExpression below, instead of RequiredRValOrExpression
+
 
             // parse AT vector:
             Required(t, &token, TOK_LBRACK);
@@ -209,6 +218,10 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
             // rotated
             if (Optional(t, &token, TOK_MCSTAS_ROTATED)) {
                 c.rot_defined = true;
+
+
+                // TODO: use ParseExpression below, instead of RequiredRValOrExpression
+
 
                 // parse ROTATED vector:
                 Required(t, &token, TOK_LBRACK);
@@ -245,6 +258,11 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
                 c.jump = token.GetValue();
             }
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
+
+
+                // TODO: use ParseExpression below, instead of RequiredRValOrExpression
+
+
                 RequiredRValOrExpression(t, &token);
                 c.when = token.GetValue();
             }
