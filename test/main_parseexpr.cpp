@@ -22,9 +22,9 @@ bool TokenInFilter(TokenType tpe, Array<TokenType> filter) {
 static TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK };
 static TokenType _filter_symbols[] = { TOK_IDENTIFIER, TOK_STRING, TOK_INT, TOK_FLOAT, TOK_SCI };
 static TokenType _filter_seperator[] = { TOK_LBRACK, TOK_RBRACK, TOK_COMMA };
-static Array<TokenType> g_filter_operators = { &_filter_operators[0], 4};
-static Array<TokenType> g_filter_symbols = { &_filter_symbols[0], 5};
-static Array<TokenType> g_filter_seperator = { &_filter_seperator[0], 3};
+static Array<TokenType> g_filter_operators = { &_filter_operators[0], 4 };
+static Array<TokenType> g_filter_symbols = { &_filter_symbols[0], 5 };
+static Array<TokenType> g_filter_seperator = { &_filter_seperator[0], 3 };
 
 
 Str ParseExpression(Tokenizer *t);
