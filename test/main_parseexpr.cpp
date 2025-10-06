@@ -175,7 +175,103 @@ Str ParseExpression(Tokenizer *t, Array<TokenType> operators, Array<TokenType> s
 }
 
 
+
+Str ParseBracketedParameterList(Tokenizer *t, Array<TokenType> operators, Array<TokenType> symbols) {
+    if (t->parse_error) return {};
+    Tokenizer t_prev = *t;
+    Token tok = GetToken(t);
+    Str result = {};
+    result.str = tok.text;
+
+    // '('
+    if (tok.type != TOK_LBRACK) {
+        // fail: expected TOK_LBRACK!
+
+        printf("\nERROR: Expected '(', got '%s'\n", TokenTypeToSymbol(tok.type));
+        PrintLineError(t, &tok, "");
+        HandleParseError(t);
+    }
+
+    else {
+        while (tok.type != TOK_RBRACK) {
+            Parameter p = {};
+
+            Optional(t, &tok, TOK_IDENTIFIER);
+            p.name = tok.GetValue();
+            p.type = {};
+            if (Optional(t, &tok, TOK_IDENTIFIER)) {
+                p.type = p.name;
+                p.default_val = tok.GetValue();
+            }
+
+            if (Optional(t, &tok, TOK_ASSIGN)) {
+
+                // TODO: have a flag to turn on/off function calls 'bool allow_calls'
+                p.default_val = ParseExpression(t, operators, symbols);
+                if (p.default_val.len == 0) {
+                    // fail: default value must exist after the assignemnt operator
+
+                    t_prev = *t;
+                    tok = GetToken(t);
+
+                    printf("\nERROR: Expected arithmetic expression, got '%s'\n", TokenTypeToSymbol(tok.type));
+                    PrintLineError(t, &tok, "");
+                    HandleParseError(t);
+
+                    break;
+                }
+            }
+
+            printf("parsed parameter - name: %.*s, type: %.*s, defval: %.*s\n", p.name.len, p.name.str, p.type.len, p.type.str, p.default_val.len, p.default_val.str);
+
+
+            if (t->parse_error) break;
+            t_prev = *t;
+            tok = GetToken(t);
+
+            // ')'
+            if (tok.type == TOK_RBRACK) {
+                // ok, exit
+                break;
+            }
+
+            // ','
+            else if (p.name.len > 0 && tok.type == TOK_COMMA) {
+                // ok, continue
+            }
+
+            // something else
+            else {
+                if (p.name.len == 0) {
+                    // fail: expected expression
+
+                    printf("\nERROR: Expected arithmetic expression, got '%s'\n", TokenTypeToSymbol(tok.type));
+                    PrintLineError(t, &tok, "");
+                    HandleParseError(t);
+
+                    break;
+                }
+
+                else {
+                    // fail: expected TOK_BRACK or TOK_COMMA
+
+                    printf("\nERROR: Expected ',' or ')', got '%s'\n", TokenTypeToSymbol(tok.type));
+                    PrintLineError(t, &tok, "");
+                    HandleParseError(t);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    result.len = t->at - result.str;
+    return result;
+}
+
+
 const char *test_lines =
+  "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
   "-21  17\n"
   "func(643.123)\n"
@@ -183,7 +279,6 @@ const char *test_lines =
   "a, b/a, c + 17, -d * 1.3e-19, e\n"
   "(a, b/a, c + 17, -d * 1.3e-19, e)\n"
   "func(\"strarg\")\n"
-  "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
   "a + b / c\n"
   "-21 * 17\n"
   "9.2 + floor(amp) * sin(phi)\n"
@@ -239,9 +334,12 @@ void ParseNestedExpressions() {
         printf("\n");
 
         tokenizer.Init( StrZ(lines_split->GetStr()) );
-        Str expr = ParseExpression(t, filter_operators, filter_symbols);
-        StrPrint("expression: ", expr, "\n");
-        printf("\n");
+
+        Str expr = ParseBracketedParameterList(t, filter_operators, filter_symbols);
+
+        //Str expr = ParseExpression(t, filter_operators, filter_symbols);
+        StrPrint("expression: ", expr, "\n\n");
+        return;
 
         lines_split = lines_split->next;
     }
