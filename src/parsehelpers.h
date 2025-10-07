@@ -867,37 +867,38 @@ Str ParseBracketedParameterList(Tokenizer *t) {
         while (tok.type != TOK_RBRACK) {
             Parameter p = {};
 
-            Optional(t, &tok, TOK_IDENTIFIER);
-            p.name = tok.GetValue();
-            p.type = {};
-            if (Optional(t, &tok, TOK_IDENTIFIER)) {
-                p.type = p.name;
-                p.default_val = tok.GetValue();
-            }
-
-            if (Optional(t, &tok, TOK_ASSIGN)) {
-
-                // TODO: have a flag to turn on/off function calls 'bool allow_calls'
-                p.default_val = ParseExpression(t);
-                if (p.default_val.len == 0) {
-                    // fail: default value must exist after the assignemnt operator
-
-                    t_prev = *t;
-                    tok = GetToken(t);
-
-                    printf("\nERROR: Expected arithmetic expression, got '%s'\n", TokenTypeToSymbol(tok.type));
-                    PrintLineError(t, &tok, "");
-                    HandleParseError(t);
-
-                    break;
+            if (tok.type == TOK_IDENTIFIER) {
+                p.name = tok.GetValue();
+                p.type = {};
+                if (Optional(t, &tok, TOK_IDENTIFIER)) {
+                    p.type = p.name;
+                    p.name = tok.GetValue();
                 }
-            }
 
-            //
-            assert(g_arena_parse_params && g_parse_params);
-            ArenaAlloc(g_arena_parse_params, sizeof(Parameter));
-            g_parse_params->max++;
-            g_parse_params->Add(p);
+                if (Optional(t, &tok, TOK_ASSIGN)) {
+
+                    // TODO: have a flag to turn on/off function calls 'bool allow_calls'
+                    p.default_val = ParseExpression(t);
+                    if (p.default_val.len == 0) {
+                        // fail: default value must exist after the assignemnt operator
+
+                        t_prev = *t;
+                        tok = GetToken(t);
+
+                        printf("\nERROR: Expected arithmetic expression, got '%s'\n", TokenTypeToSymbol(tok.type));
+                        PrintLineError(t, &tok, "");
+                        HandleParseError(t);
+
+                        break;
+                    }
+                }
+
+                //
+                assert(g_arena_parse_params && g_parse_params);
+                ArenaAlloc(g_arena_parse_params, sizeof(Parameter));
+                g_parse_params->max++;
+                g_parse_params->Add(p);
+            }
 
             //
             if (t->parse_error) break;
@@ -913,6 +914,7 @@ Str ParseBracketedParameterList(Tokenizer *t) {
             // ','
             else if (p.name.len > 0 && tok.type == TOK_COMMA) {
                 // ok, continue
+                tok = GetToken(t);
             }
 
             // something else
