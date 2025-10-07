@@ -23,7 +23,9 @@ enum TokenType {
     TOK_LSBRACK, // [
     TOK_RSBRACK, // ]
     TOK_LEDGE, // <
+    TOK_LESSOREQUAL, // <=
     TOK_REDGE, // >
+    TOK_GREATEROREQUAL, // >=
     TOK_POUND, // #
     TOK_ASTERISK, // *
     TOK_COMMA, // ,
@@ -34,7 +36,9 @@ enum TokenType {
     TOK_COLON, // :
     TOK_SEMICOLON, // ;
     TOK_ASSIGN, // =
+    TOK_EQUALS, // ==
     TOK_EXCLAMATION, // !
+    TOK_NOTEQUAL, // !
     TOK_QUESTION, // ?
     TOK_TILDE, // ~
     TOK_OR, // |
@@ -102,7 +106,9 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_LSBRACK: return "TOK_LSBRACK";
         case TOK_RSBRACK: return "TOK_RSBRACK";
         case TOK_LEDGE: return "TOK_LEDGE";
+        case TOK_LESSOREQUAL: return "TOK_LESSOREQUAL";
         case TOK_REDGE: return "TOK_REDGE";
+        case TOK_GREATEROREQUAL: return "TOK_GREATEROREQUAL";
         case TOK_POUND: return "TOK_POUND";
         case TOK_ASTERISK: return "TOK_ASTERISK";
         case TOK_COMMA: return "TOK_COMMA";
@@ -113,6 +119,7 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_COLON: return "TOK_COLON";
         case TOK_SEMICOLON: return "TOK_SEMICOLON";
         case TOK_ASSIGN: return "TOK_ASSIGN";
+        case TOK_EQUALS: return "TOK_EQUALS";
         case TOK_EXCLAMATION: return "TOK_EXCLAMATION";
         case TOK_QUESTION: return "TOK_QUESTION";
         case TOK_TILDE: return "TOK_TILDE";
@@ -184,7 +191,9 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_LSBRACK: return "[";
         case TOK_RSBRACK: return "]";
         case TOK_LEDGE: return "<";
+        case TOK_LESSOREQUAL: return "<=";
         case TOK_REDGE: return ">";
+        case TOK_GREATEROREQUAL: return ">=";
         case TOK_POUND: return "#";
         case TOK_ASTERISK: return "*";
         case TOK_COMMA: return ",";
@@ -195,6 +204,7 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_COLON: return ":";
         case TOK_SEMICOLON: return ";";
         case TOK_ASSIGN: return "=";
+        case TOK_EQUALS: return "==";
         case TOK_EXCLAMATION: return "!";
         case TOK_QUESTION: return "?";
         case TOK_TILDE: return "~";
@@ -682,11 +692,27 @@ Token GetToken(Tokenizer *tokenizer)
         token.type = TOK_RSBRACK;
         break;
     case '<':
-        token.type = TOK_LEDGE;
-        break;
+    {
+        if (tokenizer->at[0] == '=') {
+            token.type = TOK_LESSOREQUAL;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_LEDGE;
+        }
+    }
+    break;
     case '>':
-        token.type = TOK_REDGE;
-        break;
+    {
+        if (tokenizer->at[0] == '=') {
+            token.type = TOK_GREATEROREQUAL;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_REDGE;
+        }
+    }
+    break;
     case '#':
         token.type = TOK_POUND;
         break;
@@ -703,7 +729,7 @@ Token GetToken(Tokenizer *tokenizer)
         Token tok_next = GetToken(tokenizer);
         *tokenizer = t_prev;
 
-        if (tok_next.type == TOK_FLOAT || tok_next.type == TOK_SCI) {
+        if (tok_next.type == TOK_FLOAT || tok_next.type == TOK_SCI || tok_next.type == TOK_INT) {
             token.is_rval = true;
 
             ParseNumeric(tokenizer, &token);
@@ -730,8 +756,17 @@ Token GetToken(Tokenizer *tokenizer)
         token.type = TOK_SEMICOLON;
         break;
     case '=':
-        token.type = TOK_ASSIGN;
-        break;
+    {
+        if (tokenizer->at[0] == '=') {
+            token.type = TOK_EQUALS;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_ASSIGN;
+        }
+    }
+    break;
+
     case '!':
         token.type = TOK_EXCLAMATION;
         break;

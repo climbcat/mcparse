@@ -10,27 +10,28 @@
 
 
 const char *test_lines_expressions =
-  "(.17, -d . 1.3e-19, e)\n"
-  "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
-  "-21  17\n"
-  "func(643.123)\n"
-  "func(643.123, 117)\n"
-  "a, b/a, c + 17, -d * 1.3e-19, e\n"
-  "(a, b/a, c + 17, -d * 1.3e-19, e)\n"
-  "func(\"strarg\")\n"
-  "a + b / c\n"
-  "-21 * 17\n"
-  "9.2 + floor(amp) * sin(phi)\n"
-  "8e-4 * BigFunc(a + b / c, ceil(floor(-21 * 17), myarg), 9.2 + floor(amp) * sin(phi))\n"
-  "8e-4 * BigFunc(a + b / c, ceil floor(-21 * 17), myarg), 9.2 + floor(amp) * sin(phi))\n"
-  "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
-  ;
+    "(SurfSign==-1 && IsCold && fabs(SrcY)<Yheight/2.5 && fabs(SrcX) < (0.071+delta) && fabs(SrcX) > (0.011+delta))\n"
+    "(.17, -d . 1.3e-19, e)\n"
+    "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
+    "-21  17\n"
+    "func(643.123)\n"
+    "func(643.123, 117)\n"
+    "a, b/a, c + 17, -d * 1.3e-19, e\n"
+    "(a, b/a, c + 17, -d * 1.3e-19, e)\n"
+    "func(\"strarg\")\n"
+    "a + b / c\n"
+    "-21 * 17\n"
+    "9.2 + floor(amp) * sin(phi)\n"
+    "8e-4 * BigFunc(a + b / c, ceil(floor(-21 * 17), myarg), 9.2 + floor(amp) * sin(phi))\n"
+    "8e-4 * BigFunc(a + b / c, ceil floor(-21 * 17), myarg), 9.2 + floor(amp) * sin(phi))\n"
+    "8e-4 * BigFunc(a + b / c, ceil(floor(-21   17), myarg), 9.2 + floor(amp) * sin(phi))\n"
+    ;
 
 const char *test_lines_arguments =
-  "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
-  "(yheight = 0.156  xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
-  "(yheight   0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
-  ;
+    "(yheight = 0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+    "(yheight = 0.156  xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+    "(yheight   0.156, xwidth = 0.126, Lmin = lambda-ldiff/2, Lmax = lambda+ldiff/2)\n"
+    ;
 
 
 void ParseNestedExpressions() {
@@ -75,6 +76,7 @@ void ParseNestedExpressions() {
 
         Str expr = ParseExpression(t);
         StrPrint("expression: ", expr, "\n\n");
+        return;
 
         lines_split = lines_split->next;
     }

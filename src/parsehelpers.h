@@ -538,6 +538,23 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
         if (Optional(t, &tok, TOK_ASTERISK)) {
             mem->is_pointer_type = true;
         }
+
+        // clips out any inlined struct definition! Scrap this allocation
+        if (Optional(t, &tok, TOK_LBRACE)) {
+
+            while(tok.type != TOK_RBRACE) {
+                tok = GetToken(t);
+            }
+            while(tok.type != TOK_SEMICOLON) {
+                tok = GetToken(t);
+            }
+
+            // de-allocate 'mem' in a hurryt
+            a_dest->used -= sizeof(StructMember);
+
+            continue;
+        }
+
         Required(t, &tok, TOK_IDENTIFIER);
         mem->name = tok.GetValue();
 
@@ -618,6 +635,7 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
 
                 tok = GetToken(t);
             }
+            Optional(t, &tok, TOK_SEMICOLON);
         }
 
     }
@@ -643,12 +661,12 @@ bool TokenInFilter(TokenType tpe, Array<TokenType> filter) {
 
     return false;
 }
-static TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK, TOK_AND, TOK_AND_COMPARE, TOK_OR, TOK_OR_COMPARE, TOK_LEDGE, TOK_REDGE, TOK_COLON, TOK_QUESTION };
+static TokenType _filter_operators[] = { TOK_PLUS, TOK_DASH, TOK_SLASH, TOK_ASTERISK, TOK_AND, TOK_AND_COMPARE, TOK_OR, TOK_OR_COMPARE, TOK_LEDGE, TOK_REDGE, TOK_COLON, TOK_QUESTION, TOK_EQUALS, TOK_GREATEROREQUAL, TOK_LESSOREQUAL };
 static TokenType _filter_symbols[] = { TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS, TOK_NULL, TOK_STRING, TOK_INT, TOK_FLOAT, TOK_SCI };
-static TokenType _filter_seperator[] = { TOK_LBRACK, TOK_RBRACK, TOK_COMMA };
-static Array<TokenType> g_filter_operators = { &_filter_operators[0], 12 };
+static TokenType _filter_seperator[] = { TOK_LBRACK, TOK_LBRACE, TOK_LSBRACK, TOK_AND, TOK_AND_COMPARE, TOK_OR, TOK_OR_COMPARE, TOK_LEDGE, TOK_REDGE, TOK_COLON, TOK_QUESTION, TOK_EQUALS, TOK_GREATEROREQUAL, TOK_LESSOREQUAL };
+static Array<TokenType> g_filter_operators = { &_filter_operators[0], 15 };
 static Array<TokenType> g_filter_symbols = { &_filter_symbols[0], 7 };
-static Array<TokenType> g_filter_seperator = { &_filter_seperator[0], 3 };
+static Array<TokenType> g_filter_seperator = { &_filter_seperator[0], 14 };
 
 
 static MArena *g_arena_parse_params;
@@ -666,7 +684,7 @@ Str ParseBracketedExpressionList(Tokenizer *t) {
     result.str = tok.text;
 
     // '('
-    if (tok.type != TOK_LBRACK) {
+    if ((tok.type != TOK_LBRACK) && (tok.type != TOK_LSBRACK)) {
         // fail: expected TOK_LBRACK!
 
         printf("\nERROR: Expected '(', got '%s'\n", TokenTypeToSymbol(tok.type));
@@ -675,7 +693,7 @@ Str ParseBracketedExpressionList(Tokenizer *t) {
     }
 
     else {
-        while (tok.type != TOK_RBRACK) {
+        while ((tok.type != TOK_RBRACK) && (tok.type != TOK_RSBRACK)) {
             Str expr = ParseExpression(t);
             if (t->parse_error) break;
 
@@ -683,7 +701,7 @@ Str ParseBracketedExpressionList(Tokenizer *t) {
             tok = GetToken(t);
 
             // ')'
-            if (tok.type == TOK_RBRACK) {
+            if ((tok.type == TOK_RBRACK) || (tok.type == TOK_RSBRACK)) {
                 // ok, exit
                 break;
             }
@@ -737,7 +755,7 @@ Str ParseExpression(Tokenizer *t) {
     expr.str = tok.text;
 
     while (tok.type != TOK_ENDOFSTREAM && t->parse_error == false) {
-        if (tok.type == TOK_LBRACK) {
+        if (tok.type == TOK_LBRACK || tok.type == TOK_LSBRACK) {
             if (tok_prev.type == TOK_IDENTIFIER || tok_prev.type == TOK_UNKNOWN) {
                 *t = t_prev;
 
@@ -748,7 +766,7 @@ Str ParseExpression(Tokenizer *t) {
             }
         }
 
-        else if (tok.type == TOK_RBRACK) {
+        else if (tok.type == TOK_RBRACK || tok.type == TOK_RSBRACK) {
             if (bracket_level > 0) {
                 bracket_level--;
             }
@@ -780,14 +798,15 @@ Str ParseExpression(Tokenizer *t) {
             }
         }
 
+        else if (tok.type == TOK_EXCLAMATION) {
+            // ignore exclaimations
+        }
+
         else if (TokenInFilter(tok.type, g_filter_symbols)) {
             // token is a symbol
 
             if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, g_filter_symbols)) {
                 // exit: two symbols in a row
-
-                // DBG
-                printf("ParseExpression: fail #1\n");
 
                 *t = t_prev;
                 break;
@@ -798,14 +817,11 @@ Str ParseExpression(Tokenizer *t) {
             // token is an operator
 
             if ((tok_prev.type != TOK_UNKNOWN) && TokenInFilter(tok_prev.type, g_filter_operators)) {
-                if (tok_prev.type == TOK_LBRACK && (tok.type == TOK_DASH || tok.type == TOK_PLUS)) {
+                if (TokenInFilter(tok_prev.type, g_filter_seperator) && (tok.type == TOK_DASH || tok.type == TOK_PLUS)) {
                     // the exception to the rule: (+ or (-
                 }
                 else {
                     // exit: two operators in a row
-
-                    // DBG
-                    printf("ParseExpression: fail #2\n");
 
                     *t = t_prev;
                     break;

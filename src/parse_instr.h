@@ -172,17 +172,11 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
 
             // when / jump
             if (Optional(t, &token, TOK_MCSTAS_JUMP)) {
-                Required(t, &token, TOK_IDENTIFIER);
+                OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
                 c.jump = token.GetValue();
             }
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
-
-
-                // TODO: use ParseExpression here
-
-
-                RequiredRValOrExpression(t, &token);
-                c.when = token.GetValue();
+                c.when = ParseExpression(t);
             }
 
             // at
