@@ -180,22 +180,24 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
 
             // at
             Required(t, &token, TOK_MCSTAS_AT);
-
-
-            // TODO: use ParseExpression below, instead of RequiredRValOrExpression
-
-
-            // parse AT vector:
             Required(t, &token, TOK_LBRACK);
-            RequiredRValOrExpression(t, &token);
-            c.at_x = token.GetValue();
-            Required(t, &token, TOK_COMMA);
-            RequiredRValOrExpression(t, &token);
-            c.at_y = token.GetValue();
-            Required(t, &token, TOK_COMMA);
-            RequiredRValOrExpression(t, &token);
-            c.at_z = token.GetValue();
+            Str *expr;
+            for (u32 i = 0; i < 3; ++i) {
+                if (i == 0) expr = &c.at_x;
+                if (i == 1) expr = &c.at_y;
+                if (i == 2) expr = &c.at_z;
+
+                *expr = ParseExpression(t);
+                if (expr->len == 0) {
+                    PrintLineError(t, &token, "Expected expression.");
+                    HandleParseError(t);
+                }
+                if (i < 2) {
+                    Required(t, &token, TOK_COMMA);
+                }
+            }
             Required(t, &token, TOK_RBRACK);
+
 
             // relative / absolute
             Optional(t, &token, TOK_MCSTAS_RELATIVE);
@@ -212,20 +214,22 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
             if (Optional(t, &token, TOK_MCSTAS_ROTATED)) {
                 c.rot_defined = true;
 
-
-                // TODO: use ParseExpression below, instead of RequiredRValOrExpression
-
-
-                // parse ROTATED vector:
                 Required(t, &token, TOK_LBRACK);
-                RequiredRValOrExpression(t, &token);
-                c.rot_x = token.GetValue();
-                Required(t, &token, TOK_COMMA);
-                RequiredRValOrExpression(t, &token);
-                c.rot_y = token.GetValue();
-                Required(t, &token, TOK_COMMA);
-                RequiredRValOrExpression(t, &token);
-                c.rot_z = token.GetValue();
+                Str *expr;
+                for (u32 i = 0; i < 3; ++i) {
+                    if (i == 0) expr = &c.rot_x;
+                    if (i == 1) expr = &c.rot_y;
+                    if (i == 2) expr = &c.rot_z;
+
+                    *expr = ParseExpression(t);
+                    if (expr->len == 0) {
+                        PrintLineError(t, &token, "Expected expression.");
+                        HandleParseError(t);
+                    }
+                    if (i < 2) {
+                        Required(t, &token, TOK_COMMA);
+                    }
+                }
                 Required(t, &token, TOK_RBRACK);
 
                 // relative / absolute
@@ -251,13 +255,7 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
                 c.jump = token.GetValue();
             }
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
-
-
-                // TODO: use ParseExpression below, instead of RequiredRValOrExpression
-
-
-                RequiredRValOrExpression(t, &token);
-                c.when = token.GetValue();
+                c.when = ParseExpression(t);
             }
 
             ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
