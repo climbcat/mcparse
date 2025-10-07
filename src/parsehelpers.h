@@ -863,6 +863,7 @@ Str ParseBracketedParameterList(Tokenizer *t) {
     }
 
     else {
+        tok = GetToken(t);
         while (tok.type != TOK_RBRACK) {
             Parameter p = {};
 

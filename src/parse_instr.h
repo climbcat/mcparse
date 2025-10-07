@@ -76,7 +76,6 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
     instr->name = token.GetValue();
 
     // parameters
-    //instr->params = ParseParamsBlock(a_dest, t); // TODO <- depricate
     instr->params = ParseParameterList(a_dest, t);
 
     // flags

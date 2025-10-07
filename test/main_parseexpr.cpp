@@ -76,7 +76,6 @@ void ParseNestedExpressions() {
 
         Str expr = ParseExpression(t);
         StrPrint("expression: ", expr, "\n\n");
-        return;
 
         lines_split = lines_split->next;
     }
