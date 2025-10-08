@@ -840,8 +840,12 @@ Str ParseExpression(Tokenizer *t) {
         tok = GetToken(t);
     }
 
-    assert(t->at >= expr.str);
-    expr.len = t->at - expr.str;
+    if(t->at >= expr.str) {
+        expr.len = t->at - expr.str;
+    }
+    else {
+        assert(expr.len == 0);
+    }
     return expr;
 }
 
