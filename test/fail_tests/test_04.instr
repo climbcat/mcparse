@@ -1,5 +1,5 @@
 /************************************************
-* Miss-spelled DECLARE as DECLARES
+* INITIALIZE section before DECLARE section
 ***************************************************/
 
 DEFINE INSTRUMENT PSI_DMC(
@@ -9,12 +9,20 @@ DEFINE INSTRUMENT PSI_DMC(
     string filename = "Na2Ca3Al2F14.laz"
 )
 
-DECLARES
+INITIALIZE
 %{
     double mono_q = 1.8734;
     double OMA;
     double RV;
 %}
+
+DECLARE 
+%{
+    double mono_q = 1.8734;
+    double OMA;
+    double RV;
+%}
+
 
 TRACE
 

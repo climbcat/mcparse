@@ -46,8 +46,8 @@ enum TokenType {
     TOK_AND, // &
     TOK_AND_COMPARE, // &&
     TOK_PERCENT, // %
-    TOK_RPERCENTBRACE, // %{
-    TOK_LPERCENTBRACE, // %}
+    TOK_RPERCENTBRACE, // %}
+    TOK_LPERCENTBRACE, // %{
 
     TOK_CHAR,
     TOK_STRING,
@@ -213,8 +213,8 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_AND: return "&";
         case TOK_AND_COMPARE: return "&&";
         case TOK_PERCENT: return "%";
-        case TOK_RPERCENTBRACE: return "%{";
-        case TOK_LPERCENTBRACE: return "%}";
+        case TOK_RPERCENTBRACE: return "%}";
+        case TOK_LPERCENTBRACE: return "%{";
 
         case TOK_CHAR: return "char";
         case TOK_STRING: return "string";

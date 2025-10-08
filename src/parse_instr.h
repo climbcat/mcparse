@@ -84,6 +84,11 @@ InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
             Required(t, &token, TOK_STRING);
             instr->dependency_str = token.GetValue();
         }
+        else {
+            printf("\n\nERROR: Expected 'DECLARE', 'INITIALIZE, 'TRACE' or 'DEPENDENCY got '%.*s'\n", token.len, token.text);
+            PrintLineError(t, &token, "");
+            HandleParseError(t);
+        }
     }
 
     // declare block as struct members
