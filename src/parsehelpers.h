@@ -30,187 +30,6 @@ void HandleParseError(Tokenizer *t) {
     }
 }
 
-bool RequiredRVal(Tokenizer *t, Token *tok_out) {
-    if (t->parse_error) return false;
-
-    Tokenizer prev = *t;
-
-    Token tok = GetToken(t);
-    *tok_out = tok;
-
-    if (tok.is_rval) {
-        return true;
-    }
-    else {
-        printf("\nERROR: Expected r-value, got '%s'\n", TokenTypeToSymbol(tok.type));
-        PrintLineError(t, &tok, "");
-        HandleParseError(t);
-
-        return false;
-    }
-}
-
-bool RequiredRValOrExpression(Tokenizer *t, Token *tok_out) {
-    if (t->parse_error) return false;
-
-    Tokenizer was;
-    Token tok;
-    Token token;
-
-    s32 line_in = t->line;
-    s32 brack_level = 0;
-    bool first = true;
-    bool search = true;
-    while (search) {
-        was = *t;
-
-        tok = GetToken(t);
-        if (first) {
-            first = false;
-            if (tok.type == TOK_COMMA || tok.type == TOK_RBRACK) {
-                *tok_out = tok;
-
-                printf("\n\nERROR: Expected '%s', got '%s'\n", TokenTypeToSymbol(TOK_MCSTAS_C_EXPRESSION), TokenTypeToSymbol(tok.type));
-                PrintLineError(t, &tok, "");
-                HandleParseError(t);
-
-                return false;
-            }
-            token = {};
-            token.type = TOK_MCSTAS_C_EXPRESSION;
-            token.text = tok.text;
-        }
-
-        // TODO: If brack_level < 0 -> we actually have a parse error at this point.
-        //      We need to completely re-write this part of the parser.
-
-        switch (tok.type)
-        {
-            case TOK_COMMA: {
-                search = brack_level > 0;
-            } break;
-
-            case TOK_LBRACK: {
-                ++brack_level;
-            } break;
-
-            case TOK_RBRACK: {
-                if (brack_level == 0) {
-                    search = false;
-                }
-                else {
-                    --brack_level;
-                }
-            } break;
-
-            case TOK_FLOAT: {
-                //
-            } break;
-
-            case TOK_INT: {
-                //
-            } break;
-
-            case TOK_ASSIGN: {
-                //
-            } break;
-
-            case TOK_IDENTIFIER: {
-                //
-            } break;
-
-            case TOK_STRING: {
-                //
-            } break;
-
-            case TOK_ASTERISK: {
-                //
-            } break;
-
-            case TOK_SLASH: {
-                //
-            } break;
-
-            case TOK_OR: {
-                //
-            } break;
-
-            case TOK_AND: {
-                //
-            } break;
-
-            case TOK_DASH: {
-                //
-            } break;
-
-            case TOK_PLUS: {
-                //
-            } break;
-
-            case TOK_LEDGE: {
-                //
-            } break;
-
-            case TOK_REDGE: {
-                //
-            } break;
-
-            case TOK_QUESTION: {
-                //
-            } break;
-
-            case TOK_COLON: {
-                //
-            } break;
-
-            case TOK_DOT: {
-                //
-            } break;
-
-            case TOK_LSBRACK: {
-                //
-            } break;
-
-            case TOK_RSBRACK: {
-                //
-            } break;
-
-            case TOK_UNKNOWN: {
-                // tolerate TOK_UNKNOWN
-            } break;
-
-            case TOK_MCSTAS_PREVIOUS: {
-                // whitelist TOK_MCSTAS_PREVIOUS
-            } break;
-
-            case TOK_EXCLAMATION: {
-                //
-            } break;
-
-            case TOK_ENDOFSTREAM: {
-                HandleParseError(t);
-                return false;
-            } break;
-
-            default: {
-                // break for non-whitelisted symbol
-                search = false;
-            }
-        }
-    }
-
-    token.len = tok.text - token.text;
-    token.is_rval = true;
-    *tok_out = token;
-    *t = was;
-
-    if (dbg_print_c_expressions && token.type == TOK_MCSTAS_C_EXPRESSION) {
-        StrPrint("", token.GetValue(), "\n");
-    }
-    
-    return true;
-}
-
 bool Required(Tokenizer *t, Token *tok_out, TokenType req) {
     if (t->parse_error) return false;
 
@@ -228,7 +47,6 @@ bool Required(Tokenizer *t, Token *tok_out, TokenType req) {
         return false;
     }
 }
-
 
 bool BranchMultiple(Tokenizer *t, Token *tok_out, TokenType options[], s32 options_cnt, const char *options_error, TokenType terminal_rewind) {
     if (t->parse_error) return false;
@@ -374,78 +192,6 @@ void PackArrayAllocation(MArena *a_src, Array<Parameter> *arr_at_tail) {
 }
 
 
-Array<Parameter> ParseParamsBlock(MArena *a_dest, Tokenizer *t, bool allow_value_expression = false) {
-    if (t->parse_error) return {};
-
-    Array<Parameter> params = InitArray<Parameter>(a_dest, 1024);
-    Token token;
-
-    Required(t, &token, TOK_LBRACK);
-    Tokenizer was = *t;
-    OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_RBRACK);
-    if (token.type == TOK_IDENTIFIER) {
-        *t = was; // re-parse the opening identifier
-
-        bool iterate = true;
-        while (iterate) {
-            Parameter p = {};
-
-            Token tok_parname_or_partype;
-            Required(t, &tok_parname_or_partype, TOK_IDENTIFIER);
-
-            Token tok_parname_or_nothing;
-            if (Optional(t, &tok_parname_or_nothing, TOK_IDENTIFIER)) {
-                // parameter type and name
-                p.type = tok_parname_or_partype.GetValue();
-                p.name = tok_parname_or_nothing.GetValue();
-            }
-
-            else {
-                // no type, only the parameter name
-                p.name = tok_parname_or_partype.GetValue();
-            }
-
-            // branch
-            OptionOfThree(t, &token, TOK_ASSIGN, TOK_COMMA, TOK_RBRACK);
-
-            if (token.type == TOK_ASSIGN) {
-                if (Optional(t, &token, TOK_LBRACE)) {
-                    p.default_val.str = token.text;
-                    do {
-                        token = GetToken(t);
-                    }
-                    while (token.type != TOK_RBRACE);
-                    p.default_val.len = token.text - p.default_val.str + 1;
-                    p.type = StrL("vector");
-                }
-                else if (Optional(t, &token, TOK_NULL)) {
-                    p.default_val.str = token.text;
-                    p.default_val.len = token.len;
-                    p.type = StrL("vector");
-                }
-                else {
-                    if (allow_value_expression) {
-                        RequiredRValOrExpression(t, &token);
-                    }
-                    else {
-                        RequiredRVal(t, &token);
-                    }
-                    p.default_val = token.GetValue();
-                }
-
-                // branch
-                OptionOfTwo(t, &token, TOK_COMMA, TOK_RBRACK);
-            }
-            params.Add(p);
-
-            iterate = token.type == TOK_COMMA;
-        }
-    }
-
-    PackArrayAllocation(a_dest, &params);
-    return params;
-}
-
 bool ParseCodeBlock(Tokenizer *t, TokenType block_type, Str *block, Str *type_copy, Str *extend) {
     if (t->parse_error) return false;
 
@@ -514,6 +260,10 @@ void _ParseOptionalBracketedArrayDeclaration(Tokenizer *t, StructMember *mem) {
     }
 }
 
+
+Str ParseExpression(Tokenizer *t);
+
+
 Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
     if (t->parse_error) return {};
 
@@ -526,7 +276,14 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
     Token tok = {};
     while (Optional(t, &tok, TOK_IDENTIFIER)) {
         cnt++;
+
+
+        // TODO: don't to this - have a StructMember stack variable, that we may add below, 
+        //      because, we may not want to (requring complex extra-code to fix, down below).
+
+
         StructMember *mem = (StructMember*) ArenaAlloc(a_dest, sizeof(StructMember));
+
 
         if (TokenEquals(&tok, "struct")) {
             Token next;
@@ -549,7 +306,7 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
                 tok = GetToken(t);
             }
 
-            // de-allocate 'mem' in a hurryt
+            // de-allocate 'mem' in a hurry (see the TODO above)
             a_dest->used -= sizeof(StructMember);
 
             continue;
@@ -577,8 +334,7 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
                 mem->defval.len = tok.text - mem->defval.str + 1;
             }
             else {
-                RequiredRValOrExpression(t, &tok);
-                mem->defval = tok.GetValue();
+                mem->defval = ParseExpression(t);
             }
         }
 
@@ -594,8 +350,7 @@ Array<StructMember> ParseMembers(MArena *a_dest, Tokenizer *t) {
 
             _ParseOptionalBracketedArrayDeclaration(t, listed);
             if (Optional(t, &tok, TOK_ASSIGN)) {
-                RequiredRValOrExpression(t, &tok);
-                listed->defval = tok.GetValue();
+                listed->defval = ParseExpression(t);
             }
 
             cnt++;

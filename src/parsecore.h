@@ -656,14 +656,15 @@ void ParseNumeric(Tokenizer *tokenizer, Token *token)
 
 Token GetToken(Tokenizer *tokenizer)
 {
-    if (tokenizer->parse_error) return {};
+    Token token = {};
+    if (tokenizer->parse_error) {
+        token.type = TOK_ENDOFSTREAM;
+        return token;
+    }
 
     EatWhiteSpacesAndComments(tokenizer);
-
-    Token token = {};
     token.text = tokenizer->at;
     token.len = 1;
-
 
     char c = tokenizer->at[0];
     ++tokenizer->at;
