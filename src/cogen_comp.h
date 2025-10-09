@@ -2,7 +2,7 @@
 #define __COGENCOMP_H__
 
 
-void PrintDefines(StrBuff *b, Component *comp) {
+void PrintDefines(StrBuff *b, ComponentParse *comp) {
     for (s32 i = 0; i < comp->setting_params.len; ++i) {
         Parameter p = comp->setting_params.arr[i];
         StrBuffPrint1K(b, "    #define %.*s comp->%.*s\n", 4, p.name.len, p.name.str, p.name.len, p.name.str);
@@ -15,7 +15,7 @@ void PrintDefines(StrBuff *b, Component *comp) {
 
     // TODO: output, state, ..., params
 }
-void PrintUndefs(StrBuff *b, Component *comp) {
+void PrintUndefs(StrBuff *b, ComponentParse *comp) {
     for (s32 i = 0; i < comp->setting_params.len; ++i) {
         Parameter p = comp->setting_params.arr[i];
         StrBuffPrint1K(b, "    #undef %.*s\n", 2, p.name.len, p.name.str);
@@ -30,21 +30,24 @@ void PrintUndefs(StrBuff *b, Component *comp) {
 }
 
 
-void ComponentCogen(StrBuff *b, Component *comp) {
+void CogenComponent(StrBuff *b, ComponentParse *comp) {
     // header guard
     StrBuffPrint1K(b, "#ifndef __%.*s__\n", 2, comp->type.len, comp->type.str);
     StrBuffPrint1K(b, "#define __%.*s__\n", 2, comp->type.len, comp->type.str);
-    StrBuffPrint1K(b, "\n", 0);
+    StrBuffPrint1K(b, "\n\n", 0);
 
     //
     // share block
 
-    StrBuffPrint1K(b, "// share block\n\n", 0);
-    StrBuffAppend(b, comp->share_block);
+    StrBuffPrint1K(b, "// share block\n", 0);
     StrBuffPrint1K(b, "\n\n", 0);
+    if (comp->share_block.len) {
+        StrBuffAppend(b, comp->share_block);
+        StrBuffPrint1K(b, "\n\n", 0);
+    }
 
     //
-    // struct
+    // component struct
 
     StrBuffPrint1K(b, "struct %.*s {\n", 2, comp->type.len, comp->type.str);
     StrBuffPrint1K(b, "    int index;\n", 0);
@@ -265,7 +268,7 @@ void ComponentCogen(StrBuff *b, Component *comp) {
         StrBuffPrint1K(b, "    #undef cone\n", 0);
         StrBuffPrint1K(b, "    #undef sphere\n", 0);
     }
-    StrBuffPrint1K(b, "}\n\n", 0);
+    StrBuffPrint1K(b, "}\n\n\n", 0);
 
 
     // close header guard
@@ -273,66 +276,66 @@ void ComponentCogen(StrBuff *b, Component *comp) {
 }
 
 
-void ComponentMetaCogen(StrBuff *b, HashMap *components) {
-    StrBuffPrint1K(b, "#ifndef __META_COMPS__\n", 0);
-    StrBuffPrint1K(b, "#define __META_COMPS__\n\n\n", 0);
+void CogenComponentMeta(StrBuff *b, HashMap *components) {
+    StrBuffPrint1K(b, "#ifndef __COMPS_META___\n", 0);
+    StrBuffPrint1K(b, "#define __COMPS_META___\n\n\n", 0);
 
-    // includes
-    // system header
-    StrBuffPrint1K(b, "#include <cstdlib>\n", 0);
-    StrBuffPrint1K(b, "#include <cstring>\n", 0);
-    StrBuffPrint1K(b, "#include <cstdio>\n", 0);
-    StrBuffPrint1K(b, "#include <cstddef>\n", 0);
-    StrBuffPrint1K(b, "#include \"jg_baselayer.h\"\n", 0);
-    StrBuffPrint1K(b, "#include \"jg_cbui.h\"\n", 0);
-    StrBuffPrint1K(b, "#include \"simcore.h\"\n", 0);
-    StrBuffPrint1K(b, "#include \"simlib.h\"\n", 0);
-    StrBuffPrint1K(b, "\n\n", 0);
-
+    // include component sources
+    MArena *a_tmp = GetContext()->a_tmp;
+    u32 component_cnt = 0;
     MapIter iter = {};
-    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
-        StrBuffPrint1K(b, "#include \"%.*s.h\"\n", 2, comp->type.len, comp->type.str);
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
+        StrBuffPrint1K(b, "#include \"comps/%.*s.h\"\n", 2, comp->type.len, comp->type.str);
+
+        component_cnt++;
     }
     StrBuffPrint1K(b, "\n\n", 0);
+
+    // build a category map
+    HashMap comp_categories_tmp = InitMap(a_tmp, component_cnt);
 
     // type enum
     StrBuffPrint1K(b, "enum CompType {\n", 0);
     StrBuffPrint1K(b, "    CT_UNDEF,\n\n", 0);
     iter = {};
-    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "    CT_%.*s,\n", 2, comp->type.len, comp->type.str);
+
+        Str cat = FindDirCategory(comp->file_path);
+        MapPut(&comp_categories_tmp, cat, ArenaPush(a_tmp, &cat, sizeof(Str)));
     }
     StrBuffPrint1K(b, "\n    CT_CNT\n", 0);
     StrBuffPrint1K(b, "};\n\n\n", 0);
 
-    // struct
-    // TODO: extract from coged'd code, use an int for the enum)
-    StrBuffPrint1K(b, "struct CompMeta {\n", 0);
-    StrBuffPrint1K(b, "    CompType type;\n", 0);
-    StrBuffPrint1K(b, "    void *comp;\n", 0);
-    StrBuffPrint1K(b, "\n", 0);
-    StrBuffPrint1K(b, "    Str type_name;\n", 0);
-    StrBuffPrint1K(b, "    Str name;\n", 0);
-    StrBuffPrint1K(b, "\n", 0);
-    StrBuffPrint1K(b, "    Matrix4f t;\n", 0);
-    StrBuffPrint1K(b, "    Matrix4f *parent;\n", 0);
+    // categories
+    StrBuffPrint1K(b, "enum CompCategory {\n", 0);
+    StrBuffPrint1K(b, "    CCAT_UNDEF,\n\n", 0);
+    iter = {};
+    while (Str *cat = (Str*) MapNextVal(&comp_categories_tmp, &iter)) {
+        StrBuffPrint1K(b, "    CCAT_%.*s,\n", 2, cat->len, cat->str);
+    }
+    StrBuffPrint1K(b, "    \n", 0);
+    StrBuffPrint1K(b, "    CCAT_CNT\n", 0);
     StrBuffPrint1K(b, "};\n\n\n", 0);
 
+    StrBuffPrint1K(b, "Str StrLS(char *str) {\n", 0);
+    StrBuffPrint1K(b, "    return Str { str, (u32) strlen(str) };\n", 0);
+    StrBuffPrint1K(b, "}\n\n\n", 0);
+
     // create
-    // TODO: check that the switch does translate into a branch table (as we are using the packed enum values as conditionals)
-    StrBuffPrint1K(b, "CompMeta *CreateComponent(MArena *a_dest, CompType type, s32 index) {\n", 0);
-    StrBuffPrint1K(b, "    CompMeta *comp = (CompMeta*) ArenaAlloc(a_dest, sizeof(CompMeta));\n", 0);
-    StrBuffPrint1K(b, "    comp->t = Matrix4f_Identity();\n", 0);
+    StrBuffPrint1K(b, "Component *CreateComponent(MArena *a_dest, CompType type, s32 index, const char *name) {\n", 0);
+    StrBuffPrint1K(b, "    Component *comp = (Component*) ArenaAlloc(a_dest, sizeof(Component));\n", 0);
     StrBuffPrint1K(b, "    comp->type = type;\n", 0);
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "    switch (type) {\n", 0);
     iter = {};
-    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "        case CT_%.*s: {\n", 2, comp->type.len, comp->type.str);
-        StrBuffPrint1K(b, "            %.*s comp_spec = Create_%.*s(index, (char*) \"%.*s_default\");\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+        StrBuffPrint1K(b, "            %.*s comp_spec = Create_%.*s(index, (char*) name);\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
         StrBuffPrint1K(b, "            comp->comp = ArenaPush(a_dest, &comp_spec, sizeof(%.*s));\n", 2, comp->type.len, comp->type.str);
-        StrBuffPrint1K(b, "            comp->type_name = ToStr(comp_spec.type);\n", 0);
-        StrBuffPrint1K(b, "            comp->name = ToStr(comp_spec.name);\n", 0);
+        StrBuffPrint1K(b, "            comp->type_name = StrLS(comp_spec.type);\n", 0);
+        StrBuffPrint1K(b, "            comp->name = StrLS(comp_spec.name);\n", 0);
+        StrBuffPrint1K(b, "            comp->cat = CCAT_%.*s;\n", 2, comp->category.len, comp->category.str);
         StrBuffPrint1K(b, "        } break;\n", 0);
         StrBuffPrint1K(b, "\n", 0);
     }
@@ -340,41 +343,51 @@ void ComponentMetaCogen(StrBuff *b, HashMap *components) {
     StrBuffPrint1K(b, "    return comp;\n}\n\n\n", 0);
 
     // init
-    StrBuffPrint1K(b, "void InitComponent(CompMeta *comp, Instrument *instr = NULL) {\n", 0);
+    StrBuffPrint1K(b, "void InitComponent(Component *comp, Instrument *instr = NULL) {\n", 0);
     StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
     iter = {};
-    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "        case CT_%.*s: { Init_%.*s((%.*s*) comp->comp, instr); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     }
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
 
-    // trace
-    StrBuffPrint1K(b, "void TraceComponent(CompMeta *comp, Neutron *particle, Instrument *instr = NULL) {\n", 0);
+    // display
+    StrBuffPrint1K(b, "void DisplayComponent(Component *comp) {\n", 0);
     StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
     iter = {};
-    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
+        StrBuffPrint1K(b, "        case CT_%.*s: { Display_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    }
+    StrBuffPrint1K(b, "\n", 0);
+    StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
+
+    // trace
+    StrBuffPrint1K(b, "void TraceComponent(Component *comp, Neutron *particle, Instrument *instr = NULL) {\n", 0);
+    StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
+    iter = {};
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
         StrBuffPrint1K(b, "        case CT_%.*s: { Trace_%.*s((%.*s*) comp->comp, particle, instr); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     }
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
 
-    // display
-    StrBuffPrint1K(b, "void DisplayComponent(CompMeta *comp) {\n", 0);
+    // save
+    StrBuffPrint1K(b, "void SaveComponent(Component *comp) {\n", 0);
     StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
     iter = {};
-    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
-        StrBuffPrint1K(b, "        case CT_%.*s: { Display_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
+        StrBuffPrint1K(b, "        case CT_%.*s: { Save_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     }
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);
 
     // finally
-    StrBuffPrint1K(b, "void FinallyComponent(CompMeta *comp) {\n", 0);
+    StrBuffPrint1K(b, "void FinallyComponent(Component *comp) {\n", 0);
     StrBuffPrint1K(b, "    switch (comp->type) {\n", 0);
     iter = {};
-    while (Component *comp = (Component*) MapNextVal(components, &iter)) {
-        StrBuffPrint1K(b, "        case CT_%.*s: { Display_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
+    while (ComponentParse *comp = (ComponentParse*) MapNextVal(components, &iter)) {
+        StrBuffPrint1K(b, "        case CT_%.*s: { Finally_%.*s((%.*s*) comp->comp); } break;\n", 6, comp->type.len, comp->type.str, comp->type.len, comp->type.str, comp->type.len, comp->type.str);
     }
     StrBuffPrint1K(b, "\n", 0);
     StrBuffPrint1K(b, "        default: { } break;\n    }\n}\n\n\n", 0);

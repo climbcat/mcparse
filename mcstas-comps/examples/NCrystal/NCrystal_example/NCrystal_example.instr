@@ -89,9 +89,7 @@ COMPONENT mono_arm = Arm()
 
 /* Make a 3mm thick Ge-511 monochromator box with 0.3 degree mosaicity (FWHM) */
 SPLIT COMPONENT monochromator = NCrystal_sample(xwidth=0.05,yheight=0.05,zdepth=0.003,
-                                          cfg="Ge_sg227.ncmat;mos=0.3deg;incoh_elas=0;inelas=0"
-                                          ";dir1=@crys_hkl:5,1,1@lab:0,0,1"
-                                          ";dir2=@crys_hkl:0,1,-1@lab:0,1,0")
+                                          cfg="Ge_sg227.ncmat;mos=0.3deg;incoh_elas=0;inelas=0;dir1=@crys_hkl:5,1,1@lab:0,0,1;dir2=@crys_hkl:0,1,-1@lab:0,1,0")
   AT (0, 0, 0) RELATIVE mono_arm
 EXTEND %{
   if (!SCATTERED) ABSORB;

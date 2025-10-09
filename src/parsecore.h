@@ -23,7 +23,9 @@ enum TokenType {
     TOK_LSBRACK, // [
     TOK_RSBRACK, // ]
     TOK_LEDGE, // <
+    TOK_LESSOREQUAL, // <=
     TOK_REDGE, // >
+    TOK_GREATEROREQUAL, // >=
     TOK_POUND, // #
     TOK_ASTERISK, // *
     TOK_COMMA, // ,
@@ -34,14 +36,18 @@ enum TokenType {
     TOK_COLON, // :
     TOK_SEMICOLON, // ;
     TOK_ASSIGN, // =
+    TOK_EQUALS, // ==
     TOK_EXCLAMATION, // !
+    TOK_NOTEQUAL, // !
     TOK_QUESTION, // ?
     TOK_TILDE, // ~
     TOK_OR, // |
+    TOK_OR_COMPARE, // ||
     TOK_AND, // &
+    TOK_AND_COMPARE, // &&
     TOK_PERCENT, // %
-    TOK_RPERCENTBRACE, // %{
-    TOK_LPERCENTBRACE, // %}
+    TOK_RPERCENTBRACE, // %}
+    TOK_LPERCENTBRACE, // %{
 
     TOK_CHAR,
     TOK_STRING,
@@ -100,7 +106,9 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_LSBRACK: return "TOK_LSBRACK";
         case TOK_RSBRACK: return "TOK_RSBRACK";
         case TOK_LEDGE: return "TOK_LEDGE";
+        case TOK_LESSOREQUAL: return "TOK_LESSOREQUAL";
         case TOK_REDGE: return "TOK_REDGE";
+        case TOK_GREATEROREQUAL: return "TOK_GREATEROREQUAL";
         case TOK_POUND: return "TOK_POUND";
         case TOK_ASTERISK: return "TOK_ASTERISK";
         case TOK_COMMA: return "TOK_COMMA";
@@ -111,11 +119,14 @@ const char* TokenTypeToString(TokenType tpe) {
         case TOK_COLON: return "TOK_COLON";
         case TOK_SEMICOLON: return "TOK_SEMICOLON";
         case TOK_ASSIGN: return "TOK_ASSIGN";
+        case TOK_EQUALS: return "TOK_EQUALS";
         case TOK_EXCLAMATION: return "TOK_EXCLAMATION";
         case TOK_QUESTION: return "TOK_QUESTION";
         case TOK_TILDE: return "TOK_TILDE";
         case TOK_OR: return "TOK_OR";
+        case TOK_OR_COMPARE: return "TOK_OR_COMPARE";
         case TOK_AND: return "TOK_AND";
+        case TOK_AND_COMPARE: return "TOK_AND_COMPARE";
         case TOK_PERCENT: return "TOK_PERCENT";
         case TOK_RPERCENTBRACE: return "TOK_RPERBRACE";
         case TOK_LPERCENTBRACE: return "TOK_LPERBRACE";
@@ -180,7 +191,9 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_LSBRACK: return "[";
         case TOK_RSBRACK: return "]";
         case TOK_LEDGE: return "<";
+        case TOK_LESSOREQUAL: return "<=";
         case TOK_REDGE: return ">";
+        case TOK_GREATEROREQUAL: return ">=";
         case TOK_POUND: return "#";
         case TOK_ASTERISK: return "*";
         case TOK_COMMA: return ",";
@@ -191,14 +204,17 @@ const char* TokenTypeToSymbol(TokenType tpe) {
         case TOK_COLON: return ":";
         case TOK_SEMICOLON: return ";";
         case TOK_ASSIGN: return "=";
+        case TOK_EQUALS: return "==";
         case TOK_EXCLAMATION: return "!";
         case TOK_QUESTION: return "?";
         case TOK_TILDE: return "~";
         case TOK_OR: return "|";
+        case TOK_OR_COMPARE: return "||";
         case TOK_AND: return "&";
+        case TOK_AND_COMPARE: return "&&";
         case TOK_PERCENT: return "%";
-        case TOK_RPERCENTBRACE: return "%{";
-        case TOK_LPERCENTBRACE: return "%}";
+        case TOK_RPERCENTBRACE: return "%}";
+        case TOK_LPERCENTBRACE: return "%{";
 
         case TOK_CHAR: return "char";
         case TOK_STRING: return "string";
@@ -531,11 +547,7 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
     if (token != NULL) {
         toklen = token->len;
     }
-
-    // print message
     printf("%s\n", msg);
-
-    // print line nb. tag
     char lineno_tag[200];
     s32 col = (tokenizer->at - toklen) - tokenizer->at_linestart;
     sprintf(lineno_tag, "%d,%d| ", tokenizer->line, col);
@@ -550,24 +562,6 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
         printf(" ");
     }
     printf("^\n");
-
-
-    // S.O. example how to get terminal width s.t. we can avoid line wrap, which would break the ^ location cursor
-    /*
-    #include <sys/ioctl.h>
-    #include <stdio.h>
-    #include <unistd.h>
-
-    int main (int argc, char **argv)
-    {
-        struct winsize w;
-        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-
-        printf ("lines %d\n", w.ws_row);
-        printf ("columns %d\n", w.ws_col);
-        return 0;  // make sure your main returns int
-    }
-    */
 }
 
 Token GetToken(Tokenizer *tokenizer);
@@ -698,11 +692,27 @@ Token GetToken(Tokenizer *tokenizer)
         token.type = TOK_RSBRACK;
         break;
     case '<':
-        token.type = TOK_LEDGE;
-        break;
+    {
+        if (tokenizer->at[0] == '=') {
+            token.type = TOK_LESSOREQUAL;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_LEDGE;
+        }
+    }
+    break;
     case '>':
-        token.type = TOK_REDGE;
-        break;
+    {
+        if (tokenizer->at[0] == '=') {
+            token.type = TOK_GREATEROREQUAL;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_REDGE;
+        }
+    }
+    break;
     case '#':
         token.type = TOK_POUND;
         break;
@@ -715,53 +725,30 @@ Token GetToken(Tokenizer *tokenizer)
 
     case '.':
     {
-        TokenType next_type = LookAheadNextTokenType(tokenizer);
-        if (next_type == TOK_INT)
-        {
-            ParseNumeric(tokenizer, &token);
+        Tokenizer t_prev = *tokenizer;
+        Token tok_next = GetToken(tokenizer);
+        *tokenizer = t_prev;
+
+        if (tok_next.type == TOK_FLOAT || tok_next.type == TOK_SCI || tok_next.type == TOK_INT) {
             token.is_rval = true;
+
+            ParseNumeric(tokenizer, &token);
         }
-        else
-        {
+        else {
             token.type = TOK_DOT;
         }
-
     }
     break;
 
     case '/':
         token.type = TOK_SLASH;
         break;
-
     case '-':
-    {
-        TokenType next_type = LookAheadNextTokenType(tokenizer);
-        if (next_type == TOK_INT || next_type == TOK_FLOAT || next_type == TOK_SCI)
-        {
-            ParseNumeric(tokenizer, &token);
-            token.is_rval = true;
-        }
-        else
-        {
-            token.type = TOK_DASH;
-        }
-    }
-    break;
+        token.type = TOK_DASH;
+        break;
     case '+':
-    {
-        TokenType next_type = LookAheadNextTokenType(tokenizer);
-        if (next_type == TOK_INT || next_type == TOK_FLOAT || next_type == TOK_SCI)
-        {
-            ParseNumeric(tokenizer, &token);
-            token.is_rval = true;
-        }
-        else
-        {
-            token.type = TOK_PLUS;
-        }
-    }
-    break;
-
+        token.type = TOK_PLUS;
+        break;
     case ':':
         token.type = TOK_COLON;
         break;
@@ -769,8 +756,17 @@ Token GetToken(Tokenizer *tokenizer)
         token.type = TOK_SEMICOLON;
         break;
     case '=':
-        token.type = TOK_ASSIGN;
-        break;
+    {
+        if (tokenizer->at[0] == '=') {
+            token.type = TOK_EQUALS;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_ASSIGN;
+        }
+    }
+    break;
+
     case '!':
         token.type = TOK_EXCLAMATION;
         break;
@@ -781,11 +777,28 @@ Token GetToken(Tokenizer *tokenizer)
         token.type = TOK_TILDE;
         break;
     case '|':
-        token.type = TOK_OR;
-        break;
+    {
+        if (tokenizer->at[0] == '|') {
+            token.type = TOK_OR_COMPARE;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_OR;
+        }
+    }
+    break;
+
     case '&':
-        token.type = TOK_AND;
-        break;
+    {
+        if (tokenizer->at[0] == '&') {
+            token.type = TOK_AND_COMPARE;
+            ++tokenizer->at;
+        }
+        else {
+            token.type = TOK_AND;
+        }
+    }
+    break;
 
     case '%':
     {
@@ -821,6 +834,9 @@ Token GetToken(Tokenizer *tokenizer)
 
     case '"':
     {
+        // TODO: handle single quotation // no end quote before EOF -> just have a TOK_QUOTE then
+        //      Probably should not parse a string outright at this level, but have a ParseStringOrQuote() function
+
         token.type = TOK_STRING;
         token.is_rval = true;
 

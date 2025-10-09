@@ -1,25 +1,97 @@
 # mcparse
 
-Custom parser for mcstas/mxtrace .instr and .comp files with great error messages.
+Custom parser for the mcstas McStas/McXtrace DSL: A low-dependency .instr and .comp
+file parser with improved usability and maintainability.
 
-#### build & run
+(See mccode.org.)
 
-First run the script lib/getdeps.sh which will download a required helper library.
+## build & run
 
-Next, run build.sh, which will output the 'mcparse' tool. Execute this tool for further instructions.
-A component library with instrument examples is located in the mcstas-comps folder.
+Download this repository, and execute the following commands: 
 
-(Some of the files are slighty modified, see below.)
+<pre>
+./lib/getdeps.sh
+./build.sh
+./mcparse --help
+</pre>
 
-#### mcstas-comps
+Run the tool by build doing, e.g.: 
 
-Component- and instrument files were copied verbatim from a version of the McCode main repository (see mcstas.org).
+<pre>
+./mcparse mcstas-comps/
+</pre>
 
-Some component files were omited, and some modified. There are still hundreds of files with a very wide range of .comp and
-.inst examples, and they can be considered a "pretty large" test set.
+Currently targetting Linux only.
 
-Edits to component files:
-- don't allow any DEFINITION_PARAMETERS ()
-- no arithmetic in the parameter default values - only verifiable types
-- no use of '[]' in a parameter; parameter names must be valid identifiers
 
+### Parsing
+
+Improvements as compared to the default parser:
+
+- Prints concise error messages, allowing users to quickly pin-point the location and nature of any DSL usage error.
+- Much reduced library dependencies; And no parser generator pre-build step, or abstract grammar-rule lex/yacc configuration.
+- Modify or augment the parser by reading and modifying concise source code.
+- Build & debug light-weight and readable parser code in seconds.
+
+This repository includes a set of ~ 350 components and ~ 150 instruments as a test set.
+Some of these were slightly modified from their original state, in order to omit certain
+legacy DSL features. Yet, it implements most of the DSL in terms of parsing.
+
+Notable omisions are function pointers in struct definitions, and the JUMP keyword.
+
+The mcparse parser also improves on parsing in some respects, for example, it parses code 
+in DECLARE sections as though they were C struct members.
+
+### Code Generation
+
+In addition to parsing, this project includes code generation, which outputs C++
+function and type wrapper for components.
+
+The current generator would instead output one .h file for each component, plus a single 
+component meta file, and an instrument configuration .h file for each instrument.
+
+In combination With the <code>simlib.h</code> and <code>simcore.h</code> source files
+(given elsewhere), that include most of the mcstas runtime simulation code and shared 
+simulation libraries, this allows for a much more accessible debugging- and development
+environment.
+
+- Wrap component code in a C++ context.
+- Development access to .comp and .instr code in an easilly debug-able runtime context.
+
+This project is part of an exploratory project to re-image the mcstas core, and a stand-alone
+demonstration of the parser (and code-generation) section of that idea.
+
+### Note on C++ compatibility
+
+The original C code turned out to be fairly compatible with a standard C++ compiler (g++).
+
+However, explicit porting of each component is still necessary. It was not difficult hard,
+but it can take a bit of extra development time to do.
+
+To be able to proceed with a proof-of-concept for high-level code, only the components
+included by the instrument PSI_DMC were ported so far. However, this includes multiple
+large and non-trivial components, such as Monitor_nD and Source_Maxwell. 
+
+NOTE: In addition to being ported, the support for MPI and PGCC/OpenAcc was removed
+for simplicity's sake. These features were not at all essential for the
+purpose of this project.
+
+
+### Building high-level functionality
+
+The generated components meta file provides access to all of the parsed components 
+through a unified API: Thus it becomes possible to build high-level operations, 
+e.g. simulation strategies or user interface, directly on top of the generated 
+code.
+
+For those who are familiar, this includes mcdisplay-like functionality and visual,
+live simulation execution and monitoring.
+
+It also generates configuration code for instruments, which sets up the component geometry,
+custom instrument initialization and EXTEND code, and initializes everything into a
+simulation-ready state.
+
+This is of course exactly what the mcstas-generated code does, but in a less accessible
+format: As a comparison, the mcstas-generator easily output 10000
+lines of hard-to-read generated code from your average, garden-variety non-trivial
+neutron- or x-ray instrument.

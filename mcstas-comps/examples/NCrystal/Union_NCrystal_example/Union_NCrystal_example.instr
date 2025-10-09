@@ -81,9 +81,7 @@ TRACE
 COMPONENT init = Union_init()
 AT (0,0,0) ABSOLUTE
 
-COMPONENT NCrystal_mono = NCrystal_process(cfg="Ge_sg227.ncmat;mos=0.3deg;bkgd=0"
-                                          ";dir1=@crys_hkl:5,1,1@lab:0,0,1"
-                                          ";dir2=@crys_hkl:0,1,-1@lab:0,1,0")
+COMPONENT NCrystal_mono = NCrystal_process(cfg="Ge_sg227.ncmat;mos=0.3deg;bkgd=0;dir1=@crys_hkl:5,1,1@lab:0,0,1;dir2=@crys_hkl:0,1,-1@lab:0,1,0")
 AT (0,0,0) ABSOLUTE
 
 COMPONENT NCrystal_mono_material = Union_make_material(process_string="NCrystal_mono",

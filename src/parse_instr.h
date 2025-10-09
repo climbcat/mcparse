@@ -2,7 +2,6 @@
 #define __PINSTR_H__
 
 
-// sould be a linked list? Simply because this allows in-lining
 struct ComponentCall {
     ComponentCall *next;
     ComponentCall *first;
@@ -37,7 +36,7 @@ struct ComponentCall {
     Array<Parameter> args;
 };
 
-struct Instrument {
+struct InstrumentParse {
     Str path;
     Str name;
     Str dependency_str;
@@ -59,14 +58,14 @@ struct Instrument {
 };
 
 
-Instrument *ParseInstrument(MArena *a_dest, Str text) {
+InstrumentParse *ParseInstrument(MArena *a_dest, Str text) {
     TimeFunction;
 
     Tokenizer tokenizer = {};
     tokenizer.Init(text.str);
     Tokenizer *t = &tokenizer;
     Token token;
-    Instrument *instr = (Instrument*) ArenaAlloc(a_dest, sizeof(Instrument));
+    InstrumentParse *instr = (InstrumentParse*) ArenaAlloc(a_dest, sizeof(InstrumentParse));
     instr->comps = InitArray<ComponentCall>(a_dest, 1000);
     instr->includes = InitArray<Str>(a_dest, 10);
 
@@ -77,7 +76,7 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
     instr->name = token.GetValue();
 
     // parameters
-    instr->params = ParseParamsBlock(a_dest, t);
+    instr->params = ParseParameterList(a_dest, t);
 
     // flags
     while (Optional(t, &token, TOK_IDENTIFIER)) {
@@ -85,29 +84,22 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
             Required(t, &token, TOK_STRING);
             instr->dependency_str = token.GetValue();
         }
+        else {
+            printf("\n\nERROR: Expected 'DECLARE', 'INITIALIZE, 'TRACE' or 'DEPENDENCY got '%.*s'\n", token.len, token.text);
+            PrintLineError(t, &token, "");
+            HandleParseError(t);
+        }
     }
 
-    // declare members
-
-    Required(t, &token, TOK_MCSTAS_DECLARE);
-    Required(t, &token, TOK_LPERCENTBRACE);
-    instr->declare_members = ParseMembers(a_dest, t);
-    Required(t, &token, TOK_RPERCENTBRACE);
-
-
-    // TODO: code block be ordering-agnostic
-    /*
-    TokenType options_params[] = {
-        TOK_MCSTAS_SETTING,
-        TOK_MCSTAS_OUTPUT,
-        TOK_MCSTAS_STATE,
-        TOK_MCSTAS_POLARISATION,
-    };
-    */
+    // declare block as struct members
+    if (Optional(t, &token, TOK_MCSTAS_DECLARE)) {
+        Required(t, &token, TOK_LPERCENTBRACE);
+        instr->declare_members = ParseMembers(a_dest, t);
+        Required(t, &token, TOK_RPERCENTBRACE);
+    }
 
     // code blocks
     Str _;
-    //ParseCodeBlock(t, TOK_MCSTAS_DECLARE, &instr->declare_block, &_, &_);
     ParseCodeBlock(t, TOK_MCSTAS_USERVARS, &instr->uservars_block, &_, &_);
     ParseCodeBlock(t, TOK_MCSTAS_INITIALIZE, &instr->initalize_block, &_, &_);
 
@@ -121,11 +113,9 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
         }
 
         Tokenizer rewind = *t;
-        // TODO: integrate the "%include" keyword somehow; or maybe handle it differently
         if (OptionOfFive(t, &token, TOK_MCSTAS_COMPONENT, TOK_MCSTAS_SPLIT, TOK_MCSTAS_REMOVABLE, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END)) {
             if (token.type == TOK_MCSTAS_END || token.type == TOK_MCSTAS_FINALLY) {
                 *t = rewind;
-
                 break;
             }
 
@@ -180,34 +170,39 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
             *t = was;
 
             if (has_explicit_params) {
-                c.args = ParseParamsBlock(a_dest, t, true);
+                //c.args = ParseParamsBlock(a_dest, t, true);
+                c.args = ParseParameterList(a_dest, t);
             }
-
 
             // when / jump
             if (Optional(t, &token, TOK_MCSTAS_JUMP)) {
-                Required(t, &token, TOK_IDENTIFIER);
+                OptionOfTwo(t, &token, TOK_IDENTIFIER, TOK_MCSTAS_PREVIOUS);
                 c.jump = token.GetValue();
             }
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
-                RequiredRValOrExpression(t, &token);
-                c.when = token.GetValue();
+                c.when = ParseExpression(t);
             }
 
             // at
             Required(t, &token, TOK_MCSTAS_AT);
-
-            // parse AT vector:
             Required(t, &token, TOK_LBRACK);
-            RequiredRValOrExpression(t, &token);
-            c.at_x = token.GetValue();
-            Required(t, &token, TOK_COMMA);
-            RequiredRValOrExpression(t, &token);
-            c.at_y = token.GetValue();
-            Required(t, &token, TOK_COMMA);
-            RequiredRValOrExpression(t, &token);
-            c.at_z = token.GetValue();
+            Str *expr;
+            for (u32 i = 0; i < 3; ++i) {
+                if (i == 0) expr = &c.at_x;
+                if (i == 1) expr = &c.at_y;
+                if (i == 2) expr = &c.at_z;
+
+                *expr = ParseExpression(t);
+                if (expr->len == 0) {
+                    PrintLineError(t, &token, "Expected expression.");
+                    HandleParseError(t);
+                }
+                if (i < 2) {
+                    Required(t, &token, TOK_COMMA);
+                }
+            }
             Required(t, &token, TOK_RBRACK);
+
 
             // relative / absolute
             Optional(t, &token, TOK_MCSTAS_RELATIVE);
@@ -224,16 +219,22 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
             if (Optional(t, &token, TOK_MCSTAS_ROTATED)) {
                 c.rot_defined = true;
 
-                // parse ROTATED vector:
                 Required(t, &token, TOK_LBRACK);
-                RequiredRValOrExpression(t, &token);
-                c.rot_x = token.GetValue();
-                Required(t, &token, TOK_COMMA);
-                RequiredRValOrExpression(t, &token);
-                c.rot_y = token.GetValue();
-                Required(t, &token, TOK_COMMA);
-                RequiredRValOrExpression(t, &token);
-                c.rot_z = token.GetValue();
+                Str *expr;
+                for (u32 i = 0; i < 3; ++i) {
+                    if (i == 0) expr = &c.rot_x;
+                    if (i == 1) expr = &c.rot_y;
+                    if (i == 2) expr = &c.rot_z;
+
+                    *expr = ParseExpression(t);
+                    if (expr->len == 0) {
+                        PrintLineError(t, &token, "Expected expression.");
+                        HandleParseError(t);
+                    }
+                    if (i < 2) {
+                        Required(t, &token, TOK_COMMA);
+                    }
+                }
                 Required(t, &token, TOK_RBRACK);
 
                 // relative / absolute
@@ -247,8 +248,6 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
                 }
             }
 
-            // TODO: make GROUP / JUMP agnostic to ordering of WHEN / AT 
-
             // group
             if (Optional(t, &token, TOK_MCSTAS_GROUP)) {
                 Required(t, &token, TOK_IDENTIFIER);
@@ -261,10 +260,8 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
                 c.jump = token.GetValue();
             }
             if (Optional(t, &token, TOK_MCSTAS_WHEN)) {
-                RequiredRValOrExpression(t, &token);
-                c.when = token.GetValue();
+                c.when = ParseExpression(t);
             }
-
 
             ParseCodeBlock(t, TOK_MCSTAS_EXTEND, &c.extend, &_, &_);
             instr->comps.Add(c);
@@ -275,15 +272,14 @@ Instrument *ParseInstrument(MArena *a_dest, Str text) {
     }
 
     ParseCodeBlock(t, TOK_MCSTAS_FINALLY, &instr->finally_block, &_, &_);
-    // TODO: Why is this not just a MCSTAS_END ?
-    OptionOfTwo(t, &token, TOK_MCSTAS_FINALLY, TOK_MCSTAS_END);
+    Required(t, &token, TOK_MCSTAS_END);
 
     instr->parse_error = t->parse_error;
     return instr;
 }
 
 
-void InstrumentPrint(Instrument *instr, bool print_blocks, bool print_comps, bool print_comp_details) {
+void InstrumentPrint(InstrumentParse *instr, bool print_blocks, bool print_comps, bool print_comp_details) {
 
     printf("\n");
     printf("instrparse: "); StrPrint(instr->name); printf("- %u parameters, %u compnents", instr->params.len, instr->comps.len);
@@ -408,13 +404,13 @@ void InstrumentPrint(Instrument *instr, bool print_blocks, bool print_comps, boo
 
                 if (cc.extend.len) {
                     printf("\n");
-                    StrPrint("EXTEND \%(", cc.extend, "\n\%)\n");
+                    StrPrint("EXTEND %(", cc.extend, "\n%)\n");
 
                 }
                 printf("\n\n");
             }
         }
-
     }
 }
+
 #endif
