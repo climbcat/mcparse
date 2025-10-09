@@ -57,7 +57,8 @@ Array<Parameter> ParseComponentParams(MArena *a_dest, Tokenizer *t, TokenType pa
     }
     Required(t, &token, TOK_MCSTAS_PARAMETERS);
 
-    return ParseParamsBlock(a_dest, t);
+    return ParseParameterList(a_dest, t);
+    //return ParseParamsBlock(a_dest, t);
 }
 
 
