@@ -62,8 +62,6 @@ bool RegisterInstrument(InstrumentParse *instr, HashMap *map) {
 }
 
 ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths) {
-    TimeFunction;
-
     ParseStats ps = {};
 
     while (fpaths) {
@@ -103,8 +101,6 @@ ParseStats ParseInstruments(MArena *a_dest, HashMap *map_instrs, StrLst *fpaths)
 
 
 ParseStats ParseComponents(MArena *a_dest, HashMap *map_comps, StrLst *fpaths) {
-    TimeFunction;
-
     ParseStats ps = {};
 
     while (fpaths) {
