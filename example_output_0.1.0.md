@@ -1,6 +1,15 @@
-### Example bulk output for V0.1.0:
+### Example bulk output for mcparse V0.1.0:
 
-<code>./mcparse --comps mcstas-comps/ --instrs mcstas-comps/</code>
+Using the following, we can test the entire test library of components and instruments. (The printed errors represent not-implemented parsing features.)
+
+For timings, scroll down to see the profiler output near the end of this file.
+
+<pre>
+./lib/getdeps.sh
+./build.sh
+./mcparse --version
+./mcparse --comps mcstas-comps/ --instrs mcstas-comps/
+</pre>
 
 <pre>
 parsing  #000: mcstas-comps/samples/Single_magnetic_crystal.comp
