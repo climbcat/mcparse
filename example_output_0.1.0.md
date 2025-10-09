@@ -1,8 +1,10 @@
 ### Example bulk output for mcparse V0.1.0:
 
-Using the following, we can test the entire test library of components and instruments. (The printed errors represent not-implemented parsing features.)
+Using the following, we can test the entire test library of components and instruments.
 
-For timings, scroll down to see the profiler output near the end of this file.
+The occational printed errors below represent not-implemented parsing features rather than mistakes in DSL usage. For error message fail-test illustration positives, see 'test/fail_tests'.
+
+For timings, scroll down to see the profiler output near the end of this file: The run took ~0.5 seconds single-threaded on my 1.8GHz machine.
 
 <pre>
 ./lib/getdeps.sh
