@@ -5,6 +5,11 @@ file parser with improved usability and maintainability.
 
 (See mccode.org.)
 
+This project is part of an exploratory re-imagining of the mcstas core. This 
+is a stand-alone demonstration of the parser and code-generation sections of that
+idea. A live-simulation and mcdisplay-like tools is presented as mctrace, see
+'https://github.com/climbcat/mctrace'.
+
 ## build & run
 
 Download this repository, and execute the following commands: 
@@ -23,59 +28,67 @@ Run the tool by build doing, e.g.:
 
 Currently targetting Linux only.
 
-
 ### Parsing
 
-Improvements as compared to the default parser:
+Improved McStas DSL parser:
 
-- Prints concise error messages, allowing users to quickly pin-point the location and nature of any DSL usage error.
-- Much reduced library dependencies; And no parser generator pre-build step, or abstract grammar-rule lex/yacc configuration.
-- Modify or augment the parser by reading and modifying concise source code.
-- Build & debug light-weight and readable parser code in seconds.
+- Prints precise error messages and pin-points the line error, allowing users to quickly grasp the nature of a mistake
+- Much reduced library dependencies with no linking required; compiles in 1-2 seconds on older systems
+- Eliminates any parser-generator build step
+- No abstract grammar-rule configuration (using e.g. lex/yacc), just the parser code
+- Edit, then build and debug the light-weight parser in seconds
 
-This repository includes a set of ~ 350 components and ~ 150 instruments as a test set.
-Some of these were slightly modified from their original state, in order to omit certain
-legacy DSL features. Yet, it implements most of the DSL in terms of parsing.
+This repository includes a set of ~ 350 components and ~ 150 instruments from McStas 3.
+As a test set, all of these are loaded and parsed in much less than a second.
+Parses almost all of the DSL, except for a few, rarely-used legacy features,
+as well as unused grammars rules. A few of the files were modified with this in mind.
 
-Notable omisions are function pointers in struct definitions, and the JUMP keyword.
+Notable omisions are the JUMP keyword and unused grammar rules such as the DEFINITION PARAMETERS.
+Function declarations and function pointers in DECLARE sections, are parsed,
+but not syntax checked, nor captured for code generation, since these were not required for the 
+present purposes.
 
-The mcparse parser also improves on parsing in some respects, for example, it parses code 
-in DECLARE sections as though they were C struct members.
+The parser improves on parsing security in some respects, for example, declarations 
+in DECLARE sections are treated as actual C struct members, or an error is produced.
+It also checks argument default values for validity, a mistake that would otherwise
+be caught only at runtime.
 
 ### Code Generation
 
-In addition to parsing, this project includes code generation, which outputs C++
-function and type wrapper for components.
+In addition to parsing, this project includes a code generator which outputs component
+functions and type wrappers. This is output in C++, and requires C++-compliant component code.
+A number of components were ported to C++ for this purpose, and the porting process was 
+very straightforward, even for arguably complex components such as Monitor_nD.
 
-The current generator would instead output one .h file for each component, plus a single 
-component meta file, and an instrument configuration .h file for each instrument.
+The current generator outputs one .h file for each component, plus one meta file for all
+included components in the parse set. It outputs an instrument configuration .h file
+for each instrument included in the parse set.
+
+The generated .h files depend only on the simulation core, and the baselayer library
+mentioned above, and can thus be easilly ported to other projects, be that for optimization,
+testing, porting or component- or tool development purposes.
 
 In combination With the <code>simlib.h</code> and <code>simcore.h</code> source files
-(given elsewhere), that include most of the mcstas runtime simulation code and shared 
-simulation libraries, this allows for a much more accessible debugging- and development
-environment.
+(given elsewhere), which include the mcstas runtime simulation code and 
+helper libraries, the code-generated .h files enables an accessible debugging- and development
+environment for McStas simualtions, which was previously unheard-of.
 
-- Wrap component code in a C++ context.
-- Development access to .comp and .instr code in an easilly debug-able runtime context.
+### Notes on the C++ port/compatibility
 
-This project is part of an exploratory project to re-image the mcstas core, and a stand-alone
-demonstration of the parser (and code-generation) section of that idea.
+Fourteen (14) components were ported, initially: Those comprising our example
+instrument, the infamouse PSI_DMC. This instrument was also code generated, and runs live
+simulation, plot and display, in the mctrace project (see above).
 
-### Note on C++ compatibility
+The original C code turned out to be very compatible with a standard C++ compiler (g++).
+Some explicit porting was necessary, but  straight-forward and not
+difficult.
 
-The original C code turned out to be fairly compatible with a standard C++ compiler (g++).
+All support for OpenMPI and PGCC/OpenAcc were excluded from the port, since these features
+are not essential for the purposes of this project.
 
-However, explicit porting of each component is still necessary. It was not difficult hard,
-but it can take a bit of extra development time to do.
-
-To be able to proceed with a proof-of-concept for high-level code, only the components
-included by the instrument PSI_DMC were ported so far. However, this includes multiple
-large and non-trivial components, such as Monitor_nD and Source_Maxwell. 
-
-NOTE: In addition to being ported, the support for MPI and PGCC/OpenAcc was removed
-for simplicity's sake. These features were not at all essential for the
-purpose of this project.
-
+First, they complicate the process, whoose first goal was a proof-of-concept. Second,
+as a re-imagining, such tools would perhaps be re-implemented differently. For example, 
+multi-threading would be implemented natively.
 
 ### Building high-level functionality
 
@@ -91,7 +104,17 @@ It also generates configuration code for instruments, which sets up the componen
 custom instrument initialization and EXTEND code, and initializes everything into a
 simulation-ready state.
 
-This is of course exactly what the mcstas-generated code does, but in a less accessible
-format: As a comparison, the mcstas-generator easily output 10000
-lines of hard-to-read generated code from your average, garden-variety non-trivial
-neutron- or x-ray instrument.
+This is of course exactly what the mcstas-generated code does, but in a much less
+accessible format. - As a comparison, the mcstas-generator easily outputs 10000
+lines of hard-to-read code for the PSI_DMC. Much of it either redundant library code
+or define-switched versions targetting a variety of platforms.
+
+### What about McXrace?
+
+Porting things to McXtrace is straight-forward, and follows exactly the steps that
+were demonstrated for the McStas code.
+
+These steps were not taken at present, for the same reason that just one instrument
+was initially ported, as not aligned with the project's purpose of being a proof-of-concept
+exploration, rather than a production-ready overhaul.
+
