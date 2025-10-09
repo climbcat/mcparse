@@ -257,9 +257,15 @@ int main (int argc, char **argv) {
         printf("--comps                 component file or library path\n");
         printf("--instrs                instrument file or library path\n");
         printf("--cogen                 generate code\n");
+        printf("--version               display mcparse version\n");
         printf("--test                  run enabled tests\n");
         printf("\n");
         exit(0);
+    }
+
+    else if (CLAContainsArg("--version", argc, argv)) {
+        // any test code here
+        printf("0.1.0\n");
     }
 
     else if (CLAContainsArg("--test", argc, argv)) {
