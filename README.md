@@ -7,8 +7,10 @@ file parser with improved usability and maintainability.
 
 This project is part of an exploratory re-imagining of the mcstas core. This 
 is a stand-alone demonstration of the parser and code-generation sections of that
-idea. A live-simulation and mcdisplay-like tools is presented as mctrace, see
-'https://github.com/climbcat/mctrace'.
+idea.
+
+For a high-level tool example, including 3D instrument display, plot, and live
+simulation, see the mctrace project: 'https://github.com/climbcat/mctrace'.
 
 ## build & run
 
