@@ -118,3 +118,5 @@ These steps were not taken at present, for the same reason that just one instrum
 was initially ported, as not aligned with the project's purpose of being a proof-of-concept
 exploration, rather than a production-ready overhaul.
 
+A Windows port is also very attainable, but time was not dedicated at this stage to
+thorought testing on multiple platforms.
