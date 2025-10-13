@@ -6,9 +6,9 @@ file parser and code generator, focusing on usability and maintainability.
 This project is part of an exploratory re-imagining of the mcstas core and is a stand-alone
 demonstration of parsing and code-generation.
 
-- Example bulk output: 'https://github.com/climbcat/mcparse/blob/main/example_output_0.1.0.md'
-- Example error output: 'https://github.com/climbcat/mcparse/blob/main/failtest_output_0.1.0.md' 
-- Tool building example: 'https://github.com/climbcat/mctrace'.
+- Example bulk output: https://github.com/climbcat/mcparse/blob/main/example_output_0.1.0.md
+- Example error output: https://github.com/climbcat/mcparse/blob/main/failtest_output_0.1.0.md
+- Tool building example: https://github.com/climbcat/mctrace
 
 The tool example is built on top of 'mcparse' code generated output, featuring 3D instrument display,
 plot and live simulation.
