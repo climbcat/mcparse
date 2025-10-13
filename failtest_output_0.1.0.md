@@ -1,8 +1,7 @@
 
-Testing stub instrument files in 'test/fail_tests/'.
+Test output for stub instrument files in 'test/fail_tests/':
 
-These test instrument files have typical typing mistakes designed to trigger
-parse errors.
+Tests mimic typical typing mistakes chosen to trigger various parse errors.
 
 <pre>
 ./build.sh
@@ -10,10 +9,7 @@ parse errors.
 </pre>
 
 
-1)
-
-File: 'test/fail_tests/test_02.instr'
-Mistake: Missing start paranthesis after instrument name
+### 01 - Missing start paranthesis after instrument name
 
 01-mcstas:
 
@@ -32,10 +28,7 @@ ERROR: Expected '(', got 'identifier'
 </pre>
 
 
-2)
-
-File: test_02.instr
-Mistake: Missing comma in INSTRUMENT parameter list
+### 02 - Missing comma in INSTRUMENT parameter list
 
 02-mcstas:
 
@@ -62,11 +55,7 @@ ERROR: Expected ',' or ')', got 'identifier'
                                               ^
 </pre>
 
-
-3)
-
-File: test_03.instr
-Mistake: Miss-spelled DECLARE as DECLARES
+### 03 - Miss-spelled DECLARE as DECLARES
 
 03-mcstas:
 
@@ -85,10 +74,7 @@ ERROR: Expected 'DECLARE', 'INITIALIZE, 'TRACE' or 'DEPENDENCY got 'DECLARES'
 </pre>
 
 
-4)
-
-File: test_04.instr
-Mistake: INITIALIZE section before DECLARE section
+### 04 - INITIALIZE section before DECLARE section
 
 04-mcstas:
 
@@ -107,10 +93,7 @@ ERROR: Expected 'TRACE', got 'DECLARE'
 </pre>
 
 
-5)
-
-File: test_05.instr
-Mistake: FINALLY section before TRACE
+### 05 - FINALLY section before TRACE
 
 05-mcstas:
 
@@ -129,10 +112,7 @@ ERROR: Expected 'TRACE', got 'FINALLY'
 </pre>
 
 
-6)
-
-File: test_06.instr
-Mistake: Missing default value after '=' when using COMPONENT
+### 06 - Missing default value after '=' when using COMPONENT
 
 06-mcstas:
 
