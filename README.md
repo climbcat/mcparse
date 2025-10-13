@@ -47,7 +47,7 @@ Improved McStas DSL parser:
 - Edit, then build and debug the light-weight parser in seconds
 
 This repository includes a set of ~ 350 components and ~ 150 instruments from McStas 3.
-As a test set, all of these are loaded and parsed in much less than a second.
+As a test set, all of these are loaded and parsed very quickly (see timing outputs at the end of the bulk example).
 Parses almost all of the DSL, except for a few, rarely-used legacy features,
 as well as unused grammars rules. A few of the files were modified with this in mind.
 
