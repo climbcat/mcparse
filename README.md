@@ -10,7 +10,7 @@ core, and is a stand-alone demonstration of parsing and code-generation.
 - Example error output: https://github.com/climbcat/mcparse/blob/main/failtest_output_0.1.0.md
 - Tool building example: https://github.com/climbcat/mctrace
 
-(See mccode.org for official information on the scientific simulation software.)
+For the official McCode simulation project for neutron- and x-ray scattering instrumentation, see [mccode.org](mccode.org).
 
 ## build & run
 
