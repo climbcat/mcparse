@@ -12,6 +12,25 @@ core, and is a stand-alone demonstration of parsing and code-generation.
 
 For the official McCode simulation project for neutron- and x-ray scattering instrumentation, see [mccode.org](mccode.org).
 
+## Features
+
+Improved McStas DSL parser:
+
+- Prints precise error messages and pin-points the line error, allowing users to quickly grasp the nature of a mistake
+- Much reduced library dependencies with no linking required; compiles in a second on older systems
+- Eliminates any parser-generator build steps
+- No abstract grammar-rule configuration (using e.g. lex/yacc), just the parser code
+- Edit build and debug the light-weight parser in seconds
+- Extensive test set, and convenient cli parameters for dry-parsing and code generation
+
+This repository includes a set of ~ 350 components and ~ 150 instruments from McStas 3.
+As a test set, all of these are loaded and parsed very quickly (see timing outputs at the end of the bulk example).
+
+Parses all of the DSL except for a few, rarely-used legacy features and a few unused grammars rules. Minor changes were applied to the otherwise standard test set of component and instrument files, in order to slightly streamline the DSL definition.
+
+Extends on the mcstas parser in actually parsing DECLARE sections, rather than copying them in bulk. As such, further testing will lead to the robust inclusion of function pointers and similar advanced corner cases, into the parser and, expecially, the code generator.
+
+
 ## build & run
 
 Download this repository, and execute the following commands: 
@@ -30,20 +49,7 @@ Run the tool by build doing, e.g.:
 
 Currently targetting Linux only.
 
-### Parsing
-
-Improved McStas DSL parser:
-
-- Prints precise error messages and pin-points the line error, allowing users to quickly grasp the nature of a mistake
-- Much reduced library dependencies with no linking required; compiles in 1-2 seconds on older systems
-- Eliminates any parser-generator build step
-- No abstract grammar-rule configuration (using e.g. lex/yacc), just the parser code
-- Edit, then build and debug the light-weight parser in seconds
-
-This repository includes a set of ~ 350 components and ~ 150 instruments from McStas 3.
-As a test set, all of these are loaded and parsed very quickly (see timing outputs at the end of the bulk example).
-Parses almost all of the DSL, except for a few, rarely-used legacy features,
-as well as unused grammars rules. A few of the files were modified with this in mind.
+## Parsing
 
 Notable omisions are the JUMP keyword and unused grammar rules such as the DEFINITION PARAMETERS.
 Function declarations and function pointers in DECLARE sections, are parsed,
