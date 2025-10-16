@@ -1,22 +1,16 @@
 # mcparse
 
-Custom parser for the mcstas McStas/McXtrace DSL: A modern, low-dependency instrument- and component
-file parser and code generator, focusing on usability and maintainability.
+Custom parser for the mcstas McStas DSL: A modern, low-dependency, instrument- and component 
+parser and code generator, focusing on usability and maintainability.
 
-This project is part of an exploratory re-imagining of the mcstas core and is a stand-alone
-demonstration of parsing and code-generation.
+This project is part of an exploratory re-imagining of the mcstas simulation
+core, and is a stand-alone demonstration of parsing and code-generation.
 
 - Example bulk output: https://github.com/climbcat/mcparse/blob/main/example_output_0.1.0.md
 - Example error output: https://github.com/climbcat/mcparse/blob/main/failtest_output_0.1.0.md
 - Tool building example: https://github.com/climbcat/mctrace
 
-The tool example is built on top of 'mcparse' code generated output, featuring 3D instrument display,
-plot and live simulation.
-
-At the time of writing, code generation features the 14 components and one instrument that were
-ported run on the experimental, modernized C++ engine.
-
-(See mccode.org for more details on the simulation package.)
+(See mccode.org for official information on the scientific simulation software.)
 
 ## build & run
 
