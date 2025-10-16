@@ -28,7 +28,15 @@ As a test set, all of these are loaded and parsed very quickly (see timing outpu
 
 Parses all of the DSL except for a few, rarely-used legacy features and a few unused grammars rules. Minor changes were applied to the otherwise standard test set of component and instrument files, in order to slightly streamline the DSL definition.
 
-Extends on the mcstas parser in actually parsing DECLARE sections, rather than copying them in bulk. As such, further testing will lead to the robust inclusion of function pointers and similar advanced corner cases, into the parser and, expecially, the code generator.
+Notable omisions are the JUMP keyword and unused grammar rules such as the DEFINITION PARAMETERS.
+Function declarations and function pointers in DECLARE sections, are parsed,
+but not syntax checked, nor captured for code generation, since these were not required for the 
+present purposes.
+
+The parser improves on parsing security in some respects, for example, declarations 
+in DECLARE sections are treated as actual C struct members, or an error is produced.
+It also checks argument default values for validity, a mistake that would otherwise
+be caught only at runtime.
 
 
 ## build & run
@@ -49,19 +57,8 @@ Run the tool by build doing, e.g.:
 
 Currently targetting Linux only.
 
-## Parsing
 
-Notable omisions are the JUMP keyword and unused grammar rules such as the DEFINITION PARAMETERS.
-Function declarations and function pointers in DECLARE sections, are parsed,
-but not syntax checked, nor captured for code generation, since these were not required for the 
-present purposes.
-
-The parser improves on parsing security in some respects, for example, declarations 
-in DECLARE sections are treated as actual C struct members, or an error is produced.
-It also checks argument default values for validity, a mistake that would otherwise
-be caught only at runtime.
-
-### Code Generation
+## Code Generation
 
 In addition to parsing, this project includes a code generator which outputs component
 functions and type wrappers. This is output in C++, and requires C++-compliant component code.
