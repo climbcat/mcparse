@@ -1,16 +1,43 @@
 # mcparse
 
-Custom parser for the mcstas McStas/McXtrace DSL: A low-dependency .instr and .comp
-file parser with improved usability and maintainability.
+Custom parser for the mcstas McStas DSL: A modern, low-dependency, instrument- and component 
+parser and code generator, focusing on usability and maintainability.
 
-(See mccode.org.)
+This project is part of an exploratory re-imagining of the mcstas simulation
+core, and is a stand-alone demonstration of parsing and code-generation.
 
-This project is part of an exploratory re-imagining of the mcstas core. This 
-is a stand-alone demonstration of the parser and code-generation sections of that
-idea.
+- Example bulk output: https://github.com/climbcat/mcparse/blob/main/example_output_0.1.0.md
+- Example error output: https://github.com/climbcat/mcparse/blob/main/failtest_output_0.1.0.md
+- Tool building example: https://github.com/climbcat/mctrace
 
-For a high-level tool example, including 3D instrument display, plot, and live
-simulation, see the mctrace project: 'https://github.com/climbcat/mctrace'.
+For the official McCode simulation project for neutron- and x-ray scattering instrumentation, see [mccode.org](mccode.org).
+
+## Features
+
+Improved McStas DSL parser:
+
+- Prints precise error messages and pin-points the line error, allowing users to quickly grasp the nature of a mistake
+- Much reduced library dependencies with no linking required; compiles in a second on older systems
+- Eliminates any parser-generator build steps
+- No abstract grammar-rule configuration (using e.g. lex/yacc), just the parser code
+- Edit build and debug the light-weight parser in seconds
+- Extensive test set, and convenient cli parameters for dry-parsing and code generation
+
+This repository includes a set of ~ 350 components and ~ 150 instruments from McStas 3.
+As a test set, all of these are loaded and parsed very quickly (see timing outputs at the end of the bulk example).
+
+Parses all of the DSL except for a few, rarely-used legacy features and a few unused grammars rules. Minor changes were applied to the otherwise standard test set of component and instrument files, in order to slightly streamline the DSL definition.
+
+Notable omisions are the JUMP keyword and unused grammar rules such as the DEFINITION PARAMETERS.
+Function declarations and function pointers in DECLARE sections, are parsed,
+but not syntax checked, nor captured for code generation, since these were not required for the 
+present purposes.
+
+The parser improves on parsing security in some respects, for example, declarations 
+in DECLARE sections are treated as actual C struct members, or an error is produced.
+It also checks argument default values for validity, a mistake that would otherwise
+be caught only at runtime.
+
 
 ## build & run
 
@@ -30,32 +57,8 @@ Run the tool by build doing, e.g.:
 
 Currently targetting Linux only.
 
-### Parsing
 
-Improved McStas DSL parser:
-
-- Prints precise error messages and pin-points the line error, allowing users to quickly grasp the nature of a mistake
-- Much reduced library dependencies with no linking required; compiles in 1-2 seconds on older systems
-- Eliminates any parser-generator build step
-- No abstract grammar-rule configuration (using e.g. lex/yacc), just the parser code
-- Edit, then build and debug the light-weight parser in seconds
-
-This repository includes a set of ~ 350 components and ~ 150 instruments from McStas 3.
-As a test set, all of these are loaded and parsed in much less than a second.
-Parses almost all of the DSL, except for a few, rarely-used legacy features,
-as well as unused grammars rules. A few of the files were modified with this in mind.
-
-Notable omisions are the JUMP keyword and unused grammar rules such as the DEFINITION PARAMETERS.
-Function declarations and function pointers in DECLARE sections, are parsed,
-but not syntax checked, nor captured for code generation, since these were not required for the 
-present purposes.
-
-The parser improves on parsing security in some respects, for example, declarations 
-in DECLARE sections are treated as actual C struct members, or an error is produced.
-It also checks argument default values for validity, a mistake that would otherwise
-be caught only at runtime.
-
-### Code Generation
+## Code Generation
 
 In addition to parsing, this project includes a code generator which outputs component
 functions and type wrappers. This is output in C++, and requires C++-compliant component code.
